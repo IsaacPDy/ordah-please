@@ -11,7 +11,7 @@ Update this file after every meaningful implementation change.
 
 ## Current Goal
 
-- Complete Task 0.2: establish real test infrastructure and continuous-integration gates before feature behavior begins.
+- Run Task 0.3 UI/design-shell work and Task 1.1 domain/contracts work in separate worktrees from the reviewed test baseline.
 
 ## Completed V1 Tasks
 
@@ -36,10 +36,12 @@ Update this file after every meaningful implementation change.
 - [x] V1 implementation plan approved
 - [x] V1 implementation plan categorized into eight branch-owned workstreams
 - [x] V1-01 Task 0.1 shared workspace shell
+- [x] V1-01 Task 0.2 shared tests and continuous integration
 
 ## In Progress V1 Tasks
 
-- [ ] V1-01 Task 0.2 shared tests and continuous integration
+- [ ] V1-01 Task 0.3 shared visual foundation and navigation shells
+- [ ] V1-02 Task 1.1 shared domain primitives and API envelopes
 
 ## Pending V1 Implementation Tasks
 
@@ -104,5 +106,7 @@ Update this file after every meaningful implementation change.
 - Parallel implementation is organized into Foundation, UI, Domain/Contracts, Database, Backend/Access, Storage/Catalog, Jobs/Notifications, and Release/Quality workstreams.
 - Task 0.1 remains single-owner because all later worktrees depend on its workspace and dependency baseline.
 - Task 0.1 merged after independent review. Clean verification passed for `npm ci`, type checking, linting, current test commands, the Next.js production build, all shared-package builds, formatting, Expo Android export, and dependency-tree validation.
+- Task 0.2 merged after test-first implementation and independent review. Vitest covers pure/server TypeScript, Jest with Expo and React Native Testing Library covers native components, Playwright provides separate member/admin browser projects, and GitHub Actions runs the provider-free quality gates.
+- Task 0.2 RED evidence was observed for Vitest, native component rendering, Playwright, and workspace-relative test discovery before the corrected suites passed.
 - Twelve moderate transitive advisories remain in the current official Next.js and Expo dependency trees. Forced audit fixes are prohibited because npm proposes architecture-breaking major downgrades; adopt compatible upstream patches when available.
 - Added a product-only root `README.md` that summarizes the approved purpose, capabilities, order flow, and manual Grab checkout boundary.
