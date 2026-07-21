@@ -6,11 +6,12 @@ Update this file after every meaningful implementation change.
 
 - V1 product definition, architecture, and visual direction approved.
 - V1 context documentation created.
-- Application implementation not started.
+- V1 implementation approved on 2026-07-21.
+- Phase 0 repository and local-quality foundation starting.
 
 ## Current Goal
 
-- Review the updated `ordah please` context and selected visual direction before creating the implementation plan.
+- Complete Task 0.1: create the shared TypeScript workspace shell that later UI, domain, database, backend, provider, and quality worktrees will branch from.
 
 ## Completed V1 Tasks
 
@@ -29,11 +30,15 @@ Update this file after every meaningful implementation change.
 - [x] V1 corrected Option 1 reference saved at `context/assets/ordah-please-option-1.png`
 - [x] V1 English-only application-authored language rule
 - [x] V1 service setup tutorial and variable registry in `context/services.md`
+- [x] Product-focused root `README.md` drafted
+- [x] V1 implementation plan approved
+- [x] V1 implementation plan categorized into eight branch-owned workstreams
 
 ## In Progress V1 Tasks
 
-- [ ] V1 context review and correction
-- [ ] V1 implementation plan
+- [x] V1 context review and correction
+- [x] V1 implementation plan documented in `context/specs/01-v1-implementation-plan.md`
+- [ ] V1-01 Task 0.1 shared workspace shell
 
 ## Pending V1 Implementation Tasks
 
@@ -93,4 +98,8 @@ Update this file after every meaningful implementation change.
 
 - All product and architecture decisions approved in the planning conversation are recorded in `context/`.
 - Read `context/specs/00-v1-product-design.md` for the consolidated approved design.
-- Do not scaffold the application until the user reviews these files and approves moving to the implementation plan.
+- Read `context/specs/01-v1-implementation-plan.md` for the dependency-aware build sequence, service gates, verification requirements, and release milestones.
+- The user approved implementation on 2026-07-21.
+- Parallel implementation is organized into Foundation, UI, Domain/Contracts, Database, Backend/Access, Storage/Catalog, Jobs/Notifications, and Release/Quality workstreams.
+- Task 0.1 remains single-owner because all later worktrees depend on its workspace and dependency baseline.
+- Added a product-only root `README.md` that summarizes the approved purpose, capabilities, order flow, and manual Grab checkout boundary.
