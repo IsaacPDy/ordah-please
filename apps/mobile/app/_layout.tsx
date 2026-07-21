@@ -9,13 +9,13 @@ import { paperTheme } from "../src/theme/paper-theme";
 
 /** Provides fonts, shared Paper styling, and the root navigation boundary for the mobile app. */
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     NunitoSans_400Regular,
     NunitoSans_600SemiBold,
     NunitoSans_700Bold,
   });
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 
