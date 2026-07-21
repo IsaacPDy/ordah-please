@@ -3,8 +3,8 @@
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "outDir": "dist",
     "rootDir": "src",
     "sourceMap": true,
