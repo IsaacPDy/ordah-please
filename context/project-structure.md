@@ -5,10 +5,12 @@
 ```text
 Order App/                        # Current workspace; project slug is ordah-please
 ├── .env.example                # Approved variable names only; no real values
+├── .github/workflows/ci.yml    # Provider-free repository quality gates
 ├── .nvmrc                      # Shared Node.js version
 ├── AGENTS.md
 ├── apps/
 │   ├── mobile/                 # Expo Router Android shell and fixed application identity
+│   │   ├── __tests__/          # Jest/React Native Testing Library component tests
 │   │   └── app/                # Mobile routes; feature routes are added by later tasks
 │   └── web/                    # Next.js App Router shell for the PWA, admin portal, and API
 │       └── app/                # Web routes; member, admin, and API groups are added later
@@ -36,10 +38,13 @@ Order App/                        # Current workspace; project slug is ordah-ple
 ├── eslint.shared.mjs           # Strict typed rules composed with each framework preset
 ├── package.json                # npm workspaces and repository-wide commands
 ├── package-lock.json           # One reproducible dependency graph for every workspace
-└── tsconfig.base.json          # Strict TypeScript rules inherited by apps and packages
+├── tests/e2e/                  # Playwright member/admin browser projects
+├── tsconfig.json               # Root test and tool configuration type checking
+├── tsconfig.base.json          # Strict TypeScript rules inherited by apps and packages
+└── vitest.config.ts            # Shared-package and server Node test projects
 ```
 
-Task 0.1 creates only the framework and package boundaries. Feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
+Tasks 0.1 and 0.2 create the framework, package, and quality boundaries. Feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
 
 ## Ownership Rules
 

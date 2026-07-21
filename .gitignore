@@ -6,6 +6,8 @@ coverage/
 .expo/
 .turbo/
 out/
+playwright-report/
+test-results/
 *.tsbuildinfo
 
 # Local environment values; the variable-name-only template stays committed
