@@ -17,7 +17,7 @@ export default function AdminLayout({
       </aside>
       <div className="admin-workspace">
         <header className="admin-header">
-          <h1>Admin workspace</h1>
+          <p className="admin-workspace-title">Admin workspace</p>
         </header>
         <main className="admin-content" id="admin-content">
           {children}

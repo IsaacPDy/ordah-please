@@ -1,3 +1,4 @@
+import { designTokens } from "@ordah-please/ui";
 import {
   Heart,
   House,
@@ -15,6 +16,23 @@ export type MemberTab = Readonly<{
   routeName: "index" | "orders" | "favorites" | "team";
 }>;
 
+/** Uses the approved high-emphasis green where active tab text must remain readable on white. */
+export const memberTabActiveColor = designTokens.colors.primaryStrong;
+
+/** Connects the runtime tab item directly to the shared minimum touch-target token. */
+export const memberTabItemStyle = {
+  minHeight: designTokens.touchTarget.minimum,
+  minWidth: designTokens.touchTarget.minimum,
+} as const;
+
+/** Styles the tab surface without replacing the navigator's device bottom inset. */
+export const memberTabBarStyle = {
+  backgroundColor: designTokens.colors.surface,
+  borderTopColor: designTokens.colors.border,
+  minHeight: 72,
+  paddingTop: designTokens.spacing.xs,
+} as const;
+
 /** Defines the member destinations once so labels, routes, icons, and accessibility stay aligned. */
 export const memberTabs: readonly MemberTab[] = [
   {
@@ -22,7 +40,7 @@ export const memberTabs: readonly MemberTab[] = [
     href: "/",
     icon: House,
     label: "Home",
-    minimumTouchTarget: 44,
+    minimumTouchTarget: designTokens.touchTarget.minimum,
     routeName: "index",
   },
   {
@@ -30,7 +48,7 @@ export const memberTabs: readonly MemberTab[] = [
     href: "/orders",
     icon: ShoppingBag,
     label: "Orders",
-    minimumTouchTarget: 44,
+    minimumTouchTarget: designTokens.touchTarget.minimum,
     routeName: "orders",
   },
   {
@@ -38,7 +56,7 @@ export const memberTabs: readonly MemberTab[] = [
     href: "/favorites",
     icon: Heart,
     label: "Favorites",
-    minimumTouchTarget: 44,
+    minimumTouchTarget: designTokens.touchTarget.minimum,
     routeName: "favorites",
   },
   {
@@ -46,7 +64,7 @@ export const memberTabs: readonly MemberTab[] = [
     href: "/team",
     icon: Users,
     label: "Team",
-    minimumTouchTarget: 44,
+    minimumTouchTarget: designTokens.touchTarget.minimum,
     routeName: "team",
   },
 ];

@@ -4,15 +4,20 @@ import type { Metadata } from "next";
 import type { CSSProperties, ReactNode } from "react";
 import "./globals.css";
 
+import { shellColors } from "./shell-colors";
+
 export const metadata: Metadata = {
   description: "Private food-order planning for friends.",
   title: "ordah please",
 };
 
 const webTokenStyle = {
+  "--color-active-navigation": shellColors.activeNavigation,
   "--color-border": designTokens.colors.border,
+  "--color-brand": shellColors.brand,
   "--color-canvas": designTokens.colors.canvas,
   "--color-error": designTokens.colors.error,
+  "--color-icon-on-surface": shellColors.iconOnSurface,
   "--color-on-primary": designTokens.colors.onPrimary,
   "--color-primary": designTokens.colors.primary,
   "--color-primary-strong": designTokens.colors.primaryStrong,

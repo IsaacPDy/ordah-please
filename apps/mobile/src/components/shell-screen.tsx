@@ -2,6 +2,7 @@ import { designTokens } from "@ordah-please/ui";
 import type { LucideIcon } from "lucide-react-native";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Surface, Text } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type ShellScreenProps = Readonly<{
   description: string;
@@ -18,50 +19,60 @@ export function ShellScreen({
   title,
 }: ShellScreenProps) {
   return (
-    <ScrollView
-      contentContainerStyle={styles.content}
-      style={styles.screen}
-      testID="member-shell"
+    <SafeAreaView
+      edges={["top"]}
+      style={styles.safeArea}
+      testID="member-safe-area"
     >
-      <View style={styles.brandHeader}>
-        <Text maxFontSizeMultiplier={2} style={styles.brand}>
-          ordah please
-        </Text>
-      </View>
-
-      <View style={styles.pageHeading}>
-        <Text
-          accessibilityLabel={title}
-          accessibilityRole="header"
-          maxFontSizeMultiplier={2}
-          style={styles.title}
-        >
-          {title}
-        </Text>
-      </View>
-
-      <Surface elevation={1} style={styles.emptyState}>
-        <View accessibilityElementsHidden style={styles.iconSurface}>
-          <Icon color={designTokens.colors.primary} size={32} strokeWidth={2} />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        style={styles.screen}
+        testID="member-shell"
+      >
+        <View style={styles.brandHeader}>
+          <Text maxFontSizeMultiplier={2} style={styles.brand}>
+            ordah please
+          </Text>
         </View>
-        <Text
-          accessibilityRole="header"
-          maxFontSizeMultiplier={2}
-          style={styles.emptyTitle}
-        >
-          {emptyTitle}
-        </Text>
-        <Text maxFontSizeMultiplier={2} style={styles.description}>
-          {description}
-        </Text>
-      </Surface>
-    </ScrollView>
+
+        <View style={styles.pageHeading}>
+          <Text
+            accessibilityLabel={title}
+            accessibilityRole="header"
+            maxFontSizeMultiplier={2}
+            style={styles.title}
+          >
+            {title}
+          </Text>
+        </View>
+
+        <Surface elevation={1} style={styles.emptyState}>
+          <View accessibilityElementsHidden style={styles.iconSurface}>
+            <Icon
+              color={designTokens.colors.primaryStrong}
+              size={32}
+              strokeWidth={2}
+            />
+          </View>
+          <Text
+            accessibilityRole="header"
+            maxFontSizeMultiplier={2}
+            style={styles.emptyTitle}
+          >
+            {emptyTitle}
+          </Text>
+          <Text maxFontSizeMultiplier={2} style={styles.description}>
+            {description}
+          </Text>
+        </Surface>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   brand: {
-    color: designTokens.colors.primary,
+    color: designTokens.colors.primaryStrong,
     fontFamily: "NunitoSans_700Bold",
     fontSize: designTokens.typography.size.display,
   },
@@ -108,6 +119,10 @@ const styles = StyleSheet.create({
   },
   pageHeading: {
     paddingBottom: designTokens.spacing.md,
+  },
+  safeArea: {
+    backgroundColor: designTokens.colors.canvas,
+    flex: 1,
   },
   screen: {
     backgroundColor: designTokens.colors.canvas,

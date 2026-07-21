@@ -11,9 +11,19 @@ Order App/                        # Current workspace; project slug is ordah-ple
 ├── apps/
 │   ├── mobile/                 # Expo Router Android shell and fixed application identity
 │   │   ├── __tests__/          # Jest/React Native Testing Library component tests
-│   │   └── app/                # Mobile routes; feature routes are added by later tasks
+│   │   ├── app/
+│   │   │   └── (member)/       # Home, Orders, Favorites, and Team tab shells
+│   │   └── src/
+│   │       ├── components/     # Dynamic-text-safe native shell composition
+│   │       ├── navigation/     # Shared member-tab labels, icons, and runtime styles
+│   │       └── theme/          # React Native Paper mapping to shared tokens
 │   └── web/                    # Next.js App Router shell for the PWA, admin portal, and API
-│       └── app/                # Web routes; member, admin, and API groups are added later
+│       └── app/
+│           ├── (member)/       # Responsive member Home, Orders, Favorites, and Team shells
+│           ├── admin/          # Separate desktop/responsive admin navigation shell
+│           ├── components/     # Web-only shell navigation and honest empty states
+│           ├── shell-colors.ts # Accessible semantic color pairings for approved tokens
+│           └── shell-navigation.ts # Separate member and admin destination definitions
 ├── packages/
 │   ├── contracts/              # Buildable shell for shared validation and API shapes
 │   ├── db/                     # Buildable shell for Neon schema, migrations, and queries
@@ -21,7 +31,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   ├── jobs/                   # Buildable shell for QStash scheduling and handlers
 │   ├── notifications/          # Buildable shell for notification events and OneSignal
 │   ├── storage/                # Buildable shell for R2 signed URLs and object naming
-│   └── ui/                     # Buildable shell for cross-client tokens and primitives
+│   └── ui/                     # Shared semantic colors, spacing, radii, typography, elevation, and touch targets
 ├── context/
 │   ├── assets/                 # Approved visual references used during implementation
 │   ├── specs/
@@ -44,7 +54,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 └── vitest.config.ts            # Shared-package and server Node test projects
 ```
 
-Tasks 0.1 and 0.2 create the framework, package, and quality boundaries. Feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
+Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens; feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
 
 ## Ownership Rules
 
