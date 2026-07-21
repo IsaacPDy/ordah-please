@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react-native";
 
-import HomeScreen from "../app/index";
+import HomeScreen from "../app/(member)/index";
 
 describe("HomeScreen", () => {
   it("shows the product identity on the native entry screen", async () => {
