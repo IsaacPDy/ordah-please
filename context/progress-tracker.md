@@ -7,11 +7,11 @@ Update this file after every meaningful implementation change.
 - V1 product definition, architecture, and visual direction approved.
 - V1 context documentation created.
 - V1 implementation approved on 2026-07-21.
-- Phase 0 repository and local-quality foundation starting.
+- Phase 0 repository and local-quality foundation in progress.
 
 ## Current Goal
 
-- Complete Task 0.1: create the shared TypeScript workspace shell that later UI, domain, database, backend, provider, and quality worktrees will branch from.
+- Complete Task 0.2: establish real test infrastructure and continuous-integration gates before feature behavior begins.
 
 ## Completed V1 Tasks
 
@@ -31,14 +31,15 @@ Update this file after every meaningful implementation change.
 - [x] V1 English-only application-authored language rule
 - [x] V1 service setup tutorial and variable registry in `context/services.md`
 - [x] Product-focused root `README.md` drafted
+- [x] V1 context review and correction
+- [x] V1 implementation plan documented in `context/specs/01-v1-implementation-plan.md`
 - [x] V1 implementation plan approved
 - [x] V1 implementation plan categorized into eight branch-owned workstreams
+- [x] V1-01 Task 0.1 shared workspace shell
 
 ## In Progress V1 Tasks
 
-- [x] V1 context review and correction
-- [x] V1 implementation plan documented in `context/specs/01-v1-implementation-plan.md`
-- [ ] V1-01 Task 0.1 shared workspace shell
+- [ ] V1-01 Task 0.2 shared tests and continuous integration
 
 ## Pending V1 Implementation Tasks
 
@@ -102,4 +103,6 @@ Update this file after every meaningful implementation change.
 - The user approved implementation on 2026-07-21.
 - Parallel implementation is organized into Foundation, UI, Domain/Contracts, Database, Backend/Access, Storage/Catalog, Jobs/Notifications, and Release/Quality workstreams.
 - Task 0.1 remains single-owner because all later worktrees depend on its workspace and dependency baseline.
+- Task 0.1 merged after independent review. Clean verification passed for `npm ci`, type checking, linting, current test commands, the Next.js production build, all shared-package builds, formatting, Expo Android export, and dependency-tree validation.
+- Twelve moderate transitive advisories remain in the current official Next.js and Expo dependency trees. Forced audit fixes are prohibited because npm proposes architecture-breaking major downgrades; adopt compatible upstream patches when available.
 - Added a product-only root `README.md` that summarizes the approved purpose, capabilities, order flow, and manual Grab checkout boundary.
