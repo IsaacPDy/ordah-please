@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "ordah please",
+    "slug": "ordah-please",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ordahplease",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "ordahplease.app"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,21 +1,25 @@
 # Project Structure
 
-## Planned Repository Layout
+## Current Repository Layout
 
 ```text
 Order App/                        # Current workspace; project slug is ordah-please
+├── .env.example                # Approved variable names only; no real values
+├── .nvmrc                      # Shared Node.js version
 ├── AGENTS.md
 ├── apps/
-│   ├── mobile/                 # Expo Android application
-│   └── web/                    # Next.js iPhone PWA, admin portal, and API
+│   ├── mobile/                 # Expo Router Android shell and fixed application identity
+│   │   └── app/                # Mobile routes; feature routes are added by later tasks
+│   └── web/                    # Next.js App Router shell for the PWA, admin portal, and API
+│       └── app/                # Web routes; member, admin, and API groups are added later
 ├── packages/
-│   ├── contracts/              # Shared validation and API shapes
-│   ├── db/                     # Neon schema, migrations, and queries
-│   ├── domain/                 # Business rules and state transitions
-│   ├── jobs/                   # QStash scheduling and handlers
-│   ├── notifications/          # Notification events and OneSignal adapter
-│   ├── storage/                # R2 signed URLs and object naming
-│   └── ui/                     # Approved cross-client design tokens and primitives
+│   ├── contracts/              # Buildable shell for shared validation and API shapes
+│   ├── db/                     # Buildable shell for Neon schema, migrations, and queries
+│   ├── domain/                 # Buildable shell for business rules and state transitions
+│   ├── jobs/                   # Buildable shell for QStash scheduling and handlers
+│   ├── notifications/          # Buildable shell for notification events and OneSignal
+│   ├── storage/                # Buildable shell for R2 signed URLs and object naming
+│   └── ui/                     # Buildable shell for cross-client tokens and primitives
 ├── context/
 │   ├── assets/                 # Approved visual references used during implementation
 │   ├── specs/
@@ -28,8 +32,13 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   ├── code-standards.md
 │   ├── ai-workflow-rules.md
 │   └── progress-tracker.md
-└── package.json                # Workspace scripts and shared tooling
+├── eslint.config.mjs           # Shared strict lint rules
+├── package.json                # npm workspaces and repository-wide commands
+├── package-lock.json           # One reproducible dependency graph for every workspace
+└── tsconfig.base.json          # Strict TypeScript rules inherited by apps and packages
 ```
+
+Task 0.1 creates only the framework and package boundaries. Feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
 
 ## Ownership Rules
 

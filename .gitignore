@@ -1,0 +1,39 @@
+# Dependencies and generated output
+node_modules/
+dist/
+coverage/
+.next/
+.expo/
+.turbo/
+out/
+*.tsbuildinfo
+
+# Local environment values; the variable-name-only template stays committed
+.env
+.env.*
+!.env.example
+
+# Hosting and build metadata
+.vercel/
+.eas/
+apps/mobile/android/
+apps/mobile/ios/
+
+# Credentials and signing material
+*.jks
+*.keystore
+*.p8
+*.p12
+*.pem
+google-services.json
+GoogleService-Info.plist
+
+# Editors and operating systems
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
