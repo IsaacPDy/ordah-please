@@ -8,10 +8,11 @@ Update this file after every meaningful implementation change.
 - V1 context documentation created.
 - V1 implementation approved on 2026-07-21.
 - Phase 0 repository and local-quality foundation complete.
+- Phase 1 provider-free contracts and domain rules in progress.
 
 ## Current Goal
 
-- Begin V1-02 provider-free domain and API-contract work from the completed V1-01 baseline.
+- Continue V1-02 with Task 1.2 menu, favorite, order, vote, and history contracts, followed by Task 1.3 pure policy rules.
 
 ## Completed V1 Tasks
 
@@ -38,10 +39,11 @@ Update this file after every meaningful implementation change.
 - [x] V1-01 Task 0.1 shared workspace shell
 - [x] V1-01 Task 0.2 shared tests and continuous integration
 - [x] V1-01 Task 0.3 shared visual foundation and navigation shells
+- [x] V1-02 Task 1.1 shared domain primitives and API envelopes
 
 ## In Progress V1 Tasks
 
-- [ ] V1-02 Task 1.1 shared domain primitives and API envelopes
+- [ ] V1-02 Task 1.2 menu, favorite, order, vote, and history contracts
 
 ## Pending V1 Implementation Tasks
 
@@ -111,5 +113,8 @@ Update this file after every meaningful implementation change.
 - Task 0.3 merged into the V1-01 branch after RED-first token, navigation, contrast, safe-area, heading, and font-failure tests plus independent review. The member and admin shells share semantic tokens while keeping their navigation structures separate.
 - Task 0.3 live browser verification passed at 390 by 844 for the member PWA and 1440 by 900 for admin: navigation, active state, keyboard focus, minimum target sizes, overflow, heading structure, computed colors/fonts, and console logs were checked. Native Android pixel fidelity remains an explicit release-gate check; tests and Android export passed without claiming emulator/device visual proof.
 - No external service account or login was required for V1-01.
+- Task 1.1 merged into the V1-02 branch after independent review. Branded IDs, integer-centavo boundaries, UTC timestamp helpers, roles, API envelopes, stable errors, and pagination contracts are covered by focused tests. Follow-up regressions reject negative zero, preserve maximum safe-integer centavos exactly, and reject explicit `null` pagination values.
+- The reconstructed cumulative V1-02 branch passed a clean `npm ci`, all workspace type checks and lint checks, 61 Vitest tests, 7 mobile Jest tests, every package build, the 11-route Next.js production build, formatting, and `git diff --check`.
+- No external service account or login was required for V1-02 Task 1.1. The next service gate remains Neon after Tasks 1.2 and 1.3 complete the provider-free domain foundation.
 - Twelve moderate transitive advisories remain in the current official Next.js and Expo dependency trees. Forced audit fixes are prohibited because npm proposes architecture-breaking major downgrades; adopt compatible upstream patches when available.
 - Added a product-only root `README.md` that summarizes the approved purpose, capabilities, order flow, and manual Grab checkout boundary.
