@@ -32,7 +32,8 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   ├── code-standards.md
 │   ├── ai-workflow-rules.md
 │   └── progress-tracker.md
-├── eslint.config.mjs           # Shared strict lint rules
+├── eslint.config.mjs           # Root lint scope and generated-output ignores
+├── eslint.shared.mjs           # Strict typed rules composed with each framework preset
 ├── package.json                # npm workspaces and repository-wide commands
 ├── package-lock.json           # One reproducible dependency graph for every workspace
 └── tsconfig.base.json          # Strict TypeScript rules inherited by apps and packages

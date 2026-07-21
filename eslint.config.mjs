@@ -1,32 +1,13 @@
-import eslint from "@eslint/js";
-import prettier from "eslint-config-prettier";
-import globals from "globals";
-import tseslint from "typescript-eslint";
+import { defineConfig, globalIgnores } from "eslint/config";
+import { sharedStrictConfig } from "./eslint.shared.mjs";
 
-export default tseslint.config(
-  {
-    ignores: [
-      "**/.expo/**",
-      "**/.next/**",
-      "**/coverage/**",
-      "**/dist/**",
-      "**/node_modules/**",
-    ],
-  },
-  eslint.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  {
-    files: ["**/*.{ts,tsx}"],
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
-  },
-  prettier,
-);
+export default defineConfig([
+  globalIgnores([
+    "**/.expo/**",
+    "**/.next/**",
+    "**/coverage/**",
+    "**/dist/**",
+    "**/node_modules/**",
+  ]),
+  ...sharedStrictConfig,
+]);
