@@ -7,6 +7,13 @@ describe("parsePagination", () => {
     expect(parsePagination({})).toEqual({ limit: 20, offset: 0 });
   });
 
+  it("uses bounded defaults when pagination fields are explicitly undefined", () => {
+    expect(parsePagination({ limit: undefined, offset: undefined })).toEqual({
+      limit: 20,
+      offset: 0,
+    });
+  });
+
   it("accepts integer pagination values at their upper bounds", () => {
     expect(parsePagination({ limit: 100, offset: 10_000 })).toEqual({
       limit: 100,
@@ -23,6 +30,12 @@ describe("parsePagination", () => {
     },
   );
 
+  it("rejects an explicit null limit instead of treating it as omitted", () => {
+    expect(() => parsePagination({ limit: null })).toThrowError(
+      new TypeError("Pagination limit must be an integer from 1 to 100."),
+    );
+  });
+
   it.each([-1, 10_001, 1.5, Number.NaN, "0"])(
     "rejects invalid page offset %s",
     (offset) => {
@@ -31,6 +44,12 @@ describe("parsePagination", () => {
       );
     },
   );
+
+  it("rejects an explicit null offset instead of treating it as omitted", () => {
+    expect(() => parsePagination({ offset: null })).toThrowError(
+      new TypeError("Pagination offset must be an integer from 0 to 10000."),
+    );
+  });
 
   it.each([null, [], "", 20])(
     "rejects non-object pagination input %#",
