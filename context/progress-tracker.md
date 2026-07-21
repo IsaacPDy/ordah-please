@@ -7,11 +7,11 @@ Update this file after every meaningful implementation change.
 - V1 product definition, architecture, and visual direction approved.
 - V1 context documentation created.
 - V1 implementation approved on 2026-07-21.
-- Phase 0 repository and local-quality foundation in progress.
+- Phase 0 repository and local-quality foundation complete.
 
 ## Current Goal
 
-- Run Task 0.3 UI/design-shell work and Task 1.1 domain/contracts work in separate worktrees from the reviewed test baseline.
+- Begin V1-02 provider-free domain and API-contract work from the completed V1-01 baseline.
 
 ## Completed V1 Tasks
 
@@ -37,15 +37,15 @@ Update this file after every meaningful implementation change.
 - [x] V1 implementation plan categorized into eight branch-owned workstreams
 - [x] V1-01 Task 0.1 shared workspace shell
 - [x] V1-01 Task 0.2 shared tests and continuous integration
+- [x] V1-01 Task 0.3 shared visual foundation and navigation shells
 
 ## In Progress V1 Tasks
 
-- [ ] V1-01 Task 0.3 shared visual foundation and navigation shells
 - [ ] V1-02 Task 1.1 shared domain primitives and API envelopes
 
 ## Pending V1 Implementation Tasks
 
-- [ ] V1-01 Initialize the TypeScript monorepo, shared tooling, Expo Android app, and Next.js web app
+- [x] V1-01 Initialize the TypeScript monorepo, shared tooling, Expo Android app, and Next.js web app
 - [ ] V1-02 Define shared API contracts and provider-neutral domain types
 - [ ] V1-03 Create the Neon schema, migrations, pooled database access, and immutable audit model
 - [ ] V1-04 Integrate Clerk Google sign-in across Android and web and map identities into Neon
@@ -108,5 +108,8 @@ Update this file after every meaningful implementation change.
 - Task 0.1 merged after independent review. Clean verification passed for `npm ci`, type checking, linting, current test commands, the Next.js production build, all shared-package builds, formatting, Expo Android export, and dependency-tree validation.
 - Task 0.2 merged after test-first implementation and independent review. Vitest covers pure/server TypeScript, Jest with Expo and React Native Testing Library covers native components, Playwright provides separate member/admin browser projects, and GitHub Actions runs the provider-free quality gates.
 - Task 0.2 RED evidence was observed for Vitest, native component rendering, Playwright, and workspace-relative test discovery before the corrected suites passed.
+- Task 0.3 merged into the V1-01 branch after RED-first token, navigation, contrast, safe-area, heading, and font-failure tests plus independent review. The member and admin shells share semantic tokens while keeping their navigation structures separate.
+- Task 0.3 live browser verification passed at 390 by 844 for the member PWA and 1440 by 900 for admin: navigation, active state, keyboard focus, minimum target sizes, overflow, heading structure, computed colors/fonts, and console logs were checked. Native Android pixel fidelity remains an explicit release-gate check; tests and Android export passed without claiming emulator/device visual proof.
+- No external service account or login was required for V1-01.
 - Twelve moderate transitive advisories remain in the current official Next.js and Expo dependency trees. Forced audit fixes are prohibited because npm proposes architecture-breaking major downgrades; adopt compatible upstream patches when available.
 - Added a product-only root `README.md` that summarizes the approved purpose, capabilities, order flow, and manual Grab checkout boundary.
