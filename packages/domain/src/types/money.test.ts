@@ -15,10 +15,26 @@ describe("parseCentavos", () => {
       );
     },
   );
+
+  it("rejects negative zero instead of admitting two zero representations", () => {
+    expect(() => parseCentavos(-0)).toThrowError(
+      new TypeError("Centavos must be a non-negative safe integer."),
+    );
+  });
 });
 
 describe("formatCentavos", () => {
   it("formats integer centavos as Philippine pesos at the display boundary", () => {
     expect(formatCentavos(parseCentavos(123_456))).toBe("₱1,234.56");
+  });
+
+  it.each([
+    [0, "₱0.00"],
+    [1, "₱0.01"],
+    [99, "₱0.99"],
+    [100, "₱1.00"],
+    [Number.MAX_SAFE_INTEGER, "₱90,071,992,547,409.91"],
+  ] as const)("preserves exact integer cents for %i", (value, expected) => {
+    expect(formatCentavos(parseCentavos(value))).toBe(expected);
   });
 });

@@ -17,8 +17,8 @@ export function parsePagination(value: unknown): Pagination {
     readonly limit?: unknown;
     readonly offset?: unknown;
   };
-  const limit = input.limit ?? DEFAULT_PAGE_LIMIT;
-  const offset = input.offset ?? 0;
+  const limit = input.limit === undefined ? DEFAULT_PAGE_LIMIT : input.limit;
+  const offset = input.offset === undefined ? 0 : input.offset;
 
   if (
     typeof limit !== "number" ||
