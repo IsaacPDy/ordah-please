@@ -25,9 +25,19 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │           ├── shell-colors.ts # Accessible semantic color pairings for approved tokens
 │           └── shell-navigation.ts # Separate member and admin destination definitions
 ├── packages/
-│   ├── contracts/              # Buildable shell for shared validation and API shapes
+│   ├── contracts/              # Strict catalog, favorite, order, and common API boundary parsers
+│   │   └── src/
+│   │       ├── catalog/        # Immutable catalog response validation
+│   │       ├── common/         # API envelopes, errors, pagination, and strict JSON helpers
+│   │       ├── favorites/      # Complete favorite-combination validation
+│   │       └── orders/         # Food snapshots, strict mutation requests, handoff, receipt, and history validation
 │   ├── db/                     # Buildable shell for Neon schema, migrations, and queries
-│   ├── domain/                 # Buildable shell for business rules and state transitions
+│   ├── domain/                 # Provider-neutral catalog, favorite, order, and primitive types
+│   │   └── src/
+│   │       ├── catalog/        # Published menu and availability read models
+│   │       ├── favorites/      # Branch-scoped combinations and rank-replacement policy
+│   │       ├── orders/         # Order types plus voting, deadline, transition, and handoff policies
+│   │       └── types/          # Branded IDs, centavos, roles, and UTC timestamps
 │   ├── jobs/                   # Buildable shell for QStash scheduling and handlers
 │   ├── notifications/          # Buildable shell for notification events and OneSignal
 │   ├── storage/                # Buildable shell for R2 signed URLs and object naming
@@ -51,10 +61,10 @@ Order App/                        # Current workspace; project slug is ordah-ple
 ├── tests/e2e/                  # Playwright member/admin browser projects
 ├── tsconfig.json               # Root test and tool configuration type checking
 ├── tsconfig.base.json          # Strict TypeScript rules inherited by apps and packages
-└── vitest.config.ts            # Shared-package and server Node test projects
+└── vitest.config.ts            # Node test projects and clean-clone workspace source resolution
 ```
 
-Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens; feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
+Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens. Task 1.1 adds shared primitives and API envelopes; Task 1.2 adds provider-neutral catalog, favorite, order, and history shapes plus strict runtime parsers. Feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
 
 ## Ownership Rules
 

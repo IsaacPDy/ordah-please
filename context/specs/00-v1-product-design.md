@@ -14,7 +14,7 @@ The final product display name is `ordah please`, the technical slug is `ordah-p
 - Platform admin, group owner, organizer, and member roles.
 - Admin-reviewed external Computer Use imports; no unattended scraping.
 - Weekly supervised refresh of every imported restaurant, with explicit admin pause, stale-data fallback, and risk-based publication.
-- Three member-ranked complete combinations per restaurant.
+- Three member-ranked complete combinations per restaurant branch.
 - Organizer-selected participants and organizer-set deadlines.
 - One group default delivery address with an organizer override captured on each order.
 - Optional restaurant vote with shortlist or global catalog.

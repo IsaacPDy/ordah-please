@@ -16,6 +16,18 @@ Build V1 incrementally using approved specifications and the numbered tasks in `
 
 Split a task when it combines unrelated screens, multiple provider adapters, more than one state transition, or behavior not defined in context. Split any change that cannot be verified clearly in one focused session.
 
+## Branch, Worktree, and Commit History
+
+- Treat `main` as permanent task-level history. It receives exactly one squash commit per completed numbered V1 task.
+- Create one task integration branch from the latest reviewed `main` for the active tracker task.
+- Give every concurrent subtask a unique branch and worktree. Never share one writable branch or checkout between agents.
+- Commit every completed subtask on its own branch with a descriptive message; that commit is the subtask's progress report and review unit.
+- Integrate reviewed subtask branches into the task branch one at a time. Run affected checks after each integration.
+- After complete task verification and tracker synchronization, squash-merge the task branch to `main`.
+- Name the squash commit with the exact numbered task title from the tracker, such as `V1-02 Define shared API contracts and provider-neutral domain types`.
+- Create the next task branch only from updated `main`, unless the user explicitly approves a dependency-aware parallel exception.
+- Keep the source task branch until the squash result is verified and pushed because squash merging does not make its commits ancestors of `main`.
+
 ## Handling Missing Requirements
 
 - Do not invent missing product or visual decisions.

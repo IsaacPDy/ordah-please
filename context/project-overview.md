@@ -9,13 +9,13 @@
 
 ## Overview
 
-ordah please is a private, invitation-only food-order planning app for fewer than 30 friends. It keeps a reviewed restaurant catalog, lets each member save up to three ranked order combinations per restaurant, coordinates restaurant voting and food confirmation, and compiles the final selections for an organizer to enter manually in Grab. It does not place or pay for orders automatically.
+ordah please is a private, invitation-only food-order planning app for fewer than 30 friends. It keeps a reviewed restaurant catalog, lets each member save up to three ranked order combinations per restaurant branch, coordinates restaurant voting and food confirmation, and compiles the final selections for an organizer to enter manually in Grab. It does not place or pay for orders automatically.
 
 ## Goals
 
 1. Let invited users sign in with Google and participate in one private group.
 2. Let admins maintain a trusted global catalog inside the private deployment.
-3. Let members save and rank three complete food combinations per restaurant.
+3. Let members save and rank three complete food combinations per restaurant branch.
 4. Let organizers run a two-stage restaurant-selection and food-confirmation process with deadlines.
 5. Produce a consolidated, copyable Grab handoff with a per-member breakdown and food subtotal.
 6. Preserve complete order history and optional receipt evidence.
@@ -68,7 +68,7 @@ The first platform admin is assigned manually. A group owner may request platfor
 
 ### Favorites
 
-- Three member-controlled ranked combinations per restaurant.
+- Three member-controlled ranked combinations per restaurant branch.
 - Multiple items, quantities, variants, modifiers, and notes per combination.
 - Fourth combination requires replacing an existing rank.
 - Unavailable combinations require replacement during an active order.

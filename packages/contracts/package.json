@@ -13,10 +13,15 @@
       "default": "./dist/index.js"
     }
   },
+  "dependencies": {
+    "@ordah-please/domain": "0.1.0"
+  },
   "scripts": {
+    "prebuild": "npm run build --workspace @ordah-please/domain",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src",
     "test": "vitest run --config ../../vitest.config.ts --project shared-packages",
+    "pretypecheck": "npm run build --workspace @ordah-please/domain",
     "typecheck": "tsc --noEmit"
   }
 }

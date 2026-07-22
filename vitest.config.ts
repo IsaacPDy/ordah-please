@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+
 import { defineConfig } from "vitest/config";
 
 const providerTestsEnabled = process.env.RUN_PROVIDER_TESTS === "1";
@@ -8,6 +10,14 @@ export default defineConfig({
   test: {
     projects: [
       {
+        resolve: {
+          alias: {
+            "@ordah-please/domain": resolve(
+              repositoryRoot,
+              "packages/domain/src/index.ts",
+            ),
+          },
+        },
         test: {
           environment: "node",
           exclude: providerTestsEnabled ? [] : [providerTestPattern],
