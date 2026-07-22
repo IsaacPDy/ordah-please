@@ -82,6 +82,11 @@ Use stable error codes and safe user messages. Never expose provider credentials
 - Integration-test API authentication, authorization, Neon transactions, R2 signing, and idempotent jobs.
 - End-to-end test the complete V1 loop on Android and the iPhone PWA.
 - Verify responsive admin behavior separately.
+- Run pure shared-package and server tests through the named Node projects in `vitest.config.ts`.
+- Keep Expo Router tests outside `apps/mobile/app`; use Jest with `jest-expo` and React Native Testing Library under `apps/mobile/__tests__`.
+- Keep Playwright member and admin browser tests in separate projects under `tests/e2e`.
+- Name provider-dependent Vitest files `*.provider.integration.test.ts` and Playwright files `*.provider.spec.ts`; run them only through their explicit provider scripts until development services exist.
+- Keep the default `npm test` and continuous-integration job independent of provider credentials.
 - Every completed unit must pass type checking, linting, focused tests, and production builds.
 
 ## Styling
