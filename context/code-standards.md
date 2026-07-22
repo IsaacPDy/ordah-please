@@ -59,6 +59,7 @@ Use stable error codes and safe user messages. Never expose provider credentials
 - Use foreign keys, unique constraints, and check constraints for enforceable rules.
 - Use transactions for multi-record mutations and state transitions.
 - Use the pooled Neon connection for serverless request traffic.
+- Seed only deterministic fictional development data behind both `NODE_ENV=development` and the explicit development-seed confirmation.
 - Copy menu price and description snapshots into order history.
 - Do not hard-delete records required by order history or audit trails.
 
@@ -86,6 +87,7 @@ Use stable error codes and safe user messages. Never expose provider credentials
 - Keep Expo Router tests outside `apps/mobile/app`; use Jest with `jest-expo` and React Native Testing Library under `apps/mobile/__tests__`.
 - Keep Playwright member and admin browser tests in separate projects under `tests/e2e`.
 - Name provider-dependent Vitest files `*.provider.integration.test.ts` and Playwright files `*.provider.spec.ts`; run them only through their explicit provider scripts until development services exist.
+- Run Neon provider test files sequentially because pooled sessions cannot safely share temporary-schema `search_path` state across concurrent files.
 - Keep the default `npm test` and continuous-integration job independent of provider credentials.
 - Every completed unit must pass type checking, linting, focused tests, and production builds.
 

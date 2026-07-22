@@ -32,6 +32,7 @@ export default defineConfig({
         test: {
           environment: "node",
           exclude: providerTestsEnabled ? [] : [providerTestPattern],
+          fileParallelism: !providerTestsEnabled,
           include: [
             "apps/web/{app,src}/**/*.test.{ts,tsx}",
             "packages/db/src/**/*.test.{ts,tsx}",

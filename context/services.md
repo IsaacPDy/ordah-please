@@ -47,6 +47,7 @@ The names below are the V1 contract. Real values are deliberately omitted.
 | Web origin | `NEXT_PUBLIC_APP_URL` | Public | Browser-visible canonical URLs | Vercel and local web environment |
 | Neon | `DATABASE_URL` | Server secret | Runtime pooled Postgres connection | Vercel and local web environment |
 | Neon | `DATABASE_MIGRATION_URL` | Server secret | Direct connection for schema migrations | Local/CI migration environment only |
+| Neon development seed | `DATABASE_SEED_CONFIRMATION` | Non-secret safety control | Explicitly allowing deterministic fixture seeding | Local development only; never Vercel or production |
 | Clerk | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Public | Next.js authentication UI | Vercel and local web environment |
 | Clerk | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Public | Expo authentication | EAS and local mobile environment |
 | Clerk | `CLERK_SECRET_KEY` | Server secret | Server-side Clerk verification and API access | Vercel and local web environment |
@@ -95,6 +96,18 @@ Neon stores structured application truth: users, roles, groups, catalog records,
 7. Repeat with a separate production project or protected production branch before real use.
 8. Add `DATABASE_URL` to Vercel Development, Preview, and Production using the correct value for each environment.
 9. Keep `DATABASE_MIGRATION_URL` restricted to the machine or CI job that is allowed to change the schema.
+
+### Development fixtures
+
+The seed command requires `NODE_ENV=development` and the exact non-secret confirmation `DATABASE_SEED_CONFIRMATION=ordah-please-development-seed`. Store the confirmation only in the gitignored local development environment; never add it to Vercel or production.
+
+From the repository root, load the local web environment explicitly and run:
+
+```sh
+NODE_ENV=development node --env-file=apps/web/.env.local --import tsx packages/db/src/dev/seed-cli.ts
+```
+
+The command uses the pooled `DATABASE_URL`, runs all fixture writes in one transaction, and restores the same deterministic fictional rows on every rerun. It never uses `DATABASE_MIGRATION_URL`.
 
 ### Rename and rotation checklist
 
@@ -291,6 +304,7 @@ NEXT_PUBLIC_APP_URL=<public web origin>
 EXPO_PUBLIC_API_URL=<public api origin>
 DATABASE_URL=<server secret>
 DATABASE_MIGRATION_URL=<migration-only secret>
+DATABASE_SEED_CONFIRMATION=<development-only non-secret confirmation>
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=<public identifier>
 EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=<public identifier>
 CLERK_SECRET_KEY=<server secret>

@@ -31,7 +31,15 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   │       ├── common/         # API envelopes, errors, pagination, and strict JSON helpers
 │   │       ├── favorites/      # Complete favorite-combination validation
 │   │       └── orders/         # Food snapshots, strict mutation requests, handoff, receipt, and history validation
-│   ├── db/                     # Buildable shell for Neon schema, migrations, and queries
+│   ├── db/                     # Drizzle-owned Neon schema and generated migration history
+│   │   ├── drizzle/            # Generated SQL migrations and Drizzle metadata
+│   │   ├── drizzle.config.ts   # Direct migration connection and schema-generation paths
+│   │   └── src/
+│   │       ├── client.ts       # Validated pooled server connection composition
+│   │       ├── dev/            # Deterministic fictional fixtures, guarded CLI, and idempotency proof
+│   │       ├── transaction.ts  # Atomic multi-record operation boundary
+│   │       ├── repositories/   # Focused persistence-only data access interfaces
+│   │       └── schema/         # Identity, files, catalog, ordering, operations, and provider verification
 │   ├── domain/                 # Provider-neutral catalog, favorite, order, and primitive types
 │   │   └── src/
 │   │       ├── catalog/        # Published menu and availability read models
@@ -64,7 +72,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 └── vitest.config.ts            # Node test projects and clean-clone workspace source resolution
 ```
 
-Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens. Task 1.1 adds shared primitives and API envelopes; Task 1.2 adds provider-neutral catalog, favorite, order, and history shapes plus strict runtime parsers. Feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
+Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens. Task 1.1 adds shared primitives and API envelopes; Task 1.2 adds provider-neutral catalog, favorite, order, and history shapes plus strict runtime parsers. Task 2.1 realizes those rules as focused Drizzle schema modules and a generated PostgreSQL migration while keeping provider access out of clients and domain code. Task 2.2 adds pooled server composition, transaction-scoped repository composition, and persistence-only interfaces without moving authorization or workflow rules into the database package. Task 2.3 adds development-only deterministic fixtures whose guarded transactional reruns restore the same fictional group and reviewed menu without duplicates. Feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
 
 ## Ownership Rules
 

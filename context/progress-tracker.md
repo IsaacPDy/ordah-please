@@ -9,11 +9,12 @@ Update this file after every meaningful implementation change.
 - V1 implementation approved on 2026-07-21.
 - Phase 0 repository and local-quality foundation complete.
 - Phase 1 provider-free contracts and domain rules complete.
+- Phase 2 Neon data foundation complete.
 - The development Neon service-account gate is satisfied locally without committing credentials.
 
 ## Current Goal
 
-- Complete permanent-history integration for V1-02, then begin V1-03 Task 2.1.
+- Complete permanent-history integration for V1-03, then satisfy the V1-04 Vercel and Clerk development service gate.
 
 ## Completed V1 Tasks
 
@@ -43,16 +44,19 @@ Update this file after every meaningful implementation change.
 - [x] V1-02 Task 1.1 shared domain primitives and API envelopes
 - [x] V1-02 Task 1.2 menu, favorite, order, vote, and history contracts
 - [x] V1-02 Task 1.3 pure business policies
+- [x] V1-03 Task 2.1 initial Neon schema and generated migration
+- [x] V1-03 Task 2.2 pooled database composition, repositories, and transactions
+- [x] V1-03 Task 2.3 deterministic and development-safe database fixtures
 
 ## In Progress V1 Tasks
 
-- None. V1-03 begins after V1-02 is squash-committed and verified on `main`.
+- None. V1-03 is complete on its integration branch and awaits its permanent `main` squash commit.
 
 ## Pending V1 Implementation Tasks
 
 - [x] V1-01 Initialize the TypeScript monorepo, shared tooling, Expo Android app, and Next.js web app
 - [x] V1-02 Define shared API contracts and provider-neutral domain types
-- [ ] V1-03 Create the Neon schema, migrations, pooled database access, and immutable audit model
+- [x] V1-03 Create the Neon schema, migrations, pooled database access, and immutable audit model
 - [ ] V1-04 Integrate Clerk Google sign-in across Android and web and map identities into Neon
 - [ ] V1-05 Implement invitation-only access, one-group membership, owners, organizers, members, and admin requests
 - [ ] V1-06 Implement platform-admin approval and limited mobile-admin permissions
@@ -126,5 +130,8 @@ Update this file after every meaningful implementation change.
 - Task 1.3 passed 50 focused policy tests, all 122 domain tests, 128 repository unit tests, 7 mobile tests, all workspace type checks and lint checks, formatting, every package build, the 11-route Next.js production build, and `git diff --check`. Inline re-review found no remaining Critical or Important issue. No external service account or login was required.
 - Phase 1 is complete. The development Neon gate is satisfied with pooled `DATABASE_URL` and direct `DATABASE_MIGRATION_URL` values stored only in the gitignored local web environment; no credential value is committed.
 - Repository history policy clarified: agents keep descriptive progress commits on unique subtask branches and worktrees, the integration owner combines them on one numbered task branch, and `main` receives exactly one squash commit named with the task's exact progress-tracker title. The next task branch starts from the updated `main`.
-- Twelve moderate transitive advisories remain in the current official Next.js and Expo dependency trees. Forced audit fixes are prohibited because npm proposes architecture-breaking major downgrades; adopt compatible upstream patches when available.
+- Task 2.1 added 32 provider-neutral PostgreSQL tables for identity, group access, file metadata, versioned catalogs, ranked favorites, order snapshots, notifications, jobs, and immutable audits. One generated migration passes Drizzle validation and a rollback-only Neon integration test that proves foreign keys, uniqueness, checks, selected-participant voting, idempotency, and snapshot survival without leaving test data behind.
+- Task 2.2 added strict server-only `DATABASE_URL` parsing, a lazy pooled Neon client, a reusable transaction boundary, and focused identity/access, catalog, favorite, order, file, notification, job, and audit repositories. Live temporary-schema tests prove pooled repository access and prove an order state change and its audit event commit or roll back together; the direct migration suite remains green.
+- Task 2.3 added fixed English fictional users, one group, and a small reviewed menu plus a guarded development-only seed command. The live idempotency test runs the seed twice, deliberately changes a fixture between runs, proves the rerun restores it without adding rows, and cleans up its temporary Neon schema. Provider test files run sequentially when explicitly enabled so pooled temporary-schema state cannot collide.
+- Thirteen production transitive advisories (11 moderate and 2 high) remain in the existing official Next.js and Expo dependency trees. The Drizzle and PostgreSQL additions introduced no production advisories. Forced audit fixes are prohibited because npm proposes architecture-breaking major downgrades; adopt compatible upstream patches when available.
 - Added a product-only root `README.md` that summarizes the approved purpose, capabilities, order flow, and manual Grab checkout boundary.

@@ -15,7 +15,9 @@ export const sharedStrictConfig = tseslint.config(
         ...globals.node,
       },
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ["packages/db/drizzle.config.ts"],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

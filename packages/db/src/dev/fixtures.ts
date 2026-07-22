@@ -1,0 +1,117 @@
+const fixedDate = (value: string) => new Date(value);
+
+export const developmentFixtures = {
+  users: {
+    owner: {
+      clerkUserId: "fixture_clerk_owner",
+      createdAt: fixedDate("2026-01-05T00:00:00.000Z"),
+      displayName: "Alex Rivera",
+      id: "00000000-0000-4000-8000-000000000001",
+      isPlatformAdmin: true,
+      updatedAt: fixedDate("2026-01-05T00:00:00.000Z"),
+    },
+    member: {
+      clerkUserId: "fixture_clerk_member",
+      createdAt: fixedDate("2026-01-05T00:00:00.000Z"),
+      displayName: "Jamie Santos",
+      id: "00000000-0000-4000-8000-000000000002",
+      isPlatformAdmin: false,
+      updatedAt: fixedDate("2026-01-05T00:00:00.000Z"),
+    },
+  },
+  group: {
+    createdAt: fixedDate("2026-01-05T00:05:00.000Z"),
+    id: "00000000-0000-4000-8000-000000000101",
+    name: "Harbor Lunch Group",
+    updatedAt: fixedDate("2026-01-05T00:05:00.000Z"),
+  },
+  catalog: {
+    branch: {
+      address: "100 Harbor Avenue, Manila",
+      createdAt: fixedDate("2026-01-05T01:05:00.000Z"),
+      grabUrl: "https://food.grab.com/",
+      id: "00000000-0000-4000-8000-000000000202",
+      name: "Harbor Avenue Branch",
+      sourceKey: "harbor-avenue",
+      updatedAt: fixedDate("2026-01-05T01:05:00.000Z"),
+    },
+    category: {
+      id: "00000000-0000-4000-8000-000000000205",
+      name: "Rice Bowls",
+      sortOrder: 0,
+    },
+    import: {
+      createdAt: fixedDate("2026-01-05T01:10:00.000Z"),
+      id: "00000000-0000-4000-8000-000000000203",
+      publishedAt: fixedDate("2026-01-05T01:20:00.000Z"),
+      status: "published" as const,
+    },
+    items: [
+      {
+        basePriceCentavos: 18_900,
+        description: "Roasted chicken, steamed rice, and vegetables.",
+        id: "00000000-0000-4000-8000-000000000206",
+        isAvailable: true,
+        name: "Roasted Chicken Rice Bowl",
+        sortOrder: 0,
+        sourceKey: "roasted-chicken-rice-bowl",
+      },
+      {
+        basePriceCentavos: 16_500,
+        description: "Crisp tofu, steamed rice, and vegetables.",
+        id: "00000000-0000-4000-8000-000000000207",
+        isAvailable: true,
+        name: "Crisp Tofu Rice Bowl",
+        sortOrder: 1,
+        sourceKey: "crisp-tofu-rice-bowl",
+      },
+    ],
+    menuVersion: {
+      createdAt: fixedDate("2026-01-05T01:15:00.000Z"),
+      id: "00000000-0000-4000-8000-000000000204",
+      publishedAt: fixedDate("2026-01-05T01:20:00.000Z"),
+      status: "published" as const,
+      versionNumber: 1,
+    },
+    modifierGroup: {
+      id: "00000000-0000-4000-8000-000000000209",
+      maximumSelections: 1,
+      minimumSelections: 0,
+      name: "Extra Sauce",
+      sortOrder: 0,
+      sourceKey: "extra-sauce",
+    },
+    modifierOptions: [
+      {
+        id: "00000000-0000-4000-8000-000000000210",
+        isAvailable: true,
+        name: "Garlic Sauce",
+        priceDeltaCentavos: 2_500,
+        sortOrder: 0,
+        sourceKey: "garlic-sauce",
+      },
+      {
+        id: "00000000-0000-4000-8000-000000000211",
+        isAvailable: true,
+        name: "Chili Sauce",
+        priceDeltaCentavos: 2_500,
+        sortOrder: 1,
+        sourceKey: "chili-sauce",
+      },
+    ],
+    restaurant: {
+      createdAt: fixedDate("2026-01-05T01:00:00.000Z"),
+      id: "00000000-0000-4000-8000-000000000201",
+      name: "Harbor Bowl Kitchen",
+      updatedAt: fixedDate("2026-01-05T01:00:00.000Z"),
+    },
+    variant: {
+      id: "00000000-0000-4000-8000-000000000208",
+      isAvailable: true,
+      name: "Large",
+      priceDeltaCentavos: 4_000,
+      sortOrder: 0,
+      sourceKey: "large",
+    },
+  },
+} as const;
