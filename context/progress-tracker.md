@@ -50,7 +50,7 @@ Update this file after every meaningful implementation change.
 
 ## In Progress V1 Tasks
 
-- V1-04 Task 3.1 authenticated API boundary implementation and integrated verification are complete. The V1-04 preview is READY, but Vercel Authentication currently blocks external webhook delivery; the Vercel protection decision must be completed before the Clerk webhook dashboard gate.
+- V1-04 Task 3.1 authenticated API boundary implementation and integrated verification are complete. The Vercel automation bypass is created and the Clerk signing secret is saved for Preview; a fresh preview deployment and successful Clerk delivery tests remain.
 
 ## Pending V1 Implementation Tasks
 
@@ -140,5 +140,6 @@ Update this file after every meaningful implementation change.
 - V1-04 integrated verification passes 159 provider-free Vitest tests, 7 mobile Jest tests, 43 server tests with all Neon provider suites enabled, all workspace type checks and lint checks, Drizzle migration validation, every package build, the 13-route Next.js production build including `/api/webhooks/clerk`, task-owned formatting, whitespace validation, and a built-client scan with no server variable names.
 - The development Neon database now has the complete 32-table V1-03 baseline and the V1-04 `audit_events.idempotency_key` migration recorded in Drizzle's two-entry ledger. An unrelated empty `public.branches` bootstrap artifact was verified to contain zero rows and removed before the repository migrations were applied and independently checked.
 - Commit `3799ad1` deployed successfully to the V1-04 Vercel branch preview at `https://ordah-please-web-git-task-v1-04-clerk-authentication-isaacpdy.vercel.app`. Vercel Authentication returns 401 before unsigned webhook requests reach the route, so Clerk setup is paused until Preview receives an approved deployment-protection bypass or is deliberately made public.
+- The user confirmed the dedicated Vercel automation bypass was created and `CLERK_WEBHOOK_SIGNING_SECRET` was saved without sharing either value. The next task-branch push must rebuild Preview with that environment, after which Clerk examples for `user.created`, `user.updated`, and `user.deleted` must all succeed before V1-04 can close.
 - Thirteen production transitive advisories (11 moderate and 2 high) remain in the existing official Next.js and Expo dependency trees. The Drizzle and PostgreSQL additions introduced no production advisories. Forced audit fixes are prohibited because npm proposes architecture-breaking major downgrades; adopt compatible upstream patches when available.
 - Added a product-only root `README.md` that summarizes the approved purpose, capabilities, order flow, and manual Grab checkout boundary.
