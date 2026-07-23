@@ -50,7 +50,7 @@ Update this file after every meaningful implementation change.
 
 ## In Progress V1 Tasks
 
-- V1-04 Task 3.1 authenticated API boundary: server-side session verification, Clerk-to-Neon identity mapping, authorization orchestration, and signed idempotent webhook synchronization.
+- V1-04 Task 3.1 authenticated API boundary implementation and integrated verification are complete; the V1-04 preview deployment and Clerk webhook dashboard gate remain.
 
 ## Pending V1 Implementation Tasks
 
@@ -135,6 +135,8 @@ Update this file after every meaningful implementation change.
 - Task 2.3 added fixed English fictional users, one group, and a small reviewed menu plus a guarded development-only seed command. The live idempotency test runs the seed twice, deliberately changes a fixture between runs, proves the rerun restores it without adding rows, and cleans up its temporary Neon schema. Provider test files run sequentially when explicitly enabled so pooled temporary-schema state cannot collide.
 - V1-03 was squash-merged to `main` as `d176bff V1-03 Create the Neon schema, migrations, pooled database access, and immutable audit model`; local `main` and `origin/main` were verified at that commit before V1-04 began.
 - V1-04 uses the primary checkout on `task/V1-04-clerk-authentication`. The local Clerk publishable keys and server secret are present outside Git; `CLERK_WEBHOOK_SIGNING_SECRET` remains intentionally unset until the tested preview webhook endpoint exists.
-- V1-04 Task 3.1 now has RED-first focused tests for unauthenticated Clerk rejection, internal identity loading and role mapping, authorization denial, the required route-execution sequence, stable HTTP error mapping, and internal-detail suppression. The Clerk webhook and transactional account synchronization remain in progress.
+- V1-04 Task 3.1 has RED-first focused tests for unauthenticated Clerk rejection, internal identity loading and role mapping, authorization denial, the required route-execution sequence, stable HTTP error mapping, and internal-detail suppression.
+- V1-04 Task 3.1 now verifies real Standard Webhooks signatures through Clerk's backend API, rejects forged or malformed callbacks with a safe 400, returns a safe retryable 500 on synchronization failure, and maps `user.created`, `user.updated`, and `user.deleted` into timestamp-aware Neon upsert/archive commands. Live temporary-schema tests prove the unique audit claim and user upsert commit together, a retry creates neither a second audit event nor a second mutation, and an older delayed create cannot resurrect an already-deleted Clerk identity. Provider-mode test bodies use a 30-second timeout while local unit tests retain the 5-second default.
+- V1-04 integrated verification passes 159 provider-free Vitest tests, 7 mobile Jest tests, 43 server tests with all Neon provider suites enabled, all workspace type checks and lint checks, Drizzle migration validation, every package build, the 13-route Next.js production build including `/api/webhooks/clerk`, task-owned formatting, whitespace validation, and a built-client scan with no server variable names.
 - Thirteen production transitive advisories (11 moderate and 2 high) remain in the existing official Next.js and Expo dependency trees. The Drizzle and PostgreSQL additions introduced no production advisories. Forced audit fixes are prohibited because npm proposes architecture-breaking major downgrades; adopt compatible upstream patches when available.
 - Added a product-only root `README.md` that summarizes the approved purpose, capabilities, order flow, and manual Grab checkout boundary.

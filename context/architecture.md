@@ -67,6 +67,7 @@ Cache only non-secret display data and short-lived session state. The server rem
 
 - Clerk handles Google identity and session verification.
 - Neon maps each `clerk_user_id` to the application user and all product roles.
+- Signed Clerk `user.created`, `user.updated`, and `user.deleted` webhooks synchronize that mapping through one Neon transaction. Each delivery claims a unique immutable audit key before upserting or archiving the user, so retries are harmless and account deletion never erases product history.
 - Clerk Organizations are not used because their free organization membership limit does not cover the target group size.
 - Every API request verifies the Clerk session, loads application roles from Neon, and checks resource-level permission.
 - Platform admins manage catalog and admin requests.

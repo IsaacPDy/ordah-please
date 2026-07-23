@@ -321,4 +321,70 @@ describe("focused repositories", () => {
       await repositories.auditEvents.listForResource("order", order.id),
     ).toMatchObject([{ action: "order.restaurant_voting_started" }]);
   });
+
+  it("claims one Clerk event audit before idempotently upserting its user", async () => {
+    const clerkUserId = `clerk_${randomUUID()}`;
+    const eventId = randomUUID();
+    const occurredAt = new Date("2026-07-23T06:00:00.000Z");
+
+    const applyEvent = (displayName: string) =>
+      withTransaction(database, async (transaction) => {
+        const transactional = createRepositories(transaction);
+        const auditEvent = await transactional.auditEvents.appendOnce({
+          action: "identity.user.created",
+          details: { eventType: "user.created" },
+          idempotencyKey: `clerk:${eventId}`,
+          resourceId: clerkUserId,
+          resourceType: "clerk_user",
+        });
+        if (auditEvent === undefined) {
+          return false;
+        }
+
+        await transactional.identityAccess.upsertUserFromClerk({
+          clerkUserId,
+          displayName,
+          updatedAt: occurredAt,
+        });
+        return true;
+      });
+
+    await expect(applyEvent("Avery Rivera")).resolves.toBe(true);
+    await expect(applyEvent("Retry Must Not Win")).resolves.toBe(false);
+
+    const repositories = createRepositories(database);
+    await expect(
+      repositories.identityAccess.findUserByClerkId(clerkUserId),
+    ).resolves.toMatchObject({
+      archivedAt: null,
+      displayName: "Avery Rivera",
+    });
+    await expect(
+      repositories.auditEvents.listForResource("clerk_user", clerkUserId),
+    ).resolves.toHaveLength(1);
+  });
+
+  it("keeps a deleted Clerk identity archived when an older create arrives later", async () => {
+    const repositories = createRepositories(database);
+    const clerkUserId = `clerk_${randomUUID()}`;
+    const deletionTime = new Date("2026-07-23T08:00:00.000Z");
+    const staleCreationTime = new Date("2026-07-23T07:00:00.000Z");
+
+    await repositories.identityAccess.archiveUserByClerkId(
+      clerkUserId,
+      deletionTime,
+    );
+    await repositories.identityAccess.upsertUserFromClerk({
+      clerkUserId,
+      displayName: "Stale Creation",
+      updatedAt: staleCreationTime,
+    });
+
+    await expect(
+      repositories.identityAccess.findUserByClerkId(clerkUserId),
+    ).resolves.toMatchObject({
+      archivedAt: deletionTime,
+      updatedAt: deletionTime,
+    });
+  });
 });

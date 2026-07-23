@@ -131,7 +131,7 @@ Clerk proves who signed in. Neon—not Clerk Organizations—stores application 
 4. Store `CLERK_SECRET_KEY` only in Vercel and the local server environment.
 5. Configure the web origin and authorized redirects using the current `NEXT_PUBLIC_APP_URL`.
 6. Configure the Expo OAuth return behavior using `APP_SCHEME`.
-7. After a public Vercel endpoint exists, create the Clerk user webhook pointing to an endpoint under `APP_BASE_URL`.
+7. After the tested V1-04 Vercel preview exists, create the Clerk user webhook at `<preview APP_BASE_URL>/api/webhooks/clerk` and subscribe only to `user.created`, `user.updated`, and `user.deleted`.
 8. Store its signing value as `CLERK_WEBHOOK_SIGNING_SECRET` in Vercel.
 9. Create a separate Clerk production instance before inviting real users and replace all four Clerk variables in the production environments.
 
