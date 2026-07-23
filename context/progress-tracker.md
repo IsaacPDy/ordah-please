@@ -14,7 +14,7 @@ Update this file after every meaningful implementation change.
 
 ## Current Goal
 
-- Complete permanent-history integration for V1-03, then satisfy the V1-04 Vercel and Clerk development service gate.
+- Build and verify the V1-04 authenticated API boundary, deploy it to a Vercel preview, and then satisfy the Clerk webhook dashboard gate.
 
 ## Completed V1 Tasks
 
@@ -50,7 +50,7 @@ Update this file after every meaningful implementation change.
 
 ## In Progress V1 Tasks
 
-- None. V1-03 is complete on its integration branch and awaits its permanent `main` squash commit.
+- V1-04 Task 3.1 authenticated API boundary: server-side session verification, Clerk-to-Neon identity mapping, authorization orchestration, and signed idempotent webhook synchronization.
 
 ## Pending V1 Implementation Tasks
 
@@ -133,5 +133,8 @@ Update this file after every meaningful implementation change.
 - Task 2.1 added 32 provider-neutral PostgreSQL tables for identity, group access, file metadata, versioned catalogs, ranked favorites, order snapshots, notifications, jobs, and immutable audits. One generated migration passes Drizzle validation and a rollback-only Neon integration test that proves foreign keys, uniqueness, checks, selected-participant voting, idempotency, and snapshot survival without leaving test data behind.
 - Task 2.2 added strict server-only `DATABASE_URL` parsing, a lazy pooled Neon client, a reusable transaction boundary, and focused identity/access, catalog, favorite, order, file, notification, job, and audit repositories. Live temporary-schema tests prove pooled repository access and prove an order state change and its audit event commit or roll back together; the direct migration suite remains green.
 - Task 2.3 added fixed English fictional users, one group, and a small reviewed menu plus a guarded development-only seed command. The live idempotency test runs the seed twice, deliberately changes a fixture between runs, proves the rerun restores it without adding rows, and cleans up its temporary Neon schema. Provider test files run sequentially when explicitly enabled so pooled temporary-schema state cannot collide.
+- V1-03 was squash-merged to `main` as `d176bff V1-03 Create the Neon schema, migrations, pooled database access, and immutable audit model`; local `main` and `origin/main` were verified at that commit before V1-04 began.
+- V1-04 uses the primary checkout on `task/V1-04-clerk-authentication`. The local Clerk publishable keys and server secret are present outside Git; `CLERK_WEBHOOK_SIGNING_SECRET` remains intentionally unset until the tested preview webhook endpoint exists.
+- V1-04 Task 3.1 now has RED-first focused tests for unauthenticated Clerk rejection, internal identity loading and role mapping, authorization denial, the required route-execution sequence, stable HTTP error mapping, and internal-detail suppression. The Clerk webhook and transactional account synchronization remain in progress.
 - Thirteen production transitive advisories (11 moderate and 2 high) remain in the existing official Next.js and Expo dependency trees. The Drizzle and PostgreSQL additions introduced no production advisories. Forced audit fixes are prohibited because npm proposes architecture-breaking major downgrades; adopt compatible upstream patches when available.
 - Added a product-only root `README.md` that summarizes the approved purpose, capabilities, order flow, and manual Grab checkout boundary.
