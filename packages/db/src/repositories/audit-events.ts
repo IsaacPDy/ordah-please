@@ -8,6 +8,11 @@ export interface AuditEventsRepository {
   append(
     input: typeof auditEvents.$inferInsert,
   ): Promise<typeof auditEvents.$inferSelect>;
+  appendOnce(
+    input: typeof auditEvents.$inferInsert & {
+      readonly idempotencyKey: string;
+    },
+  ): Promise<typeof auditEvents.$inferSelect | undefined>;
   listForResource(
     resourceType: string,
     resourceId: string,
@@ -23,6 +28,14 @@ export function createAuditEventsRepository(
       requireWrittenRow(
         await database.insert(auditEvents).values(input).returning(),
       ),
+    appendOnce: async (input) => {
+      const [auditEvent] = await database
+        .insert(auditEvents)
+        .values(input)
+        .onConflictDoNothing({ target: auditEvents.idempotencyKey })
+        .returning();
+      return auditEvent;
+    },
     listForResource: (resourceType, resourceId) =>
       database
         .select()

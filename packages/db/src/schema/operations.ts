@@ -59,6 +59,9 @@ export const jobs = pgTable(
 
 export const auditEvents = pgTable("audit_events", {
   id: uuid("id").defaultRandom().primaryKey(),
+  idempotencyKey: text("idempotency_key").unique(
+    "audit_events_idempotency_key_unique",
+  ),
   actorUserId: uuid("actor_user_id").references(() => users.id),
   action: text("action").notNull(),
   resourceType: text("resource_type").notNull(),

@@ -18,12 +18,17 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   │       ├── navigation/     # Shared member-tab labels, icons, and runtime styles
 │   │       └── theme/          # React Native Paper mapping to shared tokens
 │   └── web/                    # Next.js App Router shell for the PWA, admin portal, and API
-│       └── app/
-│           ├── (member)/       # Responsive member Home, Orders, Favorites, and Team shells
-│           ├── admin/          # Separate desktop/responsive admin navigation shell
-│           ├── components/     # Web-only shell navigation and honest empty states
-│           ├── shell-colors.ts # Accessible semantic color pairings for approved tokens
-│           └── shell-navigation.ts # Separate member and admin destination definitions
+│       ├── app/
+│       │   ├── (member)/       # Responsive member Home, Orders, Favorites, and Team shells
+│       │   ├── admin/          # Separate desktop/responsive admin navigation shell
+│       │   ├── api/webhooks/   # Public signature-verified provider callbacks; Clerk syncs identity here
+│       │   ├── components/     # Web-only shell navigation and honest empty states
+│       │   ├── shell-colors.ts # Accessible semantic color pairings for approved tokens
+│       │   └── shell-navigation.ts # Separate member and admin destination definitions
+│       ├── proxy.ts            # Clerk request-context middleware; route authorization stays resource-local
+│       └── src/
+│           ├── application/    # Ordered validation, authorization, use-case, and API-result execution
+│           └── auth/           # Server-side Clerk session verification and Neon identity loading
 ├── packages/
 │   ├── contracts/              # Strict catalog, favorite, order, and common API boundary parsers
 │   │   └── src/
@@ -72,7 +77,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 └── vitest.config.ts            # Node test projects and clean-clone workspace source resolution
 ```
 
-Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens. Task 1.1 adds shared primitives and API envelopes; Task 1.2 adds provider-neutral catalog, favorite, order, and history shapes plus strict runtime parsers. Task 2.1 realizes those rules as focused Drizzle schema modules and a generated PostgreSQL migration while keeping provider access out of clients and domain code. Task 2.2 adds pooled server composition, transaction-scoped repository composition, and persistence-only interfaces without moving authorization or workflow rules into the database package. Task 2.3 adds development-only deterministic fixtures whose guarded transactional reruns restore the same fictional group and reviewed menu without duplicates. Feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
+Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens. Task 1.1 adds shared primitives and API envelopes; Task 1.2 adds provider-neutral catalog, favorite, order, and history shapes plus strict runtime parsers. Task 2.1 realizes those rules as focused Drizzle schema modules and a generated PostgreSQL migration while keeping provider access out of clients and domain code. Task 2.2 adds pooled server composition, transaction-scoped repository composition, and persistence-only interfaces without moving authorization or workflow rules into the database package. Task 2.3 adds development-only deterministic fixtures whose guarded transactional reruns restore the same fictional group and reviewed menu without duplicates. Task 3.1 adds the trusted API boundary with server-side Clerk session verification, Neon-backed application identity loading, pure authorization enforcement, and one ordered route executor that returns shared typed envelopes without leaking internal failures. Its Clerk webhook route verifies signatures, narrows user payloads, and applies each account upsert or archive in the same transaction as a uniquely keyed audit event; migration `0001` adds that nullable audit idempotency key without rewriting V1-03 history. Feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
 
 ## Ownership Rules
 

@@ -39,6 +39,7 @@ export default defineConfig({
           ],
           name: "server",
           root: repositoryRoot,
+          testTimeout: providerTestsEnabled ? 30_000 : 5_000,
         },
       },
     ],

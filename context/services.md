@@ -131,9 +131,10 @@ Clerk proves who signed in. Neon—not Clerk Organizations—stores application 
 4. Store `CLERK_SECRET_KEY` only in Vercel and the local server environment.
 5. Configure the web origin and authorized redirects using the current `NEXT_PUBLIC_APP_URL`.
 6. Configure the Expo OAuth return behavior using `APP_SCHEME`.
-7. After a public Vercel endpoint exists, create the Clerk user webhook pointing to an endpoint under `APP_BASE_URL`.
-8. Store its signing value as `CLERK_WEBHOOK_SIGNING_SECRET` in Vercel.
-9. Create a separate Clerk production instance before inviting real users and replace all four Clerk variables in the production environments.
+7. After the tested V1-04 Vercel preview exists, confirm Clerk can reach it through Vercel Deployment Protection. Keep previews protected by using Vercel's Protection Bypass for Automation when available; use the `x-vercel-protection-bypass` query parameter only in the provider dashboard, and never write its secret value into Git or chat.
+8. Create the Clerk user webhook at `<preview APP_BASE_URL>/api/webhooks/clerk` (plus the dashboard-only Vercel bypass query parameter when required) and subscribe only to `user.created`, `user.updated`, and `user.deleted`.
+9. Store its signing value as `CLERK_WEBHOOK_SIGNING_SECRET` in Vercel.
+10. Create a separate Clerk production instance before inviting real users and replace all four Clerk variables in the production environments.
 
 ### Rename and rotation checklist
 
@@ -184,8 +185,9 @@ Vercel hosts the Next.js PWA, admin portal, and trusted API boundary. It is also
 4. Assign distinct values to Development, Preview, and Production.
 5. Set `APP_BASE_URL` and `NEXT_PUBLIC_APP_URL` to the correct origin for each stable environment.
 6. Deploy once, then use the resulting HTTPS origin to finish Clerk webhooks, QStash callbacks, and OneSignal web setup.
-7. After changing any Vercel variable, create a new deployment; old deployments keep their old values.
-8. For local work, pull only the Development environment into a gitignored file with `vercel env pull` or run commands with `vercel env run`.
+7. When a third-party webhook must call a protected Preview deployment, create a dedicated Protection Bypass for Automation in **Project Settings > Deployment Protection** and keep the generated value out of source code, logs, and chat. That bypass works across the project's deployments until revoked; disabling Vercel Authentication instead makes every existing Preview deployment public and requires an explicit security decision.
+8. After changing any Vercel variable, create a new deployment; old deployments keep their old values.
+9. For local work, pull only the Development environment into a gitignored file with `vercel env pull` or run commands with `vercel env run`.
 
 ### Rename and domain checklist
 

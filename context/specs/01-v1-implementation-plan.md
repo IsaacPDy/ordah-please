@@ -345,12 +345,12 @@ Deploy the empty web app to obtain HTTPS origins. Configure Google sign-in, web 
 - Create: `apps/web/app/api/webhooks/clerk/route.ts`
 - Test: authentication and webhook integration tests
 
-- [ ] Verify Clerk sessions server-side.
-- [ ] Verify Clerk webhook signatures and map Clerk IDs to internal user IDs.
-- [ ] Make account synchronization idempotent and auditable.
-- [ ] Implement the route sequence: authenticate, validate, load roles, authorize, execute one use case, serialize a typed result.
-- [ ] Prove unauthenticated and forged webhook requests are rejected without leaking details.
-- [ ] Commit as `feat: establish authenticated API boundary`.
+- [x] Verify Clerk sessions server-side.
+- [x] Verify Clerk webhook signatures and map Clerk IDs to internal user IDs.
+- [x] Make account synchronization idempotent and auditable.
+- [x] Implement the route sequence: authenticate, validate, load roles, authorize, execute one use case, serialize a typed result.
+- [x] Prove unauthenticated and forged webhook requests are rejected without leaking details.
+- [x] Commit as `feat: establish authenticated API boundary`.
 
 ### Task 3.2: Implement invitation-only onboarding and one-group membership (V1-05)
 
