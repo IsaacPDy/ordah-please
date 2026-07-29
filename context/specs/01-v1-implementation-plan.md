@@ -382,12 +382,12 @@ Deploy the web app to obtain exact HTTPS origins. Configure Google OAuth basic i
 - Create invitation and membership contracts, repositories, use cases, routes, and screens under their owning feature folders
 - Test: domain, API integration, mobile component, and web component tests
 
-- [ ] Create expiring, unpredictable invitation tokens stored as hashes.
-- [ ] Require Google sign-in before invitation acceptance.
-- [ ] Reject reuse, expiry, wrong deployment, and attempts to join a second group.
-- [ ] Keep joining the group separate from participation in any order.
-- [ ] Add owner member-list, promote-organizer, demote-organizer, and remove-member actions with audit events.
-- [ ] Add equivalent member onboarding on Android and iPhone PWA.
+- [x] Create expiring, unpredictable invitation tokens stored as hashes.
+- [x] Require Google sign-in before invitation acceptance.
+- [x] Reject reuse, expiry, wrong deployment, and attempts to join a second group.
+- [x] Keep joining the group separate from participation in any order.
+- [x] Add owner member-list, promote-organizer, demote-organizer, and remove-member actions with audit events.
+- [x] Add equivalent member onboarding on Android and iPhone PWA.
 - [ ] Commit as `feat: add private group onboarding`.
 
 ### Task 3.3: Implement platform-admin requests and approval surfaces (V1-05, V1-06)

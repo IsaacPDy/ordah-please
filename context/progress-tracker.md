@@ -10,12 +10,13 @@ Update this file after every meaningful implementation change.
 - Phase 0 repository and local-quality foundation complete.
 - Phase 1 provider-free contracts and domain rules complete.
 - Phase 2 Neon data foundation complete.
-- The Better Auth authentication correction is implemented and verified on its V1-04A task branch.
+- The Better Auth authentication correction is implemented, verified, and squash-committed to local `main` as V1-04A.
+- V1-05 access services, authenticated routes, PWA onboarding, Android onboarding, and owner Team UI are reconstructed on the corrected Better Auth foundation; integrated verification and rollout remain in progress.
 - The development Neon service-account gate is satisfied locally without committing credentials.
 
 ## Current Goal
 
-- Reconstruct V1-05 invitation-only group onboarding from the preserved recovery branch on top of the corrected Better Auth foundation.
+- Complete integrated verification, deployment acceptance, permanent squash integration, and production rollout for V1-05.
 
 ## Completed V1 Tasks
 
@@ -50,10 +51,17 @@ Update this file after every meaningful implementation change.
 - [x] V1-03 Task 2.2 pooled database composition, repositories, and transactions
 - [x] V1-03 Task 2.3 deterministic and development-safe database fixtures
 - [x] V1-04A Better Auth migration, development migration, Google OAuth cutover, and Clerk runtime retirement
+- [x] V1-05 provider-neutral invitation, one-group membership, owner-role, and admin-request services
+- [x] V1-05 Better Auth web and Android invitation onboarding plus owner Team UI
 
 ## In Progress V1 Tasks
 
-- V1-04A implementation and verification are complete on `task/V1-04A-better-auth-migration` from reviewed V1-04 `main`; its permanent squash into `main` is next. The approved design replaces Clerk with self-hosted Better Auth, keeps Google as the only V1 sign-in method, stores auth tables separately from product users, preserves Neon-owned roles and history, removes the external identity webhook, and uses same-origin web cookies plus SecureStore-backed Expo cookies.
+- V1-04A is permanently squash-committed to local `main` as `299078d V1-04A Replace Clerk authentication with Better Auth on Neon`; origin remains unchanged until V1-05 and production acceptance are complete.
+- V1-05 was rebuilt from the preserved recovery commits on a fresh branch from corrected `main`. Its contracts and services issue deployment-bound hashed invitations, transactionally enforce one active group, audit owner list/promote/demote/remove behavior, and submit—but never approve or reject—one pending platform-admin request.
+- Better Auth invitation onboarding now exists on both clients. The PWA uses its same-origin session cookie; Android returns through `ordahplease://`, keeps the invitation path, reads the Expo plugin cookie from SecureStore, and sends no bearer token.
+- Independent review found and the task fixed hostile-origin mutation acceptance, duplicate native and Team submissions, concurrent duplicate role audits, removed-member rejoin failure, weak wrong-deployment coverage, and missing live transaction races. Re-review found no remaining Critical, Important, or Minor issue.
+- Provider-free verification passes 45 files with 203 Vitest tests and 7 mobile suites with 22 Jest tests. The complete development-Neon matrix passes 49 files with 214 tests, including full access-service transaction rollback, competing invitations, same-group rejoin, duplicate role actions, and concurrent admin requests.
+- Temporary-schema provider harnesses use the direct development URL because Neon pooled connections do not reliably retain session `search_path`; production runtime remains on the pooled URL. All workspace type checks and lint checks, Drizzle validation, package/Next builds, Android export, whitespace, active Clerk scan, and value-based built-client secret scans pass.
 - Documentation-first migration work is complete: permanent architecture, UI, service, environment, coding, workflow, product-design, implementation-plan, and service-limit records now describe Better Auth and the Google OAuth boundary.
 - Better Auth dependencies are pinned at `1.6.25`, and RED-first schema tests now pass for the four UUID-keyed auth tables, normalized email uniqueness, nullable one-to-one product mapping, and explicit cascade/set-null deletion behavior. Generated migration `0002_adorable_lily_hollister.sql` adds the new tables and mapping, drops `clerk_user_id`, and leaves `0000`/`0001` unchanged.
 - Provider-neutral identity provisioning now creates or reuses one product user on the first authenticated request, preserves archived users, and loads Neon roles before input validation. A guarded development link command requires explicit confirmation and writes an existing auth-to-product link with its audit event in one transaction without printing record or credential values.

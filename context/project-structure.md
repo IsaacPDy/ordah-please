@@ -12,23 +12,29 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   ├── mobile/                 # Expo Router Android shell and fixed application identity
 │   │   ├── __tests__/          # Jest/React Native Testing Library component tests
 │   │   ├── app/
-│   │   │   └── (member)/       # Home, Orders, Favorites, and Team tab shells
+│   │   │   ├── (member)/       # Home, Orders, Favorites, and Team tab shells
+│   │   │   └── invite/         # Better Auth Google deep-link onboarding
 │   │   └── src/
+│   │       ├── auth/           # SecureStore cookie client and authenticated request boundary
 │   │       ├── components/     # Dynamic-text-safe native shell composition
+│   │       ├── features/access/# Invitation acceptance and native onboarding UI
 │   │       ├── navigation/     # Shared member-tab labels, icons, and runtime styles
 │   │       └── theme/          # React Native Paper mapping to shared tokens
 │   └── web/                    # Next.js App Router shell for the PWA, admin portal, and API
 │       ├── app/
 │       │   ├── (member)/       # Responsive member Home, Orders, Favorites, and Team shells
 │       │   ├── admin/          # Separate desktop/responsive admin navigation shell
+│       │   ├── api/access/     # Authenticated invitation, membership, and admin-request routes
 │       │   ├── api/auth/       # Better Auth handler and Google OAuth callback
 │       │   ├── api/webhooks/   # Public signature-verified callbacks for non-auth providers
 │       │   ├── components/     # Web-only shell navigation and honest empty states
+│       │   ├── invite/         # PWA invitation sign-in and acceptance route
 │       │   ├── shell-colors.ts # Accessible semantic color pairings for approved tokens
 │       │   └── shell-navigation.ts # Separate member and admin destination definitions
 │       └── src/
 │           ├── application/    # Ordered validation, authorization, use-case, and API-result execution
-│           └── auth/           # Better Auth server/client composition, session verification, and product identity loading
+│           ├── auth/           # Better Auth server/client composition, session verification, and product identity loading
+│           └── features/access/# Access policies, route composition, and PWA access views
 ├── packages/
 │   ├── contracts/              # Strict catalog, favorite, order, and common API boundary parsers
 │   │   └── src/
@@ -78,7 +84,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 └── vitest.config.ts            # Node test projects and clean-clone workspace source resolution
 ```
 
-Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens. Task 1.1 adds shared primitives and API envelopes; Task 1.2 adds provider-neutral catalog, favorite, order, and history shapes plus strict runtime parsers. Task 2.1 realizes those rules as focused Drizzle schema modules and a generated PostgreSQL migration while keeping provider access out of clients and domain code. Task 2.2 adds pooled server composition, transaction-scoped repository composition, and persistence-only interfaces without moving authorization or workflow rules into the database package. Task 2.3 adds development-only deterministic fixtures whose guarded transactional reruns restore the same fictional group and reviewed menu without duplicates. Task 3.1 originally added the trusted API boundary with Clerk. V1-04A replaces that provider-specific layer with Better Auth tables, server/client composition, session verification, first-request product identity provisioning, and no external identity webhook while preserving the ordered authorization executor and immutable product history. Old generated migrations remain unchanged as historical evidence.
+Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens. Task 1.1 adds shared primitives and API envelopes; Task 1.2 adds provider-neutral catalog, favorite, order, and history shapes plus strict runtime parsers. Task 2.1 realizes those rules as focused Drizzle schema modules and a generated PostgreSQL migration while keeping provider access out of clients and domain code. Task 2.2 adds pooled server composition, transaction-scoped repository composition, and persistence-only interfaces without moving authorization or workflow rules into the database package. Task 2.3 adds development-only deterministic fixtures whose guarded transactional reruns restore the same fictional group and reviewed menu without duplicates. Task 3.1 originally added the trusted API boundary with Clerk. V1-04A replaces that provider-specific layer with Better Auth tables, server/client composition, session verification, first-request product identity provisioning, and no external identity webhook while preserving the ordered authorization executor and immutable product history. Task 3.2 adds hashed expiring invitations, one-group acceptance, audited owner membership actions, request-only platform-admin escalation, and equivalent PWA/Android onboarding on that Better Auth boundary. Old generated migrations remain unchanged as historical evidence.
 
 ## Ownership Rules
 
