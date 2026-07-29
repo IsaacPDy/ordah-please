@@ -4,8 +4,11 @@ import {
   readDeploymentId,
 } from "../../../../src/features/access/access-runtime";
 
-export const POST = createIssueInvitationHandler({
-  ...accessRuntime,
-  deploymentId: readDeploymentId(),
-  now: () => new Date(),
-});
+/** Resolves deployment-bound invitation configuration only when a runtime request arrives. */
+export function POST(request: Request): Promise<Response> {
+  return createIssueInvitationHandler({
+    ...accessRuntime,
+    deploymentId: readDeploymentId(),
+    now: () => new Date(),
+  })(request);
+}

@@ -32,6 +32,11 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Build generated workspace exports
+        run: |
+          npm run build --workspace @ordah-please/contracts
+          npm run build --workspace @ordah-please/db
+
       - name: Lint source
         run: npm run lint
 

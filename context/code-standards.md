@@ -91,6 +91,7 @@ Use stable error codes and safe user messages. Never expose provider credentials
 - Run Neon provider test files sequentially because pooled sessions cannot safely share temporary-schema `search_path` state across concurrent files.
 - Keep the default `npm test` and continuous-integration job independent of provider credentials.
 - Every completed unit must pass type checking, linting, focused tests, and production builds.
+- Clean CI must build workspace packages whose public exports point at `dist/` before type-aware linting or downstream workspace checks.
 
 ## Styling
 
