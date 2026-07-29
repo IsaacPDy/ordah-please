@@ -48,6 +48,7 @@ The names below are the V1 contract. Real values are deliberately omitted.
 | Neon | `DATABASE_URL` | Server secret | Runtime pooled Postgres connection | Vercel and local web environment |
 | Neon | `DATABASE_MIGRATION_URL` | Server secret | Direct connection for schema migrations | Local/CI migration environment only |
 | Neon development seed | `DATABASE_SEED_CONFIRMATION` | Non-secret safety control | Explicitly allowing deterministic fixture seeding | Local development only; never Vercel or production |
+| Neon identity link | `DATABASE_IDENTITY_LINK_CONFIRMATION` | Non-secret safety control | Explicitly allowing a one-time development auth-to-product link | Local development only; never Vercel or production |
 | Better Auth | `BETTER_AUTH_SECRET` | Server secret | Signing and protecting Better Auth cookies and state | Vercel and local web environment; unique per environment |
 | Better Auth | `BETTER_AUTH_URL` | Server config | Exact Better Auth server origin | Vercel and local web environment |
 | Google OAuth | `GOOGLE_CLIENT_ID` | Server config | Identifying the environment's Web OAuth client | Vercel and local web environment |
@@ -108,6 +109,14 @@ NODE_ENV=development node --env-file=apps/web/.env.local --import tsx packages/d
 ```
 
 The command uses the pooled `DATABASE_URL`, runs all fixture writes in one transaction, and restores the same deterministic fictional rows on every rerun. It never uses `DATABASE_MIGRATION_URL`.
+
+### Development identity linking
+
+The controlled link command requires `NODE_ENV=development`, `DATABASE_IDENTITY_LINK_CONFIRMATION=ordah-please-development-auth-link`, `AUTH_USER_ID`, and `PRODUCT_USER_ID`. The two IDs select records but are never printed. The command rejects production, archived users, missing records, and duplicate links, then writes the link and audit event in one transaction:
+
+```sh
+NODE_ENV=development node --env-file=apps/web/.env.local --import tsx packages/db/src/dev/link-auth-identity-cli.ts
+```
 
 ### Rename and rotation checklist
 
@@ -312,6 +321,7 @@ EXPO_PUBLIC_API_URL=<public api origin>
 DATABASE_URL=<server secret>
 DATABASE_MIGRATION_URL=<migration-only secret>
 DATABASE_SEED_CONFIRMATION=<development-only non-secret confirmation>
+DATABASE_IDENTITY_LINK_CONFIRMATION=<development-only non-secret confirmation>
 BETTER_AUTH_SECRET=<server secret>
 BETTER_AUTH_URL=<server origin>
 GOOGLE_CLIENT_ID=<server configuration>

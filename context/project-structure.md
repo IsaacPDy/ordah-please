@@ -41,7 +41,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   │   ├── drizzle.config.ts   # Direct migration connection and schema-generation paths
 │   │   └── src/
 │   │       ├── client.ts       # Validated pooled server connection composition
-│   │       ├── dev/            # Deterministic fictional fixtures, guarded CLI, and idempotency proof
+│   │       ├── dev/            # Deterministic fixtures plus guarded seed and auth-identity-link CLIs
 │   │       ├── transaction.ts  # Atomic multi-record operation boundary
 │   │       ├── repositories/   # Focused persistence-only data access interfaces
 │   │       └── schema/         # Identity, files, catalog, ordering, operations, and provider verification
