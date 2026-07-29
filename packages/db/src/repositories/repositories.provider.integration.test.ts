@@ -74,9 +74,11 @@ async function readMigrationStatements(schemaName: string): Promise<string[]> {
 }
 
 beforeAll(async () => {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_MIGRATION_URL;
   if (connectionString === undefined || connectionString.trim() === "") {
-    throw new Error("DATABASE_URL is required for repository provider tests.");
+    throw new Error(
+      "DATABASE_MIGRATION_URL is required for repository provider tests.",
+    );
   }
 
   testSchema = `repository_test_${randomUUID().replaceAll("-", "")}`;
@@ -459,6 +461,7 @@ describe("focused repositories", () => {
       repositories.groupAccess.setMembershipRole(
         group.id,
         member.id,
+        "member",
         "organizer",
       ),
     ).resolves.toBe(true);
@@ -469,6 +472,19 @@ describe("focused repositories", () => {
         new Date("2026-07-29T09:00:00.000Z"),
       ),
     ).resolves.toBe(true);
+    await expect(
+      repositories.identityAccess.addMembership({
+        groupId: group.id,
+        joinedAt: new Date("2026-07-29T10:00:00.000Z"),
+        role: "member",
+        userId: member.id,
+      }),
+    ).resolves.toMatchObject({
+      groupId: group.id,
+      removedAt: null,
+      role: "member",
+      userId: member.id,
+    });
 
     const request = await repositories.groupAccess.createAdminAccessRequest({
       groupId: group.id,

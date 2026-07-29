@@ -42,6 +42,7 @@ export interface GroupAccessRepository {
   setMembershipRole(
     groupId: string,
     userId: string,
+    expectedRole: typeof memberships.$inferSelect.role,
     role: typeof memberships.$inferSelect.role,
   ): Promise<boolean>;
 }
@@ -117,7 +118,7 @@ export function createGroupAccessRepository(
         .returning({ userId: memberships.userId });
       return removed !== undefined;
     },
-    setMembershipRole: async (groupId, userId, role) => {
+    setMembershipRole: async (groupId, userId, expectedRole, role) => {
       const [updated] = await database
         .update(memberships)
         .set({ role })
@@ -125,6 +126,7 @@ export function createGroupAccessRepository(
           and(
             eq(memberships.groupId, groupId),
             eq(memberships.userId, userId),
+            eq(memberships.role, expectedRole),
             isNull(memberships.removedAt),
           ),
         )

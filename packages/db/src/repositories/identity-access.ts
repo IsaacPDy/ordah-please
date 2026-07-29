@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { memberships, users } from "../schema/index.js";
 import type { RepositoryDatabase } from "./database.js";
@@ -34,7 +34,19 @@ export function createIdentityAccessRepository(
   return {
     addMembership: async (input) =>
       requireWrittenRow(
-        await database.insert(memberships).values(input).returning(),
+        await database
+          .insert(memberships)
+          .values(input)
+          .onConflictDoUpdate({
+            set: {
+              joinedAt: input.joinedAt ?? new Date(),
+              removedAt: null,
+              role: input.role,
+            },
+            setWhere: isNotNull(memberships.removedAt),
+            target: [memberships.groupId, memberships.userId],
+          })
+          .returning(),
       ),
     createUser: async (input) =>
       requireWrittenRow(await database.insert(users).values(input).returning()),

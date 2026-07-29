@@ -95,9 +95,11 @@ async function readFixtureCounts(): Promise<Record<string, number>> {
 }
 
 beforeAll(async () => {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_MIGRATION_URL;
   if (connectionString === undefined || connectionString.trim() === "") {
-    throw new Error("DATABASE_URL is required for seed provider tests.");
+    throw new Error(
+      "DATABASE_MIGRATION_URL is required for seed provider tests.",
+    );
   }
 
   testSchema = `seed_test_${randomUUID().replaceAll("-", "")}`;

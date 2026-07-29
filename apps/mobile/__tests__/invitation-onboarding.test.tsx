@@ -56,4 +56,28 @@ describe("InvitationOnboarding", () => {
       screen.getByText("Sign-in or invitation acceptance failed."),
     ).toBeTruthy();
   });
+
+  it.each([
+    { button: "Sign in with Google", isSignedIn: false },
+    { button: "Join group", isSignedIn: true },
+  ])(
+    "blocks duplicate $button submissions while a request is running",
+    async ({ button, isSignedIn }) => {
+      const onAccept = jest.fn();
+      const onSignIn = jest.fn();
+      const screen = await render(
+        <InvitationOnboarding
+          isSignedIn={isSignedIn}
+          onAccept={onAccept}
+          onSignIn={onSignIn}
+          status="submitting"
+        />,
+      );
+
+      await fireEvent.press(screen.getByText(button));
+
+      expect(onAccept).not.toHaveBeenCalled();
+      expect(onSignIn).not.toHaveBeenCalled();
+    },
+  );
 });

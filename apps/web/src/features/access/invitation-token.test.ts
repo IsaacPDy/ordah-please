@@ -22,14 +22,21 @@ describe("invitation token security", () => {
     ).toBe(first.tokenHash);
   });
 
-  it.each(["not-a-token", "invite.v1.wrong-deployment.random-value"])(
-    "rejects malformed or wrong-deployment token %s with one safe error",
-    (publicToken) => {
-      expect(() =>
-        hashInvitationToken(publicToken, "preview.ordah-please.test"),
-      ).toThrow(
-        new PublicApiError("INVALID_INPUT", "This invitation link is invalid."),
-      );
-    },
-  );
+  it("rejects a malformed token with one safe error", () => {
+    expect(() =>
+      hashInvitationToken("not-a-token", "preview.ordah-please.test"),
+    ).toThrow(
+      new PublicApiError("INVALID_INPUT", "This invitation link is invalid."),
+    );
+  });
+
+  it("rejects a structurally valid token issued for another deployment", () => {
+    const token = issueInvitationToken("other.ordah-please.test").publicToken;
+
+    expect(() =>
+      hashInvitationToken(token, "preview.ordah-please.test"),
+    ).toThrow(
+      new PublicApiError("INVALID_INPUT", "This invitation link is invalid."),
+    );
+  });
 });

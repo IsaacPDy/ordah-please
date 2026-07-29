@@ -38,6 +38,45 @@ describe("access route handlers", () => {
     expect(acceptInvitation).not.toHaveBeenCalled();
   });
 
+  it("rejects a cross-site browser mutation before authentication or execution", async () => {
+    const acceptInvitation = vi.fn(() =>
+      Promise.resolve({ groupId: "group-1", role: "member" as const }),
+    );
+    const verifySession = vi.fn(() => ({
+      authUserId: "10000000-0000-4000-8000-000000000001",
+      displayName: "Invited Member",
+    }));
+    const handler = createAcceptInvitationHandler({
+      acceptInvitation,
+      deploymentId: "https://preview.ordah-please.test",
+      loadIdentity: () => ({
+        authUserId: "10000000-0000-4000-8000-000000000001",
+        roles: [],
+        userId: "user-1" as never,
+      }),
+      now: () => new Date("2026-07-25T08:00:00.000Z"),
+      verifySession,
+    });
+
+    const response = await handler(
+      new Request(
+        "https://preview.ordah-please.test/api/access/invitations/accept",
+        {
+          body: JSON.stringify({ token: "public-token" }),
+          headers: {
+            Origin: "https://hostile.example",
+            "Sec-Fetch-Site": "cross-site",
+          },
+          method: "POST",
+        },
+      ),
+    );
+
+    expect(response.status).toBe(403);
+    expect(verifySession).not.toHaveBeenCalled();
+    expect(acceptInvitation).not.toHaveBeenCalled();
+  });
+
   it("lets an authenticated groupless identity execute invitation acceptance", async () => {
     const acceptInvitation = vi.fn(() =>
       Promise.resolve({ groupId: "group-1", role: "member" as const }),

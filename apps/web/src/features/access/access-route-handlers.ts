@@ -27,13 +27,17 @@ export interface AcceptInvitationHandlerDependencies {
     command: AcceptGroupInvitationCommand,
   ) => Promise<{ readonly groupId: string; readonly role: "member" }>;
   readonly deploymentId: string;
-  readonly loadIdentity: (session: VerifiedSession) => MaybePromise<AppIdentity>;
+  readonly loadIdentity: (
+    session: VerifiedSession,
+  ) => MaybePromise<AppIdentity>;
   readonly now: () => Date;
   readonly verifySession: (request: Request) => MaybePromise<VerifiedSession>;
 }
 
 export interface ManageMemberHandlerDependencies {
-  readonly loadIdentity: (session: VerifiedSession) => MaybePromise<AppIdentity>;
+  readonly loadIdentity: (
+    session: VerifiedSession,
+  ) => MaybePromise<AppIdentity>;
   readonly manageMember: (command: ManageGroupMemberCommand) => Promise<{
     readonly role: "organizer" | "member" | null;
     readonly userId: string;
@@ -43,7 +47,9 @@ export interface ManageMemberHandlerDependencies {
 }
 
 interface OwnerHandlerDependencies {
-  readonly loadIdentity: (session: VerifiedSession) => MaybePromise<AppIdentity>;
+  readonly loadIdentity: (
+    session: VerifiedSession,
+  ) => MaybePromise<AppIdentity>;
   readonly verifySession: (request: Request) => MaybePromise<VerifiedSession>;
 }
 
@@ -115,6 +121,32 @@ function requireOwnerGroupId(identity: AppIdentity): string {
   return identity.groupId;
 }
 
+/** Rejects browser cross-site mutations while allowing native requests that do not send Origin. */
+function verifyTrustedMutationRequest(request: Request): void {
+  if (request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site") {
+    throw new PublicApiError(
+      "FORBIDDEN",
+      "You do not have access to this action.",
+    );
+  }
+
+  const origin = request.headers.get("origin");
+  if (origin === null) {
+    return;
+  }
+  try {
+    if (new URL(origin).origin === new URL(request.url).origin) {
+      return;
+    }
+  } catch {
+    // Invalid or opaque browser origins fail closed below.
+  }
+  throw new PublicApiError(
+    "FORBIDDEN",
+    "You do not have access to this action.",
+  );
+}
+
 /** Creates the authenticated invitation-acceptance route used by both Android and PWA clients. */
 export function createAcceptInvitationHandler(
   dependencies: AcceptInvitationHandlerDependencies,
@@ -136,6 +168,7 @@ export function createAcceptInvitationHandler(
           }),
         validate: (incomingRequest) =>
           parseRequestBody(incomingRequest, parseAcceptInvitationRequest),
+        verifyRequest: verifyTrustedMutationRequest,
       },
       {
         loadIdentity: dependencies.loadIdentity,
@@ -171,6 +204,7 @@ export function createManageMemberHandler(
         },
         validate: (incomingRequest) =>
           parseRequestBody(incomingRequest, parseMemberActionRequest),
+        verifyRequest: verifyTrustedMutationRequest,
       },
       {
         loadIdentity: dependencies.loadIdentity,
@@ -205,6 +239,7 @@ export function createIssueInvitationHandler(
           }),
         validate: (incomingRequest) =>
           parseRequestBody(incomingRequest, parseIssueInvitationRequest),
+        verifyRequest: verifyTrustedMutationRequest,
       },
       {
         loadIdentity: dependencies.loadIdentity,
@@ -252,6 +287,7 @@ export function createAdminRequestHandler(
           }),
         validate: (incomingRequest) =>
           parseRequestBody(incomingRequest, parseCreateAdminAccessRequest),
+        verifyRequest: verifyTrustedMutationRequest,
       },
       {
         loadIdentity: dependencies.loadIdentity,

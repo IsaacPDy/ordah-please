@@ -112,6 +112,7 @@ describe("access service", () => {
 
     expect(access.addMembership).toHaveBeenCalledWith({
       groupId: "group-1",
+      joinedAt: new Date("2026-07-25T08:00:00.000Z"),
       role: "member",
       userId: "user-1",
     });
@@ -183,6 +184,48 @@ describe("access service", () => {
       expect(access.addMembership).not.toHaveBeenCalled();
     },
   );
+
+  it("rejects a concurrent role change without writing a duplicate audit", async () => {
+    const access = {
+      listActiveMembers: vi.fn(() =>
+        Promise.resolve([
+          {
+            displayName: "Member",
+            role: "member" as const,
+            userId: "member-1",
+          },
+        ]),
+      ),
+      removeMembership: vi.fn(() => Promise.resolve(true)),
+      setMembershipRole: vi.fn(() => Promise.resolve(false)),
+    };
+    const append = vi.fn(() => Promise.resolve({ id: "audit-1" }));
+
+    await expect(
+      manageGroupMember(
+        {
+          action: "promote",
+          actorUserId: "owner-1",
+          groupId: "group-1",
+          now: new Date("2026-07-25T09:00:00.000Z"),
+          targetUserId: "member-1",
+        },
+        {
+          run: (operation) => operation({ access, auditEvents: { append } }),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: "This member action is not available.",
+    });
+    expect(access.setMembershipRole).toHaveBeenCalledWith(
+      "group-1",
+      "member-1",
+      "member",
+      "organizer",
+    );
+    expect(append).not.toHaveBeenCalled();
+  });
 
   it("rejects acceptance when the authenticated user already has an active group", async () => {
     const access = {

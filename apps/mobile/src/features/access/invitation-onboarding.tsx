@@ -23,7 +23,12 @@ export function InvitationOnboarding({
         {!isSignedIn ? (
           <>
             <Text variant="bodyMedium">Sign in with Google to continue</Text>
-            <Button mode="contained" onPress={onSignIn}>
+            <Button
+              disabled={status === "submitting"}
+              loading={status === "submitting"}
+              mode="contained"
+              onPress={onSignIn}
+            >
               Sign in with Google
             </Button>
           </>
@@ -34,7 +39,7 @@ export function InvitationOnboarding({
               chooses order participants separately.
             </Text>
             <Button
-              disabled={status === "success"}
+              disabled={status === "submitting" || status === "success"}
               loading={status === "submitting"}
               mode="contained"
               onPress={onAccept}

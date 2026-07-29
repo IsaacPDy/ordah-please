@@ -5,6 +5,7 @@ export type GroupMemberView = Readonly<{
 }>;
 
 type TeamAccessViewProps = Readonly<{
+  actionsDisabled: boolean;
   members: readonly GroupMemberView[];
   onAction: (action: "promote" | "demote" | "remove", userId: string) => void;
   onIssueInvitation?: () => void;
@@ -19,6 +20,7 @@ const ROLE_LABELS = {
 
 /** Renders exact group roles and only the owner actions valid for each active member. */
 export function TeamAccessView({
+  actionsDisabled,
   members,
   onAction,
   onIssueInvitation,
@@ -31,7 +33,11 @@ export function TeamAccessView({
           <h1 id="team-access-title">Team</h1>
           <p>Group membership is separate from each order participant list.</p>
         </div>
-        <button onClick={onIssueInvitation} type="button">
+        <button
+          disabled={actionsDisabled}
+          onClick={onIssueInvitation}
+          type="button"
+        >
           Create invitation link
         </button>
       </header>
@@ -44,6 +50,7 @@ export function TeamAccessView({
             </div>
             {member.role === "member" ? (
               <button
+                disabled={actionsDisabled}
                 onClick={() => {
                   onAction("promote", member.userId);
                 }}
@@ -54,6 +61,7 @@ export function TeamAccessView({
             ) : null}
             {member.role === "organizer" ? (
               <button
+                disabled={actionsDisabled}
                 onClick={() => {
                   onAction("demote", member.userId);
                 }}
@@ -64,6 +72,7 @@ export function TeamAccessView({
             ) : null}
             {member.role !== "owner" ? (
               <button
+                disabled={actionsDisabled}
                 onClick={() => {
                   onAction("remove", member.userId);
                 }}
@@ -75,7 +84,7 @@ export function TeamAccessView({
           </li>
         ))}
       </ul>
-      <button onClick={onRequestAdmin} type="button">
+      <button disabled={actionsDisabled} onClick={onRequestAdmin} type="button">
         Request platform-admin access
       </button>
     </section>

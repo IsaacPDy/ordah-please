@@ -41,6 +41,7 @@ interface InvitationAcceptanceRepositories {
     ): Promise<boolean>;
     addMembership(input: {
       readonly groupId: string;
+      readonly joinedAt: Date;
       readonly role: "member";
       readonly userId: string;
     }): Promise<unknown>;
@@ -87,6 +88,7 @@ interface MemberManagementRepositories {
     setMembershipRole(
       groupId: string,
       userId: string,
+      expectedRole: MembershipRole,
       role: MembershipRole,
     ): Promise<boolean>;
   };
@@ -237,6 +239,7 @@ export async function acceptGroupInvitation(
     }
     await repositories.access.addMembership({
       groupId: invitation.groupId,
+      joinedAt: command.now,
       role: "member",
       userId: command.userId,
     });
@@ -300,6 +303,7 @@ export function manageGroupMember(
         : await repositories.access.setMembershipRole(
             command.groupId,
             command.targetUserId,
+            target.role,
             nextRole,
           );
     if (!changed) {

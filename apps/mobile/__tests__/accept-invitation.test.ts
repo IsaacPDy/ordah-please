@@ -2,7 +2,7 @@ import { acceptInvitation } from "../src/features/access/accept-invitation";
 
 describe("acceptInvitation", () => {
   it("sends the Better Auth cookie and public invitation token to the trusted API", async () => {
-    const request = jest.fn((_url: string, _init: RequestInit) =>
+    const request = jest.fn<Promise<Response>, [string, RequestInit]>(() =>
       Promise.resolve(
         new Response(
           JSON.stringify({

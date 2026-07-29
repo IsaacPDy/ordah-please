@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { TeamAccessView, type GroupMemberView } from "./team-access-view";
 
@@ -72,6 +72,24 @@ export function TeamAccessPanel() {
   const [status, setStatus] = useState<PanelStatus>("loading");
   const [message, setMessage] = useState<string | null>(null);
   const [invitationUrl, setInvitationUrl] = useState<string | null>(null);
+  const [actionsDisabled, setActionsDisabled] = useState(false);
+  const actionInFlight = useRef(false);
+
+  /** Claims the one owner-action slot before React can render disabled controls. */
+  const beginAction = (): boolean => {
+    if (actionInFlight.current) {
+      return false;
+    }
+    actionInFlight.current = true;
+    setActionsDisabled(true);
+    return true;
+  };
+
+  /** Releases the owner-action slot after either success or a safe failure. */
+  const finishAction = (): void => {
+    actionInFlight.current = false;
+    setActionsDisabled(false);
+  };
 
   /** Reloads the member list after an owner changes group access. */
   const refreshMembers = async () => {
@@ -113,6 +131,9 @@ export function TeamAccessPanel() {
     ) {
       return;
     }
+    if (!beginAction()) {
+      return;
+    }
     setMessage(null);
     try {
       await responseData(
@@ -125,11 +146,16 @@ export function TeamAccessPanel() {
       await refreshMembers();
     } catch {
       setMessage("The member action could not be completed.");
+    } finally {
+      finishAction();
     }
   };
 
   /** Creates a seven-day public invitation link for the current deployment. */
   const issueInvitation = async () => {
+    if (!beginAction()) {
+      return;
+    }
     setMessage(null);
     try {
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000);
@@ -153,11 +179,16 @@ export function TeamAccessPanel() {
       );
     } catch {
       setMessage("An invitation link could not be created.");
+    } finally {
+      finishAction();
     }
   };
 
   /** Submits the owner's platform-admin request without approving it. */
   const requestAdmin = async () => {
+    if (!beginAction()) {
+      return;
+    }
     setMessage(null);
     try {
       await responseData(
@@ -170,6 +201,8 @@ export function TeamAccessPanel() {
       setMessage("Platform-admin request submitted.");
     } catch {
       setMessage("A platform-admin request is already pending or unavailable.");
+    } finally {
+      finishAction();
     }
   };
 
@@ -199,6 +232,7 @@ export function TeamAccessPanel() {
   return (
     <>
       <TeamAccessView
+        actionsDisabled={actionsDisabled}
         members={members}
         onAction={(action, userId) => {
           void performMemberAction(action, userId);
