@@ -381,4 +381,45 @@ describe("focused repositories", () => {
       }),
     ).resolves.toMatchObject({ archivedAt, id: user.id });
   });
+
+  it("creates, resolves, and consumes an invitation hash only once", async () => {
+    const repositories = createRepositories(database);
+    const owner = await repositories.identityAccess.createUser({
+      displayName: "Invitation Owner",
+    });
+    const member = await repositories.identityAccess.createUser({
+      displayName: "Invited Member",
+    });
+    const [group] = await database
+      .insert(groups)
+      .values({ createdByUserId: owner.id, name: "Invitation Group" })
+      .returning();
+    if (group === undefined) {
+      throw new Error("Expected the invitation group to be created.");
+    }
+
+    const invitation = await repositories.groupAccess.createInvitation({
+      createdByUserId: owner.id,
+      expiresAt: new Date("2026-07-31T08:00:00.000Z"),
+      groupId: group.id,
+      tokenHash: randomUUID().replaceAll("-", ""),
+    });
+    await expect(
+      repositories.groupAccess.findInvitationByTokenHash(invitation.tokenHash),
+    ).resolves.toMatchObject({ id: invitation.id });
+    await expect(
+      repositories.groupAccess.acceptInvitation(
+        invitation.id,
+        member.id,
+        new Date("2026-07-29T08:00:00.000Z"),
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      repositories.groupAccess.acceptInvitation(
+        invitation.id,
+        member.id,
+        new Date("2026-07-29T08:01:00.000Z"),
+      ),
+    ).resolves.toBe(false);
+  });
 });
