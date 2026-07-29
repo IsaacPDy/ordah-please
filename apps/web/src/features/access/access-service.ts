@@ -104,7 +104,10 @@ interface AdminRequestRepositories {
     createAdminAccessRequest(input: {
       readonly groupId: string;
       readonly requesterUserId: string;
-    }): Promise<{ readonly id: string; readonly status: "pending" }>;
+    }): Promise<{
+      readonly id: string;
+      readonly status: "pending" | "approved" | "rejected";
+    }>;
     findPendingAdminAccessRequest(
       requesterUserId: string,
     ): Promise<{ readonly id: string } | undefined>;

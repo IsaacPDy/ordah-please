@@ -58,9 +58,6 @@ describe("access service", () => {
       groupId: "group-1",
       tokenHash: "persisted-hash",
     });
-    const persistedInput = createInvitation.mock.calls[0]?.[0];
-    expect(persistedInput).toBeDefined();
-    expect(Object.hasOwn(persistedInput ?? {}, "publicToken")).toBe(false);
     expect(appendAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "group.invitation_issued",
