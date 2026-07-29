@@ -8,6 +8,18 @@ interface MobileCookieStorage {
   readonly setItem: (key: string, value: string) => unknown;
 }
 
+type CompatibleExpoClientPlugin = Omit<
+  ReturnType<typeof expoClient>,
+  "fetchPlugins" | "getActions"
+> & {
+  fetchPlugins: NonNullable<BetterAuthClientPlugin["fetchPlugins"]>;
+  getActions: (
+    ...args: Parameters<NonNullable<BetterAuthClientPlugin["getActions"]>>
+  ) => {
+    getCookie: () => string;
+  };
+};
+
 /** Reads and validates the public server origin used by the native auth client. */
 export function readMobileApiUrl(
   value: string | undefined = process.env.EXPO_PUBLIC_API_URL,
@@ -38,19 +50,18 @@ export function buildMobileAuthOptions(
   baseURL: string,
   storage: MobileCookieStorage,
 ) {
+  const plugin = expoClient({
+    cookiePrefix: "ordah-please",
+    scheme: "ordahplease",
+    storage,
+    storagePrefix: "ordah-please",
+  }) as unknown as CompatibleExpoClientPlugin;
+
   return {
     baseURL: readMobileApiUrl(baseURL),
-    plugins: [
-      // Better Auth 1.6.25's Expo declaration conflicts with its own client
-      // declaration under exactOptionalPropertyTypes, although both packages
-      // resolve to the same runtime version and this is the documented plugin.
-      expoClient({
-        cookiePrefix: "ordah-please",
-        scheme: "ordahplease",
-        storage,
-        storagePrefix: "ordah-please",
-      }) as unknown as BetterAuthClientPlugin,
-    ],
+    // Better Auth infers Expo actions from a plugin tuple, so keep this as
+    // one typed tuple instead of widening it to an ordinary plugin array.
+    plugins: [plugin] as [typeof plugin],
   };
 }
 
@@ -62,26 +73,21 @@ export function createMobileAuthClient(
   return createAuthClient(buildMobileAuthOptions(baseURL, storage));
 }
 
-/** Adds the stored Better Auth cookie without introducing a bearer token or ambient credentials. */
-export function buildAuthenticatedRequestInit(
-  cookie: string,
-  init: RequestInit = {},
-): RequestInit {
-  const headers = new Headers(init.headers);
-  headers.set("cookie", cookie);
-  headers.delete("authorization");
-
-  return {
-    ...init,
-    credentials: "omit",
-    headers,
-  };
-}
-
 let runtimeAuthClient: ReturnType<typeof createMobileAuthClient> | undefined;
 
 /** Returns one native auth client so its session store remains stable across renders. */
 export function getMobileAuthClient() {
   runtimeAuthClient ??= createMobileAuthClient();
   return runtimeAuthClient;
+}
+
+/** Reads the Expo plugin's stored session cookie before a protected native API request. */
+export function readMobileSessionCookie(
+  client: { readonly getCookie: () => string } = getMobileAuthClient(),
+): string {
+  const cookie = client.getCookie();
+  if (cookie.trim() === "") {
+    throw new Error("A Better Auth session is required.");
+  }
+  return cookie;
 }

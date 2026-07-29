@@ -1,15 +1,6 @@
-import { Users } from "lucide-react";
+import { TeamAccessPanel } from "../../../src/features/access/team-access-panel";
 
-import { EmptyPage } from "../../components/empty-page";
-
-/** Shows the member team destination without inventing group members. */
+/** Shows owner member management or an honest permission state for other roles. */
 export default function TeamPage() {
-  return (
-    <EmptyPage
-      description="Group members and roles will appear after your invitation is accepted."
-      emptyTitle="No team details yet"
-      icon={Users}
-      title="Team"
-    />
-  );
+  return <TeamAccessPanel />;
 }
