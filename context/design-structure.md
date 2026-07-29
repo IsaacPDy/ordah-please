@@ -4,7 +4,7 @@
 
 ### Android Member Application
 
-- Invitation and Google sign-in
+- Invitation and Better Auth Google sign-in with a return to the same invitation
 - Global catalog browsing
 - Restaurant detail and menu
 - Favorite combination editor and ranking
@@ -43,6 +43,7 @@
 
 ## Interaction Principles
 
+- Keep authentication inside the invitation flow in V1: explain why sign-in is required, preserve the invitation across Google OAuth, and show a safe retry or sign-out action when the session fails.
 - Show the current order stage, deadline, and consequence of no response on every active-order screen.
 - Distinguish preselection from confirmed change, while clearly stating that Rank 1 is automatically included at deadline.
 - Never present the food subtotal as Grab's final checkout price.

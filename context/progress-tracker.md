@@ -14,7 +14,7 @@ Update this file after every meaningful implementation change.
 
 ## Current Goal
 
-- Squash the fully verified V1-04 authenticated API boundary into `main` and verify the permanent commit.
+- Replace Clerk with self-hosted Better Auth on Neon, verify the corrected authentication boundary on web and Android, retire Clerk, and then reconstruct V1-05 from the preserved recovery branch.
 
 ## Completed V1 Tasks
 
@@ -33,6 +33,7 @@ Update this file after every meaningful implementation change.
 - [x] V1 corrected Option 1 reference saved at `context/assets/ordah-please-option-1.png`
 - [x] V1 English-only application-authored language rule
 - [x] V1 service setup tutorial and variable registry in `context/services.md`
+- [x] V1 service-limit and explicit-upgrade register in `context/service-limits.md`
 - [x] Product-focused root `README.md` drafted
 - [x] V1 context review and correction
 - [x] V1 implementation plan documented in `context/specs/01-v1-implementation-plan.md`
@@ -50,7 +51,8 @@ Update this file after every meaningful implementation change.
 
 ## In Progress V1 Tasks
 
-- V1-04 Task 3.1 is complete and ready for its required squash into `main`. The authenticated route boundary, signed Clerk webhook, Neon identity synchronization, immutable audit trail, preview deployment, and live Clerk delivery tests are verified.
+- V1-04A is active on `task/V1-04A-better-auth-migration` from reviewed V1-04 `main`. The approved design replaces Clerk with self-hosted Better Auth, keeps Google as the only V1 sign-in method, stores auth tables separately from product users, preserves Neon-owned roles and history, removes the external identity webhook, and uses same-origin web cookies plus SecureStore-backed Expo cookies.
+- Documentation-first migration work is complete: permanent architecture, UI, service, environment, coding, workflow, product-design, implementation-plan, and service-limit records now describe Better Auth and the Google OAuth boundary. Runtime, database, and provider-backed verification remain.
 
 ## Pending V1 Implementation Tasks
 
@@ -58,6 +60,7 @@ Update this file after every meaningful implementation change.
 - [x] V1-02 Define shared API contracts and provider-neutral domain types
 - [x] V1-03 Create the Neon schema, migrations, pooled database access, and immutable audit model
 - [x] V1-04 Integrate Clerk Google sign-in across Android and web and map identities into Neon
+- [ ] V1-04A Replace Clerk authentication with Better Auth on Neon
 - [ ] V1-05 Implement invitation-only access, one-group membership, owners, organizers, members, and admin requests
 - [ ] V1-06 Implement platform-admin approval and limited mobile-admin permissions
 - [ ] V1-07 Implement R2 private storage, direct signed uploads, and file metadata
@@ -98,7 +101,9 @@ Update this file after every meaningful implementation change.
 - Use split clients: Expo Android and Next.js iPhone PWA/admin.
 - Use Vercel as the trusted API boundary.
 - Use Neon PostgreSQL for relational product data and roles.
-- Use Clerk for identity only; do not use Clerk Organizations.
+- Use Google OAuth for identity proof and self-hosted Better Auth for sessions; do not use Better Auth Infrastructure.
+- Keep Better Auth records separate from product users and keep all product roles in Neon product tables.
+- Use `context/service-limits.md` for current allowances and warning thresholds; no threshold authorizes paid usage.
 - Use private Cloudflare R2 for images, receipts, and imports.
 - Use OneSignal for Android and web-push delivery.
 - Use QStash for deadline work and recurring reminders.

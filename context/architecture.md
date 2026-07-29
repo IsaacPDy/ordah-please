@@ -10,7 +10,7 @@
 | Hosting and API | Vercel + Next.js Route Handlers | Trusted server boundary for clients and integrations |
 | Database | Neon PostgreSQL | Structured product data, relationships, permissions, and audit history |
 | Database access | Drizzle ORM and Neon pooled connection | Typed queries, migrations, and serverless-safe connections |
-| Authentication | Clerk with Google sign-in | User identity and sessions only |
+| Authentication | Self-hosted Better Auth with Google sign-in | User identity and sessions only |
 | Object storage | Cloudflare R2 private buckets | Thumbnails, receipts, import files, and validation reports |
 | Notification delivery | OneSignal | Android native push and iPhone PWA web push |
 | Scheduling | Upstash QStash | Delayed deadline work and recurring refresh reminders |
@@ -28,7 +28,8 @@ Do not change the Android application ID after the first distributed APK without
 
 ## Why Each Backend Service Exists
 
-- **Clerk:** Proves who the user is.
+- **Google OAuth:** Proves control of a Google identity.
+- **Better Auth:** Creates and verifies the application's session.
 - **Vercel API:** Decides whether that user may perform the requested action.
 - **Neon:** Stores and queries structured records.
 - **R2:** Stores file bytes that do not belong in PostgreSQL.
@@ -53,7 +54,7 @@ Clients never connect directly to Neon, R2, QStash, or OneSignal. Every privileg
 
 ### Neon PostgreSQL
 
-Store Clerk user mappings, private-group membership, roles, admin requests, the group's default delivery address, restaurants, branches, menus, menu versions, categories, items, variants, modifiers, availability, import drafts, refresh runs, favorites, favorite lines, orders and their delivery-address snapshots, selected participants, votes, food selections, order lines, notification records, receipt metadata, audit events, and timestamps.
+Store Better Auth users, sessions, accounts, and verifications separately from provider-neutral product users, private-group membership, roles, admin requests, the group's default delivery address, restaurants, branches, menus, menu versions, categories, items, variants, modifiers, availability, import drafts, refresh runs, favorites, favorite lines, orders and their delivery-address snapshots, selected participants, votes, food selections, order lines, notification records, receipt metadata, audit events, and timestamps.
 
 ### Cloudflare R2
 
@@ -65,11 +66,13 @@ Cache only non-secret display data and short-lived session state. The server rem
 
 ## Auth and Access Model
 
-- Clerk handles Google identity and session verification.
-- Neon maps each `clerk_user_id` to the application user and all product roles.
-- Signed Clerk `user.created`, `user.updated`, and `user.deleted` webhooks synchronize that mapping through one Neon transaction. Each delivery claims a unique immutable audit key before upserting or archiving the user, so retries are harmless and account deletion never erases product history.
-- Clerk Organizations are not used because their free organization membership limit does not cover the target group size.
-- Every API request verifies the Clerk session, loads application roles from Neon, and checks resource-level permission.
+- Google OAuth proves control of a Google identity, and Better Auth creates and verifies the application session.
+- Better Auth runs inside the existing Next.js application and stores `auth_users`, `auth_sessions`, `auth_accounts`, and `auth_verifications` in Neon.
+- Neon maps each Better Auth user through nullable, unique `users.auth_user_id`; product roles stay on the product user and are never accepted from Google or Better Auth.
+- No external identity webhook exists. A product user is created or reused on the first authenticated request, with uniqueness protecting concurrent provisioning.
+- Web uses same-origin HTTP-only cookies. Android uses the Better Auth Expo plugin with SecureStore-backed cookies and sends that cookie to the trusted API.
+- Every API request verifies the Better Auth session, ensures or loads the application identity, loads application roles from Neon, and checks resource-level permission.
+- Authentication deletion or session revocation never erases product history.
 - Platform admins manage catalog and admin requests.
 - Group owners manage membership and organizer promotion.
 - Organizers manage only orders they are authorized to organize.
@@ -117,13 +120,13 @@ Cache only non-secret display data and short-lived session state. The server rem
 
 ## Cost Boundary
 
-Target required infrastructure cost is USD 0 per month using free tiers: Neon, Clerk, R2, OneSignal, QStash, Vercel Hobby, and Expo EAS Free. A custom domain is optional. Add usage monitoring before enabling any paid upgrade.
+Target required infrastructure cost is USD 0 per month using self-hosted Better Auth plus the Neon, R2, OneSignal, QStash, Vercel Hobby, Expo EAS Free, and GitHub Actions free allowances. Better Auth Infrastructure is not used. A custom domain is optional. Follow `context/service-limits.md`; no paid upgrade is authorized by a warning threshold.
 
 ## Invariants
 
 1. Clients never receive database, R2, QStash, OneSignal, or other server credentials.
 2. Every mutation verifies identity, application role, resource access, and validated input.
-3. Product roles and membership live in Neon; Clerk is identity only.
+3. Product roles and membership live in Neon product tables; Google and Better Auth provide identity and sessions only.
 4. Files live in R2; structured relationships and file metadata live in Neon.
 5. Prices in completed order history never change when menus refresh.
 6. A menu refresh never removes the last approved menu on failure.

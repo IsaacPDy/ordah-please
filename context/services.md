@@ -22,11 +22,11 @@ These are not provider secrets. Keep them together because a rename can affect s
 
 | Variable | Current value | Purpose | Update locations when changed |
 | --- | --- | --- | --- |
-| `APP_DISPLAY_NAME` | `ordah please` | Visible application name | Expo app config, PWA manifest and metadata, Clerk application name, OneSignal application/site name, documentation |
+| `APP_DISPLAY_NAME` | `ordah please` | Visible application name | Expo app config, PWA manifest and metadata, Google OAuth branding, OneSignal application/site name, documentation |
 | `APP_SLUG` | `ordah-please` | Technical project slug | Expo `slug`, EAS project settings, Vercel project name if desired, documentation |
 | `ANDROID_APPLICATION_ID` | `ordahplease.app` | Permanent Android package and namespace | Expo `android.package`, OneSignal Android platform, Firebase/FCM registration, EAS credentials |
-| `APP_SCHEME` | `ordahplease` | Mobile deep-link and authentication callback scheme | Expo `scheme`, Clerk mobile OAuth callback handling, Android intent filters |
-| `APP_BASE_URL` | Environment-specific HTTPS origin | Canonical web/API origin used by the server | Vercel, Clerk webhook/redirect settings, QStash callback destinations, OneSignal web settings |
+| `APP_SCHEME` | `ordahplease` | Mobile deep-link and authentication callback scheme | Expo `scheme`, Better Auth trusted origins, Android intent filters |
+| `APP_BASE_URL` | Environment-specific HTTPS origin | Canonical web/API origin used by the server | Vercel, Better Auth base URL, Google OAuth callbacks, QStash callback destinations, OneSignal web settings |
 | `EXPO_PUBLIC_API_URL` | Environment-specific API origin | Android client API base URL | Local mobile environment and every EAS environment |
 | `NEXT_PUBLIC_APP_URL` | Environment-specific web origin | Browser-visible canonical web URL | Local web environment and every Vercel environment |
 
@@ -48,10 +48,10 @@ The names below are the V1 contract. Real values are deliberately omitted.
 | Neon | `DATABASE_URL` | Server secret | Runtime pooled Postgres connection | Vercel and local web environment |
 | Neon | `DATABASE_MIGRATION_URL` | Server secret | Direct connection for schema migrations | Local/CI migration environment only |
 | Neon development seed | `DATABASE_SEED_CONFIRMATION` | Non-secret safety control | Explicitly allowing deterministic fixture seeding | Local development only; never Vercel or production |
-| Clerk | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Public | Next.js authentication UI | Vercel and local web environment |
-| Clerk | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Public | Expo authentication | EAS and local mobile environment |
-| Clerk | `CLERK_SECRET_KEY` | Server secret | Server-side Clerk verification and API access | Vercel and local web environment |
-| Clerk | `CLERK_WEBHOOK_SIGNING_SECRET` | Server secret | Verifying Clerk webhook events | Vercel only after webhook creation |
+| Better Auth | `BETTER_AUTH_SECRET` | Server secret | Signing and protecting Better Auth cookies and state | Vercel and local web environment; unique per environment |
+| Better Auth | `BETTER_AUTH_URL` | Server config | Exact Better Auth server origin | Vercel and local web environment |
+| Google OAuth | `GOOGLE_CLIENT_ID` | Server config | Identifying the environment's Web OAuth client | Vercel and local web environment |
+| Google OAuth | `GOOGLE_CLIENT_SECRET` | Server secret | Exchanging Google OAuth codes | Vercel and local web environment |
 | R2 | `R2_ACCOUNT_ID` | Server config | Building the R2 endpoint | Vercel and local web environment |
 | R2 | `R2_BUCKET_NAME` | Server config | Selecting the private bucket | Vercel and local web environment |
 | R2 | `R2_ENDPOINT` | Server config | S3-compatible client endpoint | Vercel and local web environment |
@@ -77,7 +77,7 @@ Use three environments from the beginning:
 | Preview | Safe deployed testing | Preview | `preview` |
 | Production | Private real use by friends | Production | `production` |
 
-Do not reuse production database, Clerk keys, R2 bucket, or notification credentials in development. A test should not be able to notify real users or modify real menus.
+Do not reuse production database, Better Auth secret, Google OAuth client, R2 bucket, or notification credentials in development. A test should not be able to notify real users or modify real menus.
 
 ## 1. Neon PostgreSQL
 
@@ -115,35 +115,40 @@ The command uses the pooled `DATABASE_URL`, runs all fixture writes in one trans
 - Changing project, branch, database, role, password, or region can change a connection string. Update `DATABASE_URL` and `DATABASE_MIGRATION_URL`, then redeploy.
 - Never expose either URL to Expo or browser code.
 
-Official references: [Neon connection pooling](https://neon.com/docs/connect/connection-pooling), [Neon with Clerk and Drizzle](https://neon.com/docs/guides/auth-clerk).
+Official references: [Neon connection pooling](https://neon.com/docs/connect/connection-pooling), [Better Auth Drizzle adapter](https://better-auth.com/docs/adapters/drizzle).
 
-## 2. Clerk Authentication
+## 2. Better Auth and Google OAuth
 
 ### Why it exists
 
-Clerk proves who signed in. Neon—not Clerk Organizations—stores application roles and group membership.
+Google proves control of a Google identity. Self-hosted Better Auth creates and verifies the application's session. Neon product tables—not Google or Better Auth—store roles and group membership.
 
 ### Setup
 
-1. Create one Clerk development application named `ordah please`.
-2. Enable Google as the allowed sign-in method.
-3. Copy the publishable key to both `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` in their separate environments.
-4. Store `CLERK_SECRET_KEY` only in Vercel and the local server environment.
-5. Configure the web origin and authorized redirects using the current `NEXT_PUBLIC_APP_URL`.
-6. Configure the Expo OAuth return behavior using `APP_SCHEME`.
-7. After the tested V1-04 Vercel preview exists, confirm Clerk can reach it through Vercel Deployment Protection. Keep previews protected by using Vercel's Protection Bypass for Automation when available; use the `x-vercel-protection-bypass` query parameter only in the provider dashboard, and never write its secret value into Git or chat.
-8. Create the Clerk user webhook at `<preview APP_BASE_URL>/api/webhooks/clerk` (plus the dashboard-only Vercel bypass query parameter when required) and subscribe only to `user.created`, `user.updated`, and `user.deleted`.
-9. Store its signing value as `CLERK_WEBHOOK_SIGNING_SECRET` in Vercel.
-10. Create a separate Clerk production instance before inviting real users and replace all four Clerk variables in the production environments.
+1. Use the existing Google Cloud project only for the matching environment; keep development, preview, and production isolated.
+2. In Google Auth Platform, configure an External audience and keep Publishing status as Testing for the private prototype.
+3. Request only `openid`, `email`, and `profile`. Do not enable Drive, Gmail, Calendar, or another sensitive scope.
+4. Create a Web OAuth client and add exact callback URLs:
+   - `http://localhost:3000/api/auth/callback/google`
+   - `https://<exact-preview-origin>/api/auth/callback/google`
+   - `https://ordah-please-web.vercel.app/api/auth/callback/google`
+5. Store the client identifier as `GOOGLE_CLIENT_ID` and its secret as `GOOGLE_CLIENT_SECRET` only in the local server environment and Vercel.
+6. Generate a strong, environment-specific `BETTER_AUTH_SECRET`. Never reuse development, preview, and production values.
+7. Set `BETTER_AUTH_URL` to the exact origin for that environment, with no path suffix.
+8. Keep `APP_SCHEME=ordahplease` in Expo and trust `ordahplease://` in the Better Auth server.
+9. Keep browser authentication same-origin. Android uses the Better Auth Expo plugin and SecureStore-backed cookie storage.
+10. Do not create a Better Auth Infrastructure account or API key. V1 uses only the self-hosted framework.
+11. Redeploy after any Vercel auth-variable change.
 
 ### Rename and rotation checklist
 
-- Changing only the Clerk dashboard application name does not require new keys.
-- Changing domains requires updating allowed origins, redirect URLs, webhook URL, `APP_BASE_URL`, and `NEXT_PUBLIC_APP_URL`.
-- Creating a new Clerk instance changes both publishable keys, `CLERK_SECRET_KEY`, and the webhook signing secret.
-- Rotating `CLERK_SECRET_KEY` or the webhook secret requires a Vercel update and redeploy.
+- Changing domains requires updating `BETTER_AUTH_URL`, `APP_BASE_URL`, `NEXT_PUBLIC_APP_URL`, Better Auth trusted origins, and exact Google OAuth callback URLs.
+- Rotating `BETTER_AUTH_SECRET` invalidates or changes the validation of protected cookies; use a controlled session-expiry window and redeploy.
+- Rotating the Google OAuth client secret requires updating `GOOGLE_CLIENT_SECRET` and redeploying before revoking the old value.
+- Recreating the OAuth client changes both Google variables and every registered callback.
+- Authentication deletion must never hard-delete the provider-neutral product user or its history.
 
-Official references: [Clerk environment variables](https://clerk.com/docs/guides/development/clerk-environment-variables), [Clerk Expo quickstart](https://clerk.com/docs/expo/getting-started/quickstart), [Clerk Next.js quickstart](https://clerk.com/docs/nextjs/getting-started/quickstart).
+Official references: [Better Auth installation](https://better-auth.com/docs/installation), [Better Auth Expo integration](https://better-auth.com/docs/integrations/expo), [Better Auth cookies](https://better-auth.com/docs/concepts/cookies), [Google OAuth app states](https://developers.google.com/identity/protocols/oauth2/production-readiness/overview).
 
 ## 3. Cloudflare R2
 
@@ -184,7 +189,7 @@ Vercel hosts the Next.js PWA, admin portal, and trusted API boundary. It is also
 3. In **Project Settings > Environment Variables**, add every Vercel-targeted variable from the master inventory.
 4. Assign distinct values to Development, Preview, and Production.
 5. Set `APP_BASE_URL` and `NEXT_PUBLIC_APP_URL` to the correct origin for each stable environment.
-6. Deploy once, then use the resulting HTTPS origin to finish Clerk webhooks, QStash callbacks, and OneSignal web setup.
+6. Deploy once, then use the resulting HTTPS origin to finish Google OAuth callbacks, Better Auth origin configuration, QStash callbacks, and OneSignal web setup.
 7. When a third-party webhook must call a protected Preview deployment, create a dedicated Protection Bypass for Automation in **Project Settings > Deployment Protection** and keep the generated value out of source code, logs, and chat. That bypass works across the project's deployments until revoked; disabling Vercel Authentication instead makes every existing Preview deployment public and requires an explicit security decision.
 8. After changing any Vercel variable, create a new deployment; old deployments keep their old values.
 9. For local work, pull only the Development environment into a gitignored file with `vercel env pull` or run commands with `vercel env run`.
@@ -192,7 +197,7 @@ Vercel hosts the Next.js PWA, admin portal, and trusted API boundary. It is also
 ### Rename and domain checklist
 
 - Renaming the Vercel project can change generated `vercel.app` URLs.
-- Adding or changing a custom domain requires updates in Clerk, OneSignal web push, QStash callback targets, `APP_BASE_URL`, `NEXT_PUBLIC_APP_URL`, and `EXPO_PUBLIC_API_URL`.
+- Adding or changing a custom domain requires updates in Better Auth, Google OAuth, OneSignal web push, QStash callback targets, `APP_BASE_URL`, `NEXT_PUBLIC_APP_URL`, and `EXPO_PUBLIC_API_URL`.
 - `VERCEL_PROJECT_PRODUCTION_URL` is supplied by Vercel, but it has no `https://` prefix. Use the explicit `APP_BASE_URL` contract for signed callbacks and external links.
 
 Official references: [Vercel environment variables](https://vercel.com/docs/environment-variables), [managing Vercel variables](https://vercel.com/docs/environment-variables/managing-environment-variables), [Vercel environment CLI](https://vercel.com/docs/cli/env).
@@ -239,7 +244,7 @@ OneSignal delivers Android native push and iPhone PWA web push. The database sti
 7. Host `OneSignalSDKWorker.js` on the same HTTPS origin. For the PWA, use a stable dedicated path such as `/push/onesignal/OneSignalSDKWorker.js` to reduce conflict with the PWA service worker.
 8. Put the public App ID in `NEXT_PUBLIC_ONESIGNAL_APP_ID`.
 9. Create an App API Key and store it only as `ONESIGNAL_APP_API_KEY` in Vercel.
-10. After Clerk sign-in maps to an internal Neon user, call OneSignal login with that stable internal user ID as the External ID. Do not use a mutable email address.
+10. After Better Auth sign-in maps to an internal Neon product user, call OneSignal login with that stable internal user ID as the External ID. Do not use a mutable email address.
 11. Ask for notification permission only from a clear user action. On iPhone, explain that web push requires an installed Home Screen PWA on supported iOS versions.
 
 ### Rename and rotation checklist
@@ -269,7 +274,7 @@ Expo provides the Android application framework. EAS produces private developmen
    - scheme from `APP_SCHEME`
    - Android package from `ANDROID_APPLICATION_ID`
 5. Define EAS `development`, `preview`, and `production` environments.
-6. Add the public mobile variables: `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, and `EXPO_PUBLIC_ONESIGNAL_APP_ID`.
+6. Add the public mobile variables: `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_ONESIGNAL_APP_ID`. Better Auth and Google secrets remain server-only and never enter EAS.
 7. Add the build-identity variables from the master inventory.
 8. Do not put server secrets into EAS or any `EXPO_PUBLIC_` variable.
 9. Use a development build for OneSignal testing; native OneSignal modules do not work in Expo Go.
@@ -307,10 +312,10 @@ EXPO_PUBLIC_API_URL=<public api origin>
 DATABASE_URL=<server secret>
 DATABASE_MIGRATION_URL=<migration-only secret>
 DATABASE_SEED_CONFIRMATION=<development-only non-secret confirmation>
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=<public identifier>
-EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=<public identifier>
-CLERK_SECRET_KEY=<server secret>
-CLERK_WEBHOOK_SIGNING_SECRET=<server secret>
+BETTER_AUTH_SECRET=<server secret>
+BETTER_AUTH_URL=<server origin>
+GOOGLE_CLIENT_ID=<server configuration>
+GOOGLE_CLIENT_SECRET=<server secret>
 R2_ACCOUNT_ID=<server configuration>
 R2_BUCKET_NAME=<server configuration>
 R2_ENDPOINT=<server configuration>
@@ -336,14 +341,14 @@ Before changing a name, domain, identifier, provider project, bucket, or key:
 4. Update Vercel and/or EAS without writing the value into the repository.
 5. Redeploy the web/API when a Vercel value changes.
 6. Rebuild the Android app when an Expo public or build-identity value changes.
-7. Recheck Clerk redirects/webhooks, QStash destinations, and OneSignal origins after a domain change.
+7. Recheck Better Auth trusted origins, Google callbacks, QStash destinations, and OneSignal origins after a domain change.
 8. Test Development, then Preview, then Production.
 9. Rotate or revoke the old secret only after the new value works.
 10. Update this file if a variable is added, removed, renamed, or changes ownership.
 
 ## 10. Minimum Setup Verification
 
-- Web and Android sign in with their matching Clerk development instance.
+- Web and Android sign in through the matching Better Auth environment and Google OAuth client.
 - The API connects to Neon using `DATABASE_URL`; migrations use only `DATABASE_MIGRATION_URL`.
 - The browser and Android clients cannot read any server-secret variable.
 - A signed R2 upload URL writes only to the intended private bucket and prefix.
@@ -351,3 +356,13 @@ Before changing a name, domain, identifier, provider project, bucket, or key:
 - Android and installed iPhone PWA test subscriptions map to the same stable internal External ID in OneSignal.
 - A preview deployment never uses production database, storage, auth, notification, or scheduling credentials.
 - No `.env`, credential JSON, private key, token, or connection string is committed.
+
+## 11. Limits and Billing Guardrails
+
+`context/service-limits.md` records the current free allowances, reset periods, failure behavior, automatic-billing risk, internal warning thresholds, dashboards, and explicit upgrade triggers for every approved V1 service.
+
+Crossing a warning threshold does not authorize a paid upgrade. No agent may add a payment method, enable usage-based billing, accept overage terms, or upgrade a plan without explicit user approval.
+
+## Retired Services
+
+Clerk is retired by V1-04A. Do not add Clerk variables, runtime packages, webhooks, or active setup instructions. Historical generated migrations and progress evidence may retain Clerk terminology because they describe the system that existed before this migration.

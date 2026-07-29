@@ -6,6 +6,7 @@ Option 1 is the approved V1 visual direction. Its corrected reference is `contex
 
 ## Structural UI Rules
 
+- Web and Android invitation screens preserve the invitation through Better Auth Google sign-in and do not expose email/password or public registration.
 - Android is touch-first and native-feeling.
 - The iPhone PWA provides equivalent ordering behavior and clear Home Screen installation guidance.
 - The desktop admin portal prioritizes dense menu comparison, validation errors, and audit information.

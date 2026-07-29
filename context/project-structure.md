@@ -21,14 +21,14 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │       ├── app/
 │       │   ├── (member)/       # Responsive member Home, Orders, Favorites, and Team shells
 │       │   ├── admin/          # Separate desktop/responsive admin navigation shell
-│       │   ├── api/webhooks/   # Public signature-verified provider callbacks; Clerk syncs identity here
+│       │   ├── api/auth/       # Better Auth handler and Google OAuth callback
+│       │   ├── api/webhooks/   # Public signature-verified callbacks for non-auth providers
 │       │   ├── components/     # Web-only shell navigation and honest empty states
 │       │   ├── shell-colors.ts # Accessible semantic color pairings for approved tokens
 │       │   └── shell-navigation.ts # Separate member and admin destination definitions
-│       ├── proxy.ts            # Clerk request-context middleware; route authorization stays resource-local
 │       └── src/
 │           ├── application/    # Ordered validation, authorization, use-case, and API-result execution
-│           └── auth/           # Server-side Clerk session verification and Neon identity loading
+│           └── auth/           # Better Auth server/client composition, session verification, and product identity loading
 ├── packages/
 │   ├── contracts/              # Strict catalog, favorite, order, and common API boundary parsers
 │   │   └── src/
@@ -64,6 +64,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   ├── design-structure.md
 │   ├── ui-context.md
 │   ├── services.md
+│   ├── service-limits.md
 │   ├── code-standards.md
 │   ├── ai-workflow-rules.md
 │   └── progress-tracker.md
@@ -77,12 +78,12 @@ Order App/                        # Current workspace; project slug is ordah-ple
 └── vitest.config.ts            # Node test projects and clean-clone workspace source resolution
 ```
 
-Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens. Task 1.1 adds shared primitives and API envelopes; Task 1.2 adds provider-neutral catalog, favorite, order, and history shapes plus strict runtime parsers. Task 2.1 realizes those rules as focused Drizzle schema modules and a generated PostgreSQL migration while keeping provider access out of clients and domain code. Task 2.2 adds pooled server composition, transaction-scoped repository composition, and persistence-only interfaces without moving authorization or workflow rules into the database package. Task 2.3 adds development-only deterministic fixtures whose guarded transactional reruns restore the same fictional group and reviewed menu without duplicates. Task 3.1 adds the trusted API boundary with server-side Clerk session verification, Neon-backed application identity loading, pure authorization enforcement, and one ordered route executor that returns shared typed envelopes without leaking internal failures. Its Clerk webhook route verifies signatures, narrows user payloads, and applies each account upsert or archive in the same transaction as a uniquely keyed audit event; migration `0001` adds that nullable audit idempotency key without rewriting V1-03 history. Feature folders from the approved implementation plan are added by the task that first owns their behavior, which keeps the foundation free of invented placeholder architecture.
+Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens. Task 1.1 adds shared primitives and API envelopes; Task 1.2 adds provider-neutral catalog, favorite, order, and history shapes plus strict runtime parsers. Task 2.1 realizes those rules as focused Drizzle schema modules and a generated PostgreSQL migration while keeping provider access out of clients and domain code. Task 2.2 adds pooled server composition, transaction-scoped repository composition, and persistence-only interfaces without moving authorization or workflow rules into the database package. Task 2.3 adds development-only deterministic fixtures whose guarded transactional reruns restore the same fictional group and reviewed menu without duplicates. Task 3.1 originally added the trusted API boundary with Clerk. V1-04A replaces that provider-specific layer with Better Auth tables, server/client composition, session verification, first-request product identity provisioning, and no external identity webhook while preserving the ordered authorization executor and immutable product history. Old generated migrations remain unchanged as historical evidence.
 
 ## Ownership Rules
 
 - Apps render interfaces and call shared domain or API contracts; they do not own business rules.
-- `packages/domain` contains plain TypeScript and does not import React, Next.js, Expo, Clerk, Neon, or provider SDKs.
+- `packages/domain` contains plain TypeScript and does not import React, Next.js, Expo, Better Auth, Neon, or provider SDKs.
 - `packages/db` does not decide permissions or product behavior; it persists decisions made by domain services.
 - Provider packages expose small interfaces so R2, OneSignal, or QStash can be replaced without rewriting the product.
 - API route handlers authenticate, validate, authorize, call one use case, and translate the result into a response.
