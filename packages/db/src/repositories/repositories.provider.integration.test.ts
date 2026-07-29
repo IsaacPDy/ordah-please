@@ -3,11 +3,13 @@ import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { drizzle } from "drizzle-orm/node-postgres";
+import { eq } from "drizzle-orm";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Database } from "../client.js";
 import {
+  authUsers,
   branches,
   catalogImports,
   favorites,
@@ -15,6 +17,7 @@ import {
   menuVersions,
   orders,
   restaurants,
+  users,
 } from "../schema/index.js";
 import * as schema from "../schema/index.js";
 import { withTransaction } from "../transaction.js";
@@ -108,12 +111,19 @@ afterAll(async () => {
 describe("focused repositories", () => {
   it("persists and reads each owned record shape without applying workflow policy", async () => {
     const repositories = createRepositories(database);
-    const user = await repositories.identityAccess.createUser({
-      clerkUserId: `clerk_${randomUUID()}`,
+    const authUserId = randomUUID();
+    await database.insert(authUsers).values({
+      email: `repository-${authUserId}@example.test`,
+      emailVerified: true,
+      id: authUserId,
+      name: "Repository User",
+    });
+    const user = await repositories.identityAccess.ensureUserForAuthIdentity({
+      authUserId,
       displayName: "Repository User",
     });
     expect(
-      await repositories.identityAccess.findUserByClerkId(user.clerkUserId),
+      await repositories.identityAccess.findUserByAuthUserId(authUserId),
     ).toMatchObject({ id: user.id, displayName: "Repository User" });
 
     const [group] = await database
@@ -243,7 +253,6 @@ describe("focused repositories", () => {
   it("commits an order change and audit together and rolls both back on failure", async () => {
     const repositories = createRepositories(database);
     const user = await repositories.identityAccess.createUser({
-      clerkUserId: `clerk_${randomUUID()}`,
       displayName: "Transaction User",
     });
     const [group] = await database
@@ -322,69 +331,54 @@ describe("focused repositories", () => {
     ).toMatchObject([{ action: "order.restaurant_voting_started" }]);
   });
 
-  it("claims one Clerk event audit before idempotently upserting its user", async () => {
-    const clerkUserId = `clerk_${randomUUID()}`;
-    const eventId = randomUUID();
-    const occurredAt = new Date("2026-07-23T06:00:00.000Z");
-
-    const applyEvent = (displayName: string) =>
-      withTransaction(database, async (transaction) => {
-        const transactional = createRepositories(transaction);
-        const auditEvent = await transactional.auditEvents.appendOnce({
-          action: "identity.user.created",
-          details: { eventType: "user.created" },
-          idempotencyKey: `clerk:${eventId}`,
-          resourceId: clerkUserId,
-          resourceType: "clerk_user",
-        });
-        if (auditEvent === undefined) {
-          return false;
-        }
-
-        await transactional.identityAccess.upsertUserFromClerk({
-          clerkUserId,
-          displayName,
-          updatedAt: occurredAt,
-        });
-        return true;
-      });
-
-    await expect(applyEvent("Avery Rivera")).resolves.toBe(true);
-    await expect(applyEvent("Retry Must Not Win")).resolves.toBe(false);
-
+  it("reuses one product user under concurrent first authenticated requests", async () => {
     const repositories = createRepositories(database);
-    await expect(
-      repositories.identityAccess.findUserByClerkId(clerkUserId),
-    ).resolves.toMatchObject({
-      archivedAt: null,
-      displayName: "Avery Rivera",
+    const authUserId = randomUUID();
+    await database.insert(authUsers).values({
+      email: `concurrent-${authUserId}@example.test`,
+      emailVerified: true,
+      id: authUserId,
+      name: "Concurrent member",
     });
+    const provisionedUsers = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        repositories.identityAccess.ensureUserForAuthIdentity({
+          authUserId,
+          displayName: "Concurrent member",
+        }),
+      ),
+    );
+
+    expect(new Set(provisionedUsers.map((user) => user.id))).toHaveLength(1);
     await expect(
-      repositories.auditEvents.listForResource("clerk_user", clerkUserId),
+      database.select().from(users).where(eq(users.authUserId, authUserId)),
     ).resolves.toHaveLength(1);
   });
 
-  it("keeps a deleted Clerk identity archived when an older create arrives later", async () => {
+  it("does not reactivate an archived product user during identity provisioning", async () => {
     const repositories = createRepositories(database);
-    const clerkUserId = `clerk_${randomUUID()}`;
-    const deletionTime = new Date("2026-07-23T08:00:00.000Z");
-    const staleCreationTime = new Date("2026-07-23T07:00:00.000Z");
-
-    await repositories.identityAccess.archiveUserByClerkId(
-      clerkUserId,
-      deletionTime,
-    );
-    await repositories.identityAccess.upsertUserFromClerk({
-      clerkUserId,
-      displayName: "Stale Creation",
-      updatedAt: staleCreationTime,
+    const authUserId = randomUUID();
+    await database.insert(authUsers).values({
+      email: `archived-${authUserId}@example.test`,
+      emailVerified: true,
+      id: authUserId,
+      name: "Active member",
     });
+    const user = await repositories.identityAccess.ensureUserForAuthIdentity({
+      authUserId,
+      displayName: "Active member",
+    });
+    const archivedAt = new Date("2026-07-29T04:00:00.000Z");
+    await database
+      .update(users)
+      .set({ archivedAt })
+      .where(eq(users.id, user.id));
 
     await expect(
-      repositories.identityAccess.findUserByClerkId(clerkUserId),
-    ).resolves.toMatchObject({
-      archivedAt: deletionTime,
-      updatedAt: deletionTime,
-    });
+      repositories.identityAccess.ensureUserForAuthIdentity({
+        authUserId,
+        displayName: "Renamed archived member",
+      }),
+    ).resolves.toMatchObject({ archivedAt, id: user.id });
   });
 });

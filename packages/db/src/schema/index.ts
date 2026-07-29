@@ -1,3 +1,4 @@
+export * from "./authentication.js";
 export * from "./catalog.js";
 export * from "./enums.js";
 export * from "./files.js";

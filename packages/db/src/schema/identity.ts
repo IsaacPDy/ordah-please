@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { adminRequestStatusEnum, membershipRoleEnum } from "./enums.js";
+import { authUsers } from "./authentication.js";
 
 /** Creates a timezone-aware PostgreSQL timestamp column so persisted instants stay in UTC. */
 const utcTimestamp = (name: string) =>
@@ -18,9 +19,9 @@ const utcTimestamp = (name: string) =>
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
-  clerkUserId: text("clerk_user_id")
-    .notNull()
-    .unique("users_clerk_user_id_unique"),
+  authUserId: uuid("auth_user_id")
+    .unique("users_auth_user_id_unique")
+    .references(() => authUsers.id, { onDelete: "set null" }),
   displayName: text("display_name").notNull(),
   isPlatformAdmin: boolean("is_platform_admin").default(false).notNull(),
   createdAt: utcTimestamp("created_at").defaultNow().notNull(),

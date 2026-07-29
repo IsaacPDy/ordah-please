@@ -1,5 +1,8 @@
 import { PublicApiError } from "@ordah-please/contracts";
-import type { IdentityAccessRepository } from "@ordah-please/db";
+import type {
+  AuthIdentityInput,
+  IdentityAccessRepository,
+} from "@ordah-please/db";
 import {
   parseId,
   type ApplicationRole,
@@ -9,11 +12,11 @@ import {
 
 export type IdentityReader = Pick<
   IdentityAccessRepository,
-  "findUserByClerkId" | "listActiveMemberships"
+  "ensureUserForAuthIdentity" | "listActiveMemberships"
 >;
 
 export interface AppIdentity {
-  readonly clerkUserId: string;
+  readonly authUserId: string;
   readonly groupId?: GroupId;
   readonly roles: readonly ApplicationRole[];
   readonly userId: UserId;
@@ -27,12 +30,12 @@ const MEMBERSHIP_ROLE_MAP = {
 
 /** Loads the internal Neon identity required before any product authorization decision. */
 export async function loadAppIdentity(
-  clerkUserId: string,
+  authIdentity: AuthIdentityInput,
   repository: IdentityReader,
 ): Promise<AppIdentity> {
-  const user = await repository.findUserByClerkId(clerkUserId);
-  if (user === undefined || user.archivedAt !== null) {
-    throw new PublicApiError("UNAVAILABLE", "Your account is not ready yet.");
+  const user = await repository.ensureUserForAuthIdentity(authIdentity);
+  if (user.archivedAt !== null) {
+    throw new PublicApiError("UNAVAILABLE", "Your account is not available.");
   }
 
   const [membership] = await repository.listActiveMemberships(user.id);
@@ -45,7 +48,7 @@ export async function loadAppIdentity(
   }
 
   const baseIdentity = {
-    clerkUserId,
+    authUserId: authIdentity.authUserId,
     roles,
     userId: parseId<UserId>(user.id),
   };
