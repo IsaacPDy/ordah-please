@@ -1,17 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { acceptGroupInvitation, issueGroupInvitation } from "./access-service";
+import {
+  acceptGroupInvitation,
+  issueGroupInvitation,
+  manageGroupMember,
+  submitAdminAccessRequest,
+} from "./access-service";
 
 describe("access service", () => {
   it("persists only the invitation hash and audits owner issuance", async () => {
-    const createInvitation = vi.fn(
-      (_input: {
+    const createInvitation = vi.fn<
+      (input: {
         createdByUserId: string;
         expiresAt: Date;
         groupId: string;
         tokenHash: string;
-      }) => Promise.resolve({ id: "invitation-1" }),
-    );
+      }) => Promise<{ id: string }>
+    >(() => Promise.resolve({ id: "invitation-1" }));
     const appendAudit = vi.fn(() => Promise.resolve({ id: "audit-1" }));
     const transactionRunner = {
       run: <Result>(
@@ -276,5 +281,141 @@ describe("access service", () => {
       message: "This invitation link is no longer available.",
     });
     expect(access.addMembership).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      action: "promote" as const,
+      auditAction: "group.member_promoted",
+      currentRole: "member" as const,
+      expectedRole: "organizer" as const,
+    },
+    {
+      action: "demote" as const,
+      auditAction: "group.member_demoted",
+      currentRole: "organizer" as const,
+      expectedRole: "member" as const,
+    },
+    {
+      action: "remove" as const,
+      auditAction: "group.member_removed",
+      currentRole: "member" as const,
+      expectedRole: null,
+    },
+  ])(
+    "audits an owner $action action for an active member",
+    async ({ action, auditAction, currentRole, expectedRole }) => {
+      const access = {
+        listActiveMembers: vi.fn(() =>
+          Promise.resolve([
+            {
+              displayName: "Member",
+              role: currentRole,
+              userId: "member-1",
+            },
+          ]),
+        ),
+        removeMembership: vi.fn(() => Promise.resolve(true)),
+        setMembershipRole: vi.fn(() => Promise.resolve(true)),
+      };
+      const append = vi.fn(() => Promise.resolve({ id: "audit-1" }));
+      const transactionRunner = {
+        run: <Result>(
+          operation: (repositories: {
+            access: typeof access;
+            auditEvents: { append: typeof append };
+          }) => Promise<Result>,
+        ) => operation({ access, auditEvents: { append } }),
+      };
+
+      await expect(
+        manageGroupMember(
+          {
+            action,
+            actorUserId: "owner-1",
+            groupId: "group-1",
+            now: new Date("2026-07-25T09:00:00.000Z"),
+            targetUserId: "member-1",
+          },
+          transactionRunner,
+        ),
+      ).resolves.toEqual({
+        role: expectedRole,
+        userId: "member-1",
+      });
+      expect(append).toHaveBeenCalledWith(
+        expect.objectContaining({ action: auditAction }),
+      );
+    },
+  );
+
+  it("creates and audits a group owner's pending platform-admin request", async () => {
+    const access = {
+      createAdminAccessRequest: vi.fn(() =>
+        Promise.resolve({ id: "request-1", status: "pending" as const }),
+      ),
+      findPendingAdminAccessRequest: vi.fn(() => Promise.resolve(undefined)),
+    };
+    const append = vi.fn(() => Promise.resolve({ id: "audit-1" }));
+    const transactionRunner = {
+      run: <Result>(
+        operation: (repositories: {
+          access: typeof access;
+          auditEvents: { append: typeof append };
+        }) => Promise<Result>,
+      ) => operation({ access, auditEvents: { append } }),
+    };
+
+    await expect(
+      submitAdminAccessRequest(
+        {
+          actorUserId: "owner-1",
+          groupId: "group-1",
+        },
+        transactionRunner,
+      ),
+    ).resolves.toEqual({ requestId: "request-1", status: "pending" });
+    expect(access.createAdminAccessRequest).toHaveBeenCalledWith({
+      groupId: "group-1",
+      requesterUserId: "owner-1",
+    });
+    expect(append).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "platform_admin.requested" }),
+    );
+  });
+
+  it("rejects a second pending platform-admin request", async () => {
+    const access = {
+      createAdminAccessRequest: vi.fn(() =>
+        Promise.resolve({ id: "request-2", status: "pending" as const }),
+      ),
+      findPendingAdminAccessRequest: vi.fn(() =>
+        Promise.resolve({ id: "request-1", status: "pending" as const }),
+      ),
+    };
+    const append = vi.fn(() => Promise.resolve({ id: "audit-1" }));
+    const transactionRunner = {
+      run: <Result>(
+        operation: (repositories: {
+          access: typeof access;
+          auditEvents: { append: typeof append };
+        }) => Promise<Result>,
+      ) => operation({ access, auditEvents: { append } }),
+    };
+
+    await expect(
+      submitAdminAccessRequest(
+        {
+          actorUserId: "owner-1",
+          groupId: "group-1",
+        },
+        transactionRunner,
+      ),
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: "A platform-admin request is already pending.",
+    });
+    expect(access.createAdminAccessRequest).not.toHaveBeenCalled();
+    expect(append).not.toHaveBeenCalled();
   });
 });

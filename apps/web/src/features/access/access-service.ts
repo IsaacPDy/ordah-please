@@ -68,6 +68,56 @@ interface InvitationAcceptanceTransactionRunner {
   ): Promise<Result>;
 }
 
+type MembershipRole = "owner" | "organizer" | "member";
+
+interface MemberManagementRepositories {
+  readonly access: {
+    listActiveMembers(groupId: string): Promise<
+      readonly {
+        readonly displayName: string;
+        readonly role: MembershipRole;
+        readonly userId: string;
+      }[]
+    >;
+    removeMembership(
+      groupId: string,
+      userId: string,
+      removedAt: Date,
+    ): Promise<boolean>;
+    setMembershipRole(
+      groupId: string,
+      userId: string,
+      role: MembershipRole,
+    ): Promise<boolean>;
+  };
+  readonly auditEvents: InvitationIssueRepositories["auditEvents"];
+}
+
+interface MemberManagementTransactionRunner {
+  run<Result>(
+    operation: (repositories: MemberManagementRepositories) => Promise<Result>,
+  ): Promise<Result>;
+}
+
+interface AdminRequestRepositories {
+  readonly access: {
+    createAdminAccessRequest(input: {
+      readonly groupId: string;
+      readonly requesterUserId: string;
+    }): Promise<{ readonly id: string; readonly status: "pending" }>;
+    findPendingAdminAccessRequest(
+      requesterUserId: string,
+    ): Promise<{ readonly id: string } | undefined>;
+  };
+  readonly auditEvents: InvitationIssueRepositories["auditEvents"];
+}
+
+interface AdminRequestTransactionRunner {
+  run<Result>(
+    operation: (repositories: AdminRequestRepositories) => Promise<Result>,
+  ): Promise<Result>;
+}
+
 export interface IssueGroupInvitationCommand {
   readonly actorUserId: string;
   readonly deploymentId: string;
@@ -81,6 +131,19 @@ export interface AcceptGroupInvitationCommand {
   readonly now: Date;
   readonly publicToken: string;
   readonly userId: string;
+}
+
+export interface ManageGroupMemberCommand {
+  readonly action: "promote" | "demote" | "remove";
+  readonly actorUserId: string;
+  readonly groupId: string;
+  readonly now: Date;
+  readonly targetUserId: string;
+}
+
+export interface SubmitAdminAccessRequestCommand {
+  readonly actorUserId: string;
+  readonly groupId: string;
 }
 
 const UNAVAILABLE_INVITATION_MESSAGE =
@@ -183,5 +246,109 @@ export async function acceptGroupInvitation(
     });
 
     return { groupId: invitation.groupId, role: "member" };
+  });
+}
+
+/** Applies one owner-authorized member role or removal action with an immutable audit event. */
+export function manageGroupMember(
+  command: ManageGroupMemberCommand,
+  transactionRunner: MemberManagementTransactionRunner,
+): Promise<{
+  readonly role: "organizer" | "member" | null;
+  readonly userId: string;
+}> {
+  return transactionRunner.run(async (repositories) => {
+    const target = (
+      await repositories.access.listActiveMembers(command.groupId)
+    ).find((member) => member.userId === command.targetUserId);
+    if (target === undefined || target.role === "owner") {
+      throw new PublicApiError(
+        "CONFLICT",
+        "This member action is not available.",
+      );
+    }
+
+    const expectedRole =
+      command.action === "promote"
+        ? "member"
+        : command.action === "demote"
+          ? "organizer"
+          : target.role;
+    if (target.role !== expectedRole) {
+      throw new PublicApiError(
+        "CONFLICT",
+        "This member action is not available.",
+      );
+    }
+
+    const nextRole =
+      command.action === "promote"
+        ? ("organizer" as const)
+        : command.action === "demote"
+          ? ("member" as const)
+          : null;
+    const changed =
+      nextRole === null
+        ? await repositories.access.removeMembership(
+            command.groupId,
+            command.targetUserId,
+            command.now,
+          )
+        : await repositories.access.setMembershipRole(
+            command.groupId,
+            command.targetUserId,
+            nextRole,
+          );
+    if (!changed) {
+      throw new PublicApiError(
+        "CONFLICT",
+        "This member action is not available.",
+      );
+    }
+
+    const auditAction = {
+      demote: "group.member_demoted",
+      promote: "group.member_promoted",
+      remove: "group.member_removed",
+    } as const;
+    await repositories.auditEvents.append({
+      action: auditAction[command.action],
+      actorUserId: command.actorUserId,
+      details: { previousRole: target.role, role: nextRole },
+      resourceId: command.targetUserId,
+      resourceType: "membership",
+    });
+    return { role: nextRole, userId: command.targetUserId };
+  });
+}
+
+/** Submits a group owner's platform-admin request without implementing the V1-06 decision flow. */
+export function submitAdminAccessRequest(
+  command: SubmitAdminAccessRequestCommand,
+  transactionRunner: AdminRequestTransactionRunner,
+): Promise<{ readonly requestId: string; readonly status: "pending" }> {
+  return transactionRunner.run(async (repositories) => {
+    if (
+      (await repositories.access.findPendingAdminAccessRequest(
+        command.actorUserId,
+      )) !== undefined
+    ) {
+      throw new PublicApiError(
+        "CONFLICT",
+        "A platform-admin request is already pending.",
+      );
+    }
+    const request = await repositories.access.createAdminAccessRequest({
+      groupId: command.groupId,
+      requesterUserId: command.actorUserId,
+    });
+    await repositories.auditEvents.append({
+      action: "platform_admin.requested",
+      actorUserId: command.actorUserId,
+      details: { groupId: command.groupId },
+      resourceId: request.id,
+      resourceType: "admin_access_request",
+    });
+    return { requestId: request.id, status: "pending" };
   });
 }

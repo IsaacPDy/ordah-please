@@ -422,4 +422,60 @@ describe("focused repositories", () => {
       ),
     ).resolves.toBe(false);
   });
+
+  it("persists owner-managed roles, removal, and one pending admin request", async () => {
+    const repositories = createRepositories(database);
+    const owner = await repositories.identityAccess.createUser({
+      displayName: "Access Owner",
+    });
+    const member = await repositories.identityAccess.createUser({
+      displayName: "Access Member",
+    });
+    const [group] = await database
+      .insert(groups)
+      .values({ createdByUserId: owner.id, name: "Access Group" })
+      .returning();
+    if (group === undefined) {
+      throw new Error("Expected the access group to be created.");
+    }
+    await repositories.identityAccess.addMembership({
+      groupId: group.id,
+      role: "owner",
+      userId: owner.id,
+    });
+    await repositories.identityAccess.addMembership({
+      groupId: group.id,
+      role: "member",
+      userId: member.id,
+    });
+
+    await expect(
+      repositories.groupAccess.listActiveMembers(group.id),
+    ).resolves.toMatchObject([
+      { displayName: "Access Member", role: "member", userId: member.id },
+      { displayName: "Access Owner", role: "owner", userId: owner.id },
+    ]);
+    await expect(
+      repositories.groupAccess.setMembershipRole(
+        group.id,
+        member.id,
+        "organizer",
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      repositories.groupAccess.removeMembership(
+        group.id,
+        member.id,
+        new Date("2026-07-29T09:00:00.000Z"),
+      ),
+    ).resolves.toBe(true);
+
+    const request = await repositories.groupAccess.createAdminAccessRequest({
+      groupId: group.id,
+      requesterUserId: owner.id,
+    });
+    await expect(
+      repositories.groupAccess.findPendingAdminAccessRequest(owner.id),
+    ).resolves.toMatchObject({ id: request.id, status: "pending" });
+  });
 });
