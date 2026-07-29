@@ -61,16 +61,19 @@ describe("development auth identity linking", () => {
   });
 
   it("rejects archived and duplicate product links before writing", async () => {
+    let productUser: {
+      archivedAt: Date | null;
+      authUserId: string | null;
+      id: string;
+    } = {
+      archivedAt: new Date("2026-07-29T00:00:00.000Z"),
+      authUserId: null,
+      id: PRODUCT_USER_ID,
+    };
     const operations = {
       appendAudit: vi.fn(() => Promise.resolve()),
       findAuthUser: vi.fn(() => Promise.resolve({ id: AUTH_USER_ID })),
-      findProductUser: vi.fn(() =>
-        Promise.resolve({
-          archivedAt: new Date("2026-07-29T00:00:00.000Z"),
-          authUserId: null,
-          id: PRODUCT_USER_ID,
-        }),
-      ),
+      findProductUser: vi.fn(() => Promise.resolve(productUser)),
       findProductUserByAuthUserId: vi.fn(() => Promise.resolve(undefined)),
       linkProductUser: vi.fn(() => Promise.resolve()),
     };
@@ -83,11 +86,11 @@ describe("development auth identity linking", () => {
     ).rejects.toThrowError("The product user is archived.");
     expect(operations.linkProductUser).not.toHaveBeenCalled();
 
-    operations.findProductUser.mockResolvedValue({
+    productUser = {
       archivedAt: null,
       authUserId: "30000000-0000-4000-8000-000000000001",
       id: PRODUCT_USER_ID,
-    });
+    };
     await expect(
       linkAuthIdentity(
         { authUserId: AUTH_USER_ID, productUserId: PRODUCT_USER_ID },
