@@ -364,14 +364,14 @@ Deploy the web app to obtain exact HTTPS origins. Configure Google OAuth basic i
 - Remove active Clerk packages, webhook, middleware, variables, and runtime code
 - Test dependency policy, schema, session rejection, concurrent provisioning, web return flow, Android cookie flow, and built-client secret boundaries
 
-- [ ] Keep Better Auth records separate from product users and map through nullable, unique `users.auth_user_id`.
-- [ ] Preserve product user IDs, memberships, roles, invitations, audit records, and order history.
-- [ ] Run Better Auth inside the existing Next.js app with the Drizzle PostgreSQL adapter, Google provider, and Expo plugin.
-- [ ] Use same-origin web cookies and SecureStore-backed Android cookies.
-- [ ] Create or reuse the product identity on the first authenticated request without accepting provider roles.
-- [ ] Remove the external identity webhook because product identity provisioning happens at the trusted request boundary.
-- [ ] Keep old generated migrations immutable while adding an ordered migration for the new auth tables and product mapping.
-- [ ] Keep Google OAuth in Testing with only `openid`, `email`, and `profile`.
+- [x] Keep Better Auth records separate from product users and map through nullable, unique `users.auth_user_id`.
+- [x] Preserve product user IDs, memberships, roles, invitations, audit records, and order history.
+- [x] Run Better Auth inside the existing Next.js app with the Drizzle PostgreSQL adapter, Google provider, and Expo plugin.
+- [x] Use same-origin web cookies and SecureStore-backed Android cookies.
+- [x] Create or reuse the product identity on the first authenticated request without accepting provider roles.
+- [x] Remove the external identity webhook because product identity provisioning happens at the trusted request boundary.
+- [x] Keep old generated migrations immutable while adding an ordered migration for the new auth tables and product mapping.
+- [x] Keep Google OAuth in Testing with only `openid`, `email`, and `profile`.
 - [ ] Prove provider-free, provider-backed, build, browser, Android, migration, and secret-scan verification before retiring Clerk.
 - [ ] Commit permanently as `V1-04A Replace Clerk authentication with Better Auth on Neon`.
 
