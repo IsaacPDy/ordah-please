@@ -9,7 +9,7 @@ Build V1 incrementally using approved specifications and the numbered tasks in `
 - Work on one V1 task at a time.
 - Do not combine client UI, schema changes, provider integration, and background work unless the active specification explicitly requires the complete vertical slice.
 - Do not implement public, commercial, multi-group, payment, automatic Grab ordering, or unattended scraping behavior.
-- Do not replace an approved provider without updating `architecture.md` and obtaining approval.
+- Do not replace an approved provider without updating `architecture.md`, its migration design, and the service registry after approval.
 - Stay within free tiers unless the user explicitly authorizes a paid change.
 
 ## When to Split Work
@@ -59,6 +59,7 @@ Split a task when it combines unrelated screens, multiple provider adapters, mor
 - Update `design-structure.md` and `ui-context.md` for interaction or visual changes.
 - Update `code-standards.md` for new conventions.
 - Update `services.md` whenever a provider, variable, environment owner, callback origin, identifier, or secret-rotation procedure changes.
+- Update `service-limits.md` when a provider, plan, allowance, warning threshold, billing behavior, or official source changes.
 - Update `progress-tracker.md` after every meaningful implementation change.
 
 ## Verification Before Moving On

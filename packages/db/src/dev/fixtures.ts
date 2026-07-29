@@ -3,7 +3,6 @@ const fixedDate = (value: string) => new Date(value);
 export const developmentFixtures = {
   users: {
     owner: {
-      clerkUserId: "fixture_clerk_owner",
       createdAt: fixedDate("2026-01-05T00:00:00.000Z"),
       displayName: "Alex Rivera",
       id: "00000000-0000-4000-8000-000000000001",
@@ -11,7 +10,6 @@ export const developmentFixtures = {
       updatedAt: fixedDate("2026-01-05T00:00:00.000Z"),
     },
     member: {
-      clerkUserId: "fixture_clerk_member",
       createdAt: fixedDate("2026-01-05T00:00:00.000Z"),
       displayName: "Jamie Santos",
       id: "00000000-0000-4000-8000-000000000002",

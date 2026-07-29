@@ -11,7 +11,7 @@ describe("executeRoute", () => {
       method: "POST",
     });
     const identity = {
-      clerkUserId: "user_clerk_123",
+      authUserId: "10000000-0000-4000-8000-000000000001",
       roles: ["member"] as const,
       userId: parseId<UserId>("internal-user-1"),
     };
@@ -33,22 +33,28 @@ describe("executeRoute", () => {
         },
       },
       {
-        loadIdentity: (clerkUserId) => {
+        loadIdentity: (session) => {
           sequence.push("load-identity");
-          expect(clerkUserId).toBe("user_clerk_123");
+          expect(session).toEqual({
+            authUserId: "10000000-0000-4000-8000-000000000001",
+            displayName: "Avery",
+          });
           return identity;
         },
         verifySession: () => {
           sequence.push("authenticate");
-          return { clerkUserId: "user_clerk_123" };
+          return {
+            authUserId: "10000000-0000-4000-8000-000000000001",
+            displayName: "Avery",
+          };
         },
       },
     );
 
     expect(sequence).toEqual([
       "authenticate",
-      "validate",
       "load-identity",
+      "validate",
       "authorize",
       "execute",
     ]);
@@ -72,9 +78,11 @@ describe("executeRoute", () => {
         },
       },
       {
-        loadIdentity: () => {
-          throw new Error("identity loading must not run");
-        },
+        loadIdentity: () => ({
+          authUserId: "10000000-0000-4000-8000-000000000001",
+          roles: ["member"] as const,
+          userId: parseId<UserId>("internal-user-1"),
+        }),
         verifySession: () => {
           throw new PublicApiError("UNAUTHENTICATED", "Sign in is required.");
         },
@@ -94,7 +102,7 @@ describe("executeRoute", () => {
 
   it("returns a safe 403 when the loaded identity fails authorization", async () => {
     const identity = {
-      clerkUserId: "user_clerk_123",
+      authUserId: "10000000-0000-4000-8000-000000000001",
       roles: ["member"] as const,
       userId: parseId<UserId>("internal-user-1"),
     };
@@ -107,7 +115,10 @@ describe("executeRoute", () => {
       },
       {
         loadIdentity: () => identity,
-        verifySession: () => ({ clerkUserId: "user_clerk_123" }),
+        verifySession: () => ({
+          authUserId: "10000000-0000-4000-8000-000000000001",
+          displayName: "Avery",
+        }),
       },
     );
 
@@ -123,7 +134,7 @@ describe("executeRoute", () => {
 
   it("hides unexpected internal details behind the stable failure envelope", async () => {
     const identity = {
-      clerkUserId: "user_clerk_123",
+      authUserId: "10000000-0000-4000-8000-000000000001",
       roles: ["member"] as const,
       userId: parseId<UserId>("internal-user-1"),
     };
@@ -138,7 +149,10 @@ describe("executeRoute", () => {
       },
       {
         loadIdentity: () => identity,
-        verifySession: () => ({ clerkUserId: "user_clerk_123" }),
+        verifySession: () => ({
+          authUserId: "10000000-0000-4000-8000-000000000001",
+          displayName: "Avery",
+        }),
       },
     );
 
@@ -170,10 +184,15 @@ describe("executeRoute", () => {
         },
       },
       {
-        loadIdentity: () => {
-          throw new Error("identity loading must not run");
-        },
-        verifySession: () => ({ clerkUserId: "user_clerk_123" }),
+        loadIdentity: () => ({
+          authUserId: "10000000-0000-4000-8000-000000000001",
+          roles: ["member"] as const,
+          userId: parseId<UserId>("internal-user-1"),
+        }),
+        verifySession: () => ({
+          authUserId: "10000000-0000-4000-8000-000000000001",
+          displayName: "Avery",
+        }),
       },
     );
 

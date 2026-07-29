@@ -17,6 +17,7 @@
     "build": "tsc -p tsconfig.json",
     "db:check": "drizzle-kit check --config drizzle.config.ts",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:link-auth-identity:development": "node --import tsx src/dev/link-auth-identity-cli.ts",
     "db:seed:development": "node --import tsx src/dev/seed-cli.ts",
     "lint": "eslint src",
     "test": "vitest run --config ../../vitest.config.ts --project server",

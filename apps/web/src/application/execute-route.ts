@@ -36,7 +36,9 @@ export interface RouteDefinition<Input, Output> {
 }
 
 export interface RouteDependencies {
-  readonly loadIdentity: (clerkUserId: string) => MaybePromise<AppIdentity>;
+  readonly loadIdentity: (
+    session: VerifiedSession,
+  ) => MaybePromise<AppIdentity>;
   readonly verifySession: () => MaybePromise<VerifiedSession>;
 }
 
@@ -48,8 +50,8 @@ export async function executeRoute<Input, Output>(
 ): Promise<Response> {
   try {
     const session = await dependencies.verifySession();
+    const identity = await dependencies.loadIdentity(session);
     const input = await definition.validate(request);
-    const identity = await dependencies.loadIdentity(session.clerkUserId);
     const context = { identity, input, request };
     await enforceAuthorization(context, definition.authorize);
     const output = await definition.execute(context);

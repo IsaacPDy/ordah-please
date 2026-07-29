@@ -2,30 +2,76 @@ import { describe, expect, it } from "vitest";
 
 import { loadAppIdentity } from "./load-app-identity";
 
+const AUTH_USER_ID = "10000000-0000-4000-8000-000000000001";
+
 describe("loadAppIdentity", () => {
-  it("rejects an authenticated Clerk user without an internal identity", async () => {
+  it("provisions a groupless product user on the first authenticated request", async () => {
+    const timestamp = new Date("2026-07-29T04:00:00.000Z");
     const repository = {
-      findUserByClerkId: () => Promise.resolve(undefined),
+      ensureUserForAuthIdentity: () =>
+        Promise.resolve({
+          archivedAt: null,
+          authUserId: AUTH_USER_ID,
+          createdAt: timestamp,
+          displayName: "Avery",
+          id: "internal-user-1",
+          isPlatformAdmin: false,
+          updatedAt: timestamp,
+        }),
       listActiveMemberships: () => Promise.resolve([]),
     };
 
     await expect(
-      loadAppIdentity("user_not_synced", repository),
+      loadAppIdentity(
+        { authUserId: AUTH_USER_ID, displayName: "Avery" },
+        repository,
+      ),
+    ).resolves.toEqual({
+      authUserId: AUTH_USER_ID,
+      roles: [],
+      userId: "internal-user-1",
+    });
+  });
+
+  it("rejects an archived product identity even when its auth session is valid", async () => {
+    const timestamp = new Date("2026-07-29T04:00:00.000Z");
+    const repository = {
+      ensureUserForAuthIdentity: () =>
+        Promise.resolve({
+          archivedAt: timestamp,
+          authUserId: AUTH_USER_ID,
+          createdAt: timestamp,
+          displayName: "Archived member",
+          id: "internal-user-1",
+          isPlatformAdmin: false,
+          updatedAt: timestamp,
+        }),
+      listActiveMemberships: () => Promise.resolve([]),
+    };
+
+    await expect(
+      loadAppIdentity(
+        { authUserId: AUTH_USER_ID, displayName: "Archived member" },
+        repository,
+      ),
     ).rejects.toMatchObject({
       code: "UNAVAILABLE",
-      message: "Your account is not ready yet.",
+      message: "Your account is not available.",
     });
   });
 
   it("maps the active Neon membership and platform-admin flag into app roles", async () => {
-    const timestamp = new Date("2026-07-23T05:00:00.000Z");
+    const timestamp = new Date("2026-07-29T05:00:00.000Z");
     const repository = {
-      findUserByClerkId: (clerkUserId: string) =>
+      ensureUserForAuthIdentity: (input: {
+        readonly authUserId: string;
+        readonly displayName: string;
+      }) =>
         Promise.resolve({
           archivedAt: null,
-          clerkUserId,
+          authUserId: input.authUserId,
           createdAt: timestamp,
-          displayName: "Avery",
+          displayName: input.displayName,
           id: "internal-user-1",
           isPlatformAdmin: true,
           updatedAt: timestamp,
@@ -43,9 +89,12 @@ describe("loadAppIdentity", () => {
     };
 
     await expect(
-      loadAppIdentity("user_clerk_123", repository),
+      loadAppIdentity(
+        { authUserId: AUTH_USER_ID, displayName: "Avery" },
+        repository,
+      ),
     ).resolves.toEqual({
-      clerkUserId: "user_clerk_123",
+      authUserId: AUTH_USER_ID,
       groupId: "group-1",
       roles: ["organizer", "platform-admin"],
       userId: "internal-user-1",

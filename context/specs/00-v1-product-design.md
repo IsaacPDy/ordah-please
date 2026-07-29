@@ -38,12 +38,12 @@ The final product display name is `ordah please`, the technical slug is `ordah-p
 
 ## Approved Architecture
 
-Use Expo Android, Next.js PWA/admin/API, Neon PostgreSQL, Clerk identity, Cloudflare R2, OneSignal, Upstash QStash, Vercel, Expo EAS, and shared TypeScript packages. Product roles live in Neon. All privileged access passes through the authenticated Vercel API.
+Use Expo Android, Next.js PWA/admin/API, self-hosted Better Auth with Google OAuth, Neon PostgreSQL, Cloudflare R2, OneSignal, Upstash QStash, Vercel, Expo EAS, and shared TypeScript packages. Product roles live in Neon. Better Auth records stay separate from product users, and all privileged access passes through the authenticated Vercel API.
 
 ## Data Flow
 
-1. Clerk verifies identity.
-2. The API maps identity and roles from Neon.
+1. Google proves control of an identity and Better Auth verifies the application session.
+2. The API ensures or maps the provider-neutral product identity and loads roles from Neon.
 3. The domain package validates the requested transition.
 4. Neon transactions persist structured state.
 5. R2 holds private file bytes.

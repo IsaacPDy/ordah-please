@@ -44,12 +44,13 @@
 
 Every route performs these steps in order:
 
-1. Verify the Clerk session.
-2. Validate request input.
-3. Load application identity and roles from Neon.
-4. Authorize the resource action.
-5. Execute one use case.
-6. Return a consistent typed response.
+1. Verify the Better Auth session.
+2. Ensure or load the provider-neutral product identity from Neon.
+3. Validate request input.
+4. Load application roles from Neon.
+5. Authorize the resource action.
+6. Execute one use case.
+7. Return a consistent typed response.
 
 Use stable error codes and safe user messages. Never expose provider credentials, SQL details, or stack traces.
 

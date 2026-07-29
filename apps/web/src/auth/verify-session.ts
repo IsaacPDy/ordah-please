@@ -1,31 +1,45 @@
-import { auth } from "@clerk/nextjs/server";
 import { PublicApiError } from "@ordah-please/contracts";
 
-export interface ClerkSessionState {
-  readonly isAuthenticated: boolean;
-  readonly userId: string | null;
+import { getServerAuth } from "./server-auth";
+
+export interface BetterAuthSessionState {
+  readonly session: {
+    readonly expiresAt: Date;
+    readonly id: string;
+  };
+  readonly user: {
+    readonly email: string;
+    readonly id: string;
+    readonly name: string;
+  };
 }
 
-export type ReadClerkSession = () => Promise<ClerkSessionState>;
+export type ReadBetterAuthSession = (input: {
+  readonly headers: Headers;
+}) => Promise<BetterAuthSessionState | null>;
 
 export interface VerifiedSession {
-  readonly clerkUserId: string;
+  readonly authUserId: string;
+  readonly displayName: string;
 }
 
-/** Reads the Clerk request context so API code can verify the active server-side session. */
-async function readClerkSession(): Promise<ClerkSessionState> {
-  const { isAuthenticated, userId } = await auth();
-  return { isAuthenticated, userId };
-}
-
-/** Rejects requests that do not carry a verified Clerk user session. */
+/** Rejects requests without a live Better Auth session and returns trusted identity fields only. */
 export async function verifySession(
-  readSession: ReadClerkSession = readClerkSession,
+  request: Request,
+  readSession: ReadBetterAuthSession = ({ headers }) =>
+    getServerAuth().api.getSession({ headers }),
+  now: Date = new Date(),
 ): Promise<VerifiedSession> {
-  const session = await readSession();
-  if (!session.isAuthenticated || session.userId === null) {
+  const sessionState = await readSession({ headers: request.headers });
+  if (
+    sessionState === null ||
+    sessionState.session.expiresAt.getTime() <= now.getTime()
+  ) {
     throw new PublicApiError("UNAUTHENTICATED", "Sign in is required.");
   }
 
-  return { clerkUserId: session.userId };
+  return {
+    authUserId: sessionState.user.id,
+    displayName: sessionState.user.name,
+  };
 }

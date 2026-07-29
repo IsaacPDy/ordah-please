@@ -50,7 +50,7 @@ The first platform admin is assigned manually. A group owner may request platfor
 
 ### Identity and Access
 
-- Google sign-in through Clerk.
+- Google sign-in through self-hosted Better Auth.
 - Private invitation links.
 - One group per user.
 - Group owner, organizer, member, and platform-admin permissions stored in Neon.

@@ -2,6 +2,8 @@
 
 `ordah please` is a private food-order planning app for a small group of invited friends. It helps the group decide where to order, remember what each person likes, collect everyone's final food choices, and prepare one organized summary for the person placing the order in Grab.
 
+Invited users sign in with Google through self-hosted Better Auth. Authentication records stay separate from the product users, roles, memberships, and permanent order history stored in Neon.
+
 ## What it does
 
 - Keeps a reviewed catalog of restaurants, branches, menus, prices, and item availability.

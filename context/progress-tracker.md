@@ -10,11 +10,12 @@ Update this file after every meaningful implementation change.
 - Phase 0 repository and local-quality foundation complete.
 - Phase 1 provider-free contracts and domain rules complete.
 - Phase 2 Neon data foundation complete.
+- The Better Auth authentication correction is implemented and verified on its V1-04A task branch.
 - The development Neon service-account gate is satisfied locally without committing credentials.
 
 ## Current Goal
 
-- Squash the fully verified V1-04 authenticated API boundary into `main` and verify the permanent commit.
+- Reconstruct V1-05 invitation-only group onboarding from the preserved recovery branch on top of the corrected Better Auth foundation.
 
 ## Completed V1 Tasks
 
@@ -33,6 +34,7 @@ Update this file after every meaningful implementation change.
 - [x] V1 corrected Option 1 reference saved at `context/assets/ordah-please-option-1.png`
 - [x] V1 English-only application-authored language rule
 - [x] V1 service setup tutorial and variable registry in `context/services.md`
+- [x] V1 service-limit and explicit-upgrade register in `context/service-limits.md`
 - [x] Product-focused root `README.md` drafted
 - [x] V1 context review and correction
 - [x] V1 implementation plan documented in `context/specs/01-v1-implementation-plan.md`
@@ -47,10 +49,24 @@ Update this file after every meaningful implementation change.
 - [x] V1-03 Task 2.1 initial Neon schema and generated migration
 - [x] V1-03 Task 2.2 pooled database composition, repositories, and transactions
 - [x] V1-03 Task 2.3 deterministic and development-safe database fixtures
+- [x] V1-04A Better Auth migration, development migration, Google OAuth cutover, and Clerk runtime retirement
 
 ## In Progress V1 Tasks
 
-- V1-04 Task 3.1 is complete and ready for its required squash into `main`. The authenticated route boundary, signed Clerk webhook, Neon identity synchronization, immutable audit trail, preview deployment, and live Clerk delivery tests are verified.
+- V1-04A implementation and verification are complete on `task/V1-04A-better-auth-migration` from reviewed V1-04 `main`; its permanent squash into `main` is next. The approved design replaces Clerk with self-hosted Better Auth, keeps Google as the only V1 sign-in method, stores auth tables separately from product users, preserves Neon-owned roles and history, removes the external identity webhook, and uses same-origin web cookies plus SecureStore-backed Expo cookies.
+- Documentation-first migration work is complete: permanent architecture, UI, service, environment, coding, workflow, product-design, implementation-plan, and service-limit records now describe Better Auth and the Google OAuth boundary.
+- Better Auth dependencies are pinned at `1.6.25`, and RED-first schema tests now pass for the four UUID-keyed auth tables, normalized email uniqueness, nullable one-to-one product mapping, and explicit cascade/set-null deletion behavior. Generated migration `0002_adorable_lily_hollister.sql` adds the new tables and mapping, drops `clerk_user_id`, and leaves `0000`/`0001` unchanged.
+- Provider-neutral identity provisioning now creates or reuses one product user on the first authenticated request, preserves archived users, and loads Neon roles before input validation. A guarded development link command requires explicit confirmation and writes an existing auth-to-product link with its audit event in one transaction without printing record or credential values.
+- Better Auth server routing, strict environment parsing, trusted session verification, Google-only web auth, and SecureStore-backed Expo auth now pass focused provider-free tests and web/mobile type checks. Clerk runtime packages, middleware, and webhook code are removed.
+- The local pooled and direct database URLs now resolve to Neon branch `development` and its distinct compute. Migration `0002` was applied there transactionally through the visible Neon SQL Editor; all four auth tables, constraints, nullable product link, removed Clerk column, preserved product counts, and journal entry 3 with the repository hash were verified. Production was not migrated.
+- The complete provider-backed matrix passes 41 files and 178 tests against rollback-only temporary schemas on the development branch. Local Better Auth URL, secret length, Google client match, and Google secret presence validate without displaying values.
+- Google OAuth is External and Testing with one approved test account, only `openid`, email, and profile scopes, and the localhost plus production redirect URIs registered. A visible-browser localhost sign-in completed the Google chooser, consent, Better Auth callback, and same-origin return without an authentication error.
+- The live localhost acceptance created exactly one Better Auth user, Google account, and active session in the development Neon branch while preserving all three existing product users. No product identity was linked because the acceptance did not call a protected product API; V1-05 invitation acceptance will exercise and verify first-request product provisioning.
+- Final local verification passes 41 provider-backed files with 178 tests against rollback-only development schemas, 172 provider-free Vitest tests, 13 mobile Jest tests, every workspace type check and lint check, Drizzle validation, every package and Next.js production build, Android Expo export, dependency-tree validation, and web/mobile built-client secret scans. Pruning removed stale installed Clerk packages; only optional native runtime helpers remain marked extraneous by npm.
+- The V1-04A branch Preview is READY and renders after receiving Preview-only Better Auth variables, corrected stable application origins, and the development database connection. Its exact Google callback is registered. The retired Clerk variables were removed and the Preview was rebuilt cleanly.
+- The Google OAuth client secret was rotated after acceptance tooling exposed the prior value in diagnostic output. A callback using the replacement passed before the old secret was disabled and deleted; exactly one verified secret remains enabled, and no credential was committed to source or Git.
+- Clerk has no active webhook endpoint and no Vercel or local runtime variables. The Clerk development application remains only as rollback evidence because the service offers irreversible deletion rather than archive. Delete it only after V1-05 and Production acceptance.
+- Android SecureStore cookies, deep-link return, invitation preservation, authenticated requests, sign-out, expiry recovery, and bundle-secret boundaries pass focused tests and Android export. No device or emulator was connected; physical-device acceptance remains part of V1-22 rather than being claimed here.
 
 ## Pending V1 Implementation Tasks
 
@@ -58,6 +74,7 @@ Update this file after every meaningful implementation change.
 - [x] V1-02 Define shared API contracts and provider-neutral domain types
 - [x] V1-03 Create the Neon schema, migrations, pooled database access, and immutable audit model
 - [x] V1-04 Integrate Clerk Google sign-in across Android and web and map identities into Neon
+- [x] V1-04A Replace Clerk authentication with Better Auth on Neon
 - [ ] V1-05 Implement invitation-only access, one-group membership, owners, organizers, members, and admin requests
 - [ ] V1-06 Implement platform-admin approval and limited mobile-admin permissions
 - [ ] V1-07 Implement R2 private storage, direct signed uploads, and file metadata
@@ -98,7 +115,9 @@ Update this file after every meaningful implementation change.
 - Use split clients: Expo Android and Next.js iPhone PWA/admin.
 - Use Vercel as the trusted API boundary.
 - Use Neon PostgreSQL for relational product data and roles.
-- Use Clerk for identity only; do not use Clerk Organizations.
+- Use Google OAuth for identity proof and self-hosted Better Auth for sessions; do not use Better Auth Infrastructure.
+- Keep Better Auth records separate from product users and keep all product roles in Neon product tables.
+- Use `context/service-limits.md` for current allowances and warning thresholds; no threshold authorizes paid usage.
 - Use private Cloudflare R2 for images, receipts, and imports.
 - Use OneSignal for Android and web-push delivery.
 - Use QStash for deadline work and recurring reminders.
@@ -141,5 +160,11 @@ Update this file after every meaningful implementation change.
 - The development Neon database now has the complete 32-table V1-03 baseline and the V1-04 `audit_events.idempotency_key` migration recorded in Drizzle's two-entry ledger. An unrelated empty `public.branches` bootstrap artifact was verified to contain zero rows and removed before the repository migrations were applied and independently checked.
 - Commit `3799ad1` deployed successfully to the V1-04 Vercel branch preview at `https://ordah-please-web-git-task-v1-04-clerk-authentication-isaacpdy.vercel.app`. Vercel Authentication returns 401 before unsigned webhook requests reach the route, so Clerk setup is paused until Preview receives an approved deployment-protection bypass or is deliberately made public.
 - The user confirmed the dedicated Vercel automation bypass was created and `CLERK_WEBHOOK_SIGNING_SECRET` was saved without sharing either value. Commit `dfae2c0` deployed READY on the V1-04 branch preview with that Preview environment. Clerk's signed `user.created`, `user.updated`, and `user.deleted` examples each returned HTTP 200. A read-only Neon check found the three expected internal identities, the deletion archived, and one idempotent immutable audit row for each event type.
+- V1-04A development migration verification used the visible Neon SQL Editor on branch `development`: the four Better Auth tables, constraints, nullable product link, removed Clerk column, preserved product rows, and third Drizzle journal entry were verified after the ordered migration. Production was not migrated.
+- V1-04A Google acceptance used the visible Google Cloud and in-app browser surfaces. OAuth remains External and Testing with one approved test account and only basic identity scopes; localhost sign-in returned successfully through the Better Auth callback. The development database then contained one auth user, one Google account, and one active session without changing the three pre-existing product users.
+- V1-04A local quality verification passes all provider-free and provider-backed suites, workspace type checks and lint checks, Drizzle validation, package and Next.js builds, Android Expo export, dependency policy, dependency-tree validation after pruning stale Clerk installs, and built-client secret scans.
+- V1-04A Vercel Preview verification passed after setting Preview-only Better Auth variables, correcting `APP_BASE_URL` and `NEXT_PUBLIC_APP_URL`, removing all Clerk variables, and rebuilding the same committed artifact. The clean deployment reached READY and rendered the application without a server error.
+- V1-04A Google credentials were rotated after a diagnostic surface exposed the previous client secret. The ignored local environment and Vercel Preview now use the replacement, a fresh localhost callback passed, the old Google secret was disabled and deleted, and only one enabled secret remains.
+- The Clerk development application has no webhook endpoint and is retained only as a rollback reference because Clerk exposes irreversible deletion rather than archival. All active Clerk packages, code, Vercel variables, and local variables are retired.
 - Thirteen production transitive advisories (11 moderate and 2 high) remain in the existing official Next.js and Expo dependency trees. The Drizzle and PostgreSQL additions introduced no production advisories. Forced audit fixes are prohibited because npm proposes architecture-breaking major downgrades; adopt compatible upstream patches when available.
 - Added a product-only root `README.md` that summarizes the approved purpose, capabilities, order flow, and manual Grab checkout boundary.

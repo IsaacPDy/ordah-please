@@ -6,7 +6,7 @@
 
 **Architecture:** Use one TypeScript monorepo with Expo Android and Next.js web clients. Both clients call authenticated Next.js Route Handlers; shared domain packages own business rules, Neon owns structured state, R2 owns private file bytes, QStash invokes scheduled API work, and OneSignal delivers push events. Development proceeds in vertical slices so every phase produces a testable capability rather than a disconnected technical layer.
 
-**Tech Stack:** npm workspaces, TypeScript, Expo React Native, Expo Router, React Native Paper, Next.js, shadcn/ui, Clerk, Neon PostgreSQL, Drizzle ORM, Cloudflare R2, Upstash QStash, OneSignal, Vitest, React Native Testing Library, Playwright, Expo EAS, and Vercel.
+**Tech Stack:** npm workspaces, TypeScript, Expo React Native, Expo Router, React Native Paper, Next.js, shadcn/ui, self-hosted Better Auth, Google OAuth, Neon PostgreSQL, Drizzle ORM, Cloudflare R2, Upstash QStash, OneSignal, Vitest, React Native Testing Library, Playwright, Expo EAS, and Vercel.
 
 ---
 
@@ -17,7 +17,8 @@ This plan implements the approved product design in `context/specs/00-v1-product
 - Use npm workspaces without adding a task orchestrator in V1. The repository is small enough that root scripts can call each workspace directly.
 - Keep all money as integer Philippine centavos.
 - Store timestamps in UTC and render them in the viewer's timezone.
-- Keep product roles in Neon; Clerk proves identity only.
+- Keep product roles in Neon product tables; Google proves identity and Better Auth creates the application session only.
+- Use `context/service-limits.md` as the operating register. A warning threshold never authorizes paid usage.
 - Never allow a client to connect directly to Neon, R2, QStash, or the OneSignal server API.
 - Keep the last published menu usable when imports or refreshes fail.
 - Copy price, item, modifier, branch, participant, and delivery-address snapshots into order history.
@@ -34,7 +35,7 @@ Three implementation sequences were considered:
 2. **Backend-first.** Finish schema and every API before UI work. This makes backend boundaries clear but delays real-user feedback and increases the chance that the API shape does not fit the screens.
 3. **Service-first.** Connect every provider before product features. This proves credentials early but creates idle infrastructure, mixes environments too soon, and gives no product behavior to verify.
 
-The selected order is: local foundation → pure business rules → Neon → Clerk/access → catalog → favorites → order creation → voting and deadlines → food confirmation → handoff/history → notifications → platform hardening and releases.
+The selected order is: local foundation → pure business rules → Neon → Better Auth/access → catalog → favorites → order creation → voting and deadlines → food confirmation → handoff/history → notifications → platform hardening and releases.
 
 ## 3. Implementation Workstreams and Branch Ownership
 
@@ -125,7 +126,7 @@ apps/
 │   ├── app/                         # Expo Router screens and route groups
 │   └── src/
 │       ├── api/                     # Typed HTTP client only
-│       ├── auth/                    # Clerk session and mobile OAuth bridge
+│       ├── auth/                    # Better Auth Expo client and SecureStore cookie bridge
 │       ├── components/              # Mobile-only composed UI
 │       ├── features/                # Catalog, favorites, orders, team, admin
 │       ├── notifications/           # OneSignal device adapter
@@ -137,7 +138,7 @@ apps/
     │   └── api/                     # Thin authenticated Route Handlers
     └── src/
         ├── application/             # Server use cases and authorization orchestration
-        ├── auth/                    # Clerk verification and app-user mapping
+        ├── auth/                    # Better Auth server/client composition and product-user mapping
         ├── components/              # Web-only composed UI
         ├── features/                # Member and admin feature modules
         └── lib/                     # Environment parsing and server composition
@@ -332,11 +333,11 @@ Create separate development credentials. Store pooled `DATABASE_URL` and direct 
 
 ## 9. Phase 3 — Authentication, Invitations, Membership, and Roles
 
-### Service gate: connect Vercel development/preview and Clerk development
+### Service gate: connect Vercel development/preview and Google OAuth
 
-Deploy the empty web app to obtain HTTPS origins. Configure Google sign-in, web redirects, Expo scheme, and the Clerk webhook only for development/preview. Keep production isolated.
+Deploy the web app to obtain exact HTTPS origins. Configure Google OAuth basic identity scopes and callbacks, Better Auth base URLs and environment-specific secrets, and the Expo scheme only for development/preview. Keep production isolated. Better Auth Infrastructure is not used.
 
-### Task 3.1: Build the authenticated API boundary (V1-04)
+### Task 3.1: Historical Clerk authenticated API boundary (V1-04)
 
 **Files:**
 
@@ -351,6 +352,28 @@ Deploy the empty web app to obtain HTTPS origins. Configure Google sign-in, web 
 - [x] Implement the route sequence: authenticate, validate, load roles, authorize, execute one use case, serialize a typed result.
 - [x] Prove unauthenticated and forged webhook requests are rejected without leaking details.
 - [x] Commit as `feat: establish authenticated API boundary`.
+
+### Task 3.1A: Replace Clerk with Better Auth (V1-04A)
+
+**Permanent design:** `context/specs/02-better-auth-migration-design.md`
+
+**Files:**
+
+- Create Better Auth schema, configuration, web handler/client, Expo client, and provider-neutral identity-link command
+- Modify the authenticated route executor, identity repository, environment contract, fixtures, and active documentation
+- Remove active Clerk packages, webhook, middleware, variables, and runtime code
+- Test dependency policy, schema, session rejection, concurrent provisioning, web return flow, Android cookie flow, and built-client secret boundaries
+
+- [x] Keep Better Auth records separate from product users and map through nullable, unique `users.auth_user_id`.
+- [x] Preserve product user IDs, memberships, roles, invitations, audit records, and order history.
+- [x] Run Better Auth inside the existing Next.js app with the Drizzle PostgreSQL adapter, Google provider, and Expo plugin.
+- [x] Use same-origin web cookies and SecureStore-backed Android cookies.
+- [x] Create or reuse the product identity on the first authenticated request without accepting provider roles.
+- [x] Remove the external identity webhook because product identity provisioning happens at the trusted request boundary.
+- [x] Keep old generated migrations immutable while adding an ordered migration for the new auth tables and product mapping.
+- [x] Keep Google OAuth in Testing with only `openid`, `email`, and `profile`.
+- [x] Prove provider-free, provider-backed, build, browser, Android, migration, and secret-scan verification before retiring Clerk.
+- [x] Commit permanently as `V1-04A Replace Clerk authentication with Better Auth on Neon`.
 
 ### Task 3.2: Implement invitation-only onboarding and one-group membership (V1-05)
 
@@ -729,7 +752,7 @@ Configure Android through FCM in OneSignal, configure the exact preview PWA orig
 
 ### Service gate: create production environments only after all development/preview checks pass
 
-Create isolated production Neon, Clerk, R2, OneSignal, QStash, Vercel, and EAS configuration. Decide whether to purchase a custom domain before final Clerk, OneSignal web, and QStash destination configuration. Never copy development secrets into production.
+Create isolated production Neon, Better Auth, Google OAuth, R2, OneSignal, QStash, Vercel, and EAS configuration. Decide whether to purchase a custom domain before final Google callback, OneSignal web, and QStash destination configuration. Never copy development secrets into production.
 
 ### Task 10.4: Produce and verify the private Android APK (V1-21)
 
@@ -764,7 +787,7 @@ Create isolated production Neon, Clerk, R2, OneSignal, QStash, Vercel, and EAS c
 - Modify when necessary: `context/services.md`, `context/progress-tracker.md`
 
 - [ ] Record current free-tier limits and dashboard locations for each provider at release time.
-- [ ] Define warning thresholds for database/storage, bandwidth, function execution, QStash messages, OneSignal subscribers/messages, Clerk active users, and EAS builds.
+- [ ] Reverify and update `context/service-limits.md` warning thresholds for database/storage, bandwidth, function execution, QStash messages, OneSignal subscribers/messages, Google OAuth policy, GitHub Actions, and EAS builds.
 - [ ] Assign a person and monthly review cadence.
 - [ ] State that crossing a warning threshold requires review and does not authorize a paid upgrade.
 - [ ] Commit as `docs: add free-tier operating guardrails`.
@@ -777,7 +800,7 @@ Create isolated production Neon, Clerk, R2, OneSignal, QStash, Vercel, and EAS c
 | --- | --- | --- | --- |
 | Phase 2 | Neon development | Schema and transaction tests require real PostgreSQL behavior | Do not connect clients or create production data |
 | Phase 3 | Vercel preview | Supplies stable HTTPS routes for auth and later callbacks | Do not treat preview as production |
-| Phase 3 | Clerk development | Enables real Google identity and signed webhook tests | Do not store roles in Clerk Organizations |
+| Phase 3 | Better Auth and Google OAuth development | Enables real Google identity plus web and Expo sessions | Do not use Better Auth Infrastructure or store roles in auth tables |
 | Phase 4 | R2 development | Catalog sources, thumbnails, reports, and receipts need private bytes | Do not enable public bucket access |
 | Phase 6 | QStash local/preview | Restaurant and food deadlines now exist | Do not let jobs write directly to Neon |
 | Phase 9 | OneSignal development | Product events and recipient identities now exist | Do not make push delivery workflow-critical |

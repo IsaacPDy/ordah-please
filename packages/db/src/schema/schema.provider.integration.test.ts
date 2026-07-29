@@ -7,6 +7,10 @@ import { describe, expect, it } from "vitest";
 
 const expectedTables = [
   "admin_access_requests",
+  "auth_accounts",
+  "auth_sessions",
+  "auth_users",
+  "auth_verifications",
   "audit_events",
   "branches",
   "catalog_imports",
@@ -164,11 +168,32 @@ describe("initial Neon schema", () => {
 
       const userOne = randomUUID();
       const userTwo = randomUUID();
+      const authUserOne = randomUUID();
+      const authUserTwo = randomUUID();
       const groupOne = randomUUID();
       const groupTwo = randomUUID();
       await client.query(
-        "INSERT INTO users (id, clerk_user_id, display_name) VALUES ($1, $2, $3), ($4, $5, $6)",
-        [userOne, "clerk-user-1", "Alex", userTwo, "clerk-user-2", "Blair"],
+        "INSERT INTO auth_users (id, name, email, email_verified) VALUES ($1, $2, $3, true), ($4, $5, $6, true)",
+        [
+          authUserOne,
+          "Alex",
+          "alex@example.test",
+          authUserTwo,
+          "Blair",
+          "blair@example.test",
+        ],
+      );
+      await client.query(
+        "INSERT INTO auth_sessions (id, expires_at, token, user_id) VALUES ($1, now() + interval '1 day', $2, $3)",
+        [randomUUID(), `session-${randomUUID()}`, authUserOne],
+      );
+      await client.query(
+        "INSERT INTO auth_accounts (id, account_id, provider_id, user_id) VALUES ($1, $2, 'google', $3)",
+        [randomUUID(), `google-${randomUUID()}`, authUserOne],
+      );
+      await client.query(
+        "INSERT INTO users (id, auth_user_id, display_name) VALUES ($1, $2, $3), ($4, $5, $6)",
+        [userOne, authUserOne, "Alex", userTwo, authUserTwo, "Blair"],
       );
       await client.query(
         "INSERT INTO groups (id, name, created_by_user_id) VALUES ($1, $2, $3), ($4, $5, $3)",
@@ -379,6 +404,32 @@ describe("initial Neon schema", () => {
         [idempotencyKey],
         "jobs_idempotency_key_unique",
       );
+
+      await client.query("DELETE FROM auth_users WHERE id = $1", [authUserOne]);
+      const authDeletionResult = await client.query<{
+        auth_user_id: string | null;
+        product_user_count: string;
+        order_count: string;
+        session_count: string;
+        account_count: string;
+      }>(
+        `SELECT
+          (SELECT auth_user_id FROM users WHERE id = $1) AS auth_user_id,
+          (SELECT count(*)::text FROM users WHERE id = $1) AS product_user_count,
+          (SELECT count(*)::text FROM orders WHERE id = $2) AS order_count,
+          (SELECT count(*)::text FROM auth_sessions WHERE user_id = $3) AS session_count,
+          (SELECT count(*)::text FROM auth_accounts WHERE user_id = $3) AS account_count`,
+        [userOne, orderId, authUserOne],
+      );
+      expect(authDeletionResult.rows).toEqual([
+        {
+          account_count: "0",
+          auth_user_id: null,
+          order_count: "1",
+          product_user_count: "1",
+          session_count: "0",
+        },
+      ]);
     } finally {
       await client.query("ROLLBACK");
       await client.end();
