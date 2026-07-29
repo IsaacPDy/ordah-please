@@ -11,6 +11,10 @@ import {
 } from "./favorites.js";
 import { createFilesRepository, type FilesRepository } from "./files.js";
 import {
+  createGroupAccessRepository,
+  type GroupAccessRepository,
+} from "./group-access.js";
+import {
   createIdentityAccessRepository,
   type IdentityAccessRepository,
 } from "./identity-access.js";
@@ -26,6 +30,7 @@ export interface Repositories {
   readonly catalog: CatalogRepository;
   readonly favorites: FavoritesRepository;
   readonly files: FilesRepository;
+  readonly groupAccess: GroupAccessRepository;
   readonly identityAccess: IdentityAccessRepository;
   readonly jobs: JobsRepository;
   readonly notifications: NotificationsRepository;
@@ -41,6 +46,7 @@ export function createRepositories(
     catalog: createCatalogRepository(database),
     favorites: createFavoritesRepository(database),
     files: createFilesRepository(database),
+    groupAccess: createGroupAccessRepository(database),
     identityAccess: createIdentityAccessRepository(database),
     jobs: createJobsRepository(database),
     notifications: createNotificationsRepository(database),
@@ -52,6 +58,7 @@ export * from "./audit-events.js";
 export * from "./catalog.js";
 export * from "./favorites.js";
 export * from "./files.js";
+export * from "./group-access.js";
 export * from "./identity-access.js";
 export * from "./jobs.js";
 export * from "./notifications.js";

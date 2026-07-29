@@ -1,8 +1,9 @@
 import {
-  buildAuthenticatedRequestInit,
   buildMobileAuthOptions,
   readMobileApiUrl,
+  readMobileSessionCookie,
 } from "./auth-client";
+import { buildAuthenticatedRequestInit } from "./authenticated-request";
 
 jest.mock("@better-auth/expo/client", () => ({
   expoClient: (options: unknown) => ({ id: "expo", options }),
@@ -71,5 +72,16 @@ describe("mobile auth client", () => {
       }),
     );
     expect(new Headers(options.headers).has("authorization")).toBe(false);
+  });
+
+  it("requires a stored Better Auth cookie before protected native requests", () => {
+    expect(
+      readMobileSessionCookie({
+        getCookie: () => "ordah-please.session_token=opaque",
+      }),
+    ).toBe("ordah-please.session_token=opaque");
+    expect(() => readMobileSessionCookie({ getCookie: () => "" })).toThrow(
+      "A Better Auth session is required.",
+    );
   });
 });

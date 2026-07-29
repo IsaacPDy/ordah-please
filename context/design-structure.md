@@ -30,6 +30,8 @@
 
 ## Core Components
 
+- **Invitation Onboarding:** Preserves one private invitation through Better Auth Google sign-in, explains that group membership is separate from order participation, and accepts only after authentication.
+- **Team Access:** Shows exact Owner, Organizer, and Member labels; lets only the owner issue invitation links or change non-owner membership; and requires confirmation before removal.
 - **Catalog Browser:** Finds published restaurants and exact branches.
 - **Menu Viewer:** Shows versioned items, modifiers, availability, and captured prices.
 - **Favorite Builder:** Saves complete combinations and enforces three ranks.

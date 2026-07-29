@@ -74,9 +74,11 @@ async function readMigrationStatements(schemaName: string): Promise<string[]> {
 }
 
 beforeAll(async () => {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_MIGRATION_URL;
   if (connectionString === undefined || connectionString.trim() === "") {
-    throw new Error("DATABASE_URL is required for repository provider tests.");
+    throw new Error(
+      "DATABASE_MIGRATION_URL is required for repository provider tests.",
+    );
   }
 
   testSchema = `repository_test_${randomUUID().replaceAll("-", "")}`;
@@ -380,5 +382,116 @@ describe("focused repositories", () => {
         displayName: "Renamed archived member",
       }),
     ).resolves.toMatchObject({ archivedAt, id: user.id });
+  });
+
+  it("creates, resolves, and consumes an invitation hash only once", async () => {
+    const repositories = createRepositories(database);
+    const owner = await repositories.identityAccess.createUser({
+      displayName: "Invitation Owner",
+    });
+    const member = await repositories.identityAccess.createUser({
+      displayName: "Invited Member",
+    });
+    const [group] = await database
+      .insert(groups)
+      .values({ createdByUserId: owner.id, name: "Invitation Group" })
+      .returning();
+    if (group === undefined) {
+      throw new Error("Expected the invitation group to be created.");
+    }
+
+    const invitation = await repositories.groupAccess.createInvitation({
+      createdByUserId: owner.id,
+      expiresAt: new Date("2026-07-31T08:00:00.000Z"),
+      groupId: group.id,
+      tokenHash: randomUUID().replaceAll("-", ""),
+    });
+    await expect(
+      repositories.groupAccess.findInvitationByTokenHash(invitation.tokenHash),
+    ).resolves.toMatchObject({ id: invitation.id });
+    await expect(
+      repositories.groupAccess.acceptInvitation(
+        invitation.id,
+        member.id,
+        new Date("2026-07-29T08:00:00.000Z"),
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      repositories.groupAccess.acceptInvitation(
+        invitation.id,
+        member.id,
+        new Date("2026-07-29T08:01:00.000Z"),
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it("persists owner-managed roles, removal, and one pending admin request", async () => {
+    const repositories = createRepositories(database);
+    const owner = await repositories.identityAccess.createUser({
+      displayName: "Access Owner",
+    });
+    const member = await repositories.identityAccess.createUser({
+      displayName: "Access Member",
+    });
+    const [group] = await database
+      .insert(groups)
+      .values({ createdByUserId: owner.id, name: "Access Group" })
+      .returning();
+    if (group === undefined) {
+      throw new Error("Expected the access group to be created.");
+    }
+    await repositories.identityAccess.addMembership({
+      groupId: group.id,
+      role: "owner",
+      userId: owner.id,
+    });
+    await repositories.identityAccess.addMembership({
+      groupId: group.id,
+      role: "member",
+      userId: member.id,
+    });
+
+    await expect(
+      repositories.groupAccess.listActiveMembers(group.id),
+    ).resolves.toMatchObject([
+      { displayName: "Access Member", role: "member", userId: member.id },
+      { displayName: "Access Owner", role: "owner", userId: owner.id },
+    ]);
+    await expect(
+      repositories.groupAccess.setMembershipRole(
+        group.id,
+        member.id,
+        "member",
+        "organizer",
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      repositories.groupAccess.removeMembership(
+        group.id,
+        member.id,
+        new Date("2026-07-29T09:00:00.000Z"),
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      repositories.identityAccess.addMembership({
+        groupId: group.id,
+        joinedAt: new Date("2026-07-29T10:00:00.000Z"),
+        role: "member",
+        userId: member.id,
+      }),
+    ).resolves.toMatchObject({
+      groupId: group.id,
+      removedAt: null,
+      role: "member",
+      userId: member.id,
+    });
+
+    const request = await repositories.groupAccess.createAdminAccessRequest({
+      groupId: group.id,
+      requesterUserId: owner.id,
+    });
+    await expect(
+      repositories.groupAccess.findPendingAdminAccessRequest(owner.id),
+    ).resolves.toMatchObject({ id: request.id, status: "pending" });
   });
 });

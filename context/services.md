@@ -97,6 +97,7 @@ Neon stores structured application truth: users, roles, groups, catalog records,
 7. Repeat with a separate production project or protected production branch before real use.
 8. Add `DATABASE_URL` to Vercel Development, Preview, and Production using the correct value for each environment.
 9. Keep `DATABASE_MIGRATION_URL` restricted to the machine or CI job that is allowed to change the schema.
+10. Give Preview and Production separate pooled login roles with only the table and sequence permissions required by the application. Keep schema-owner credentials out of the Vercel runtime.
 
 ### Development fixtures
 

@@ -8,6 +8,91 @@ body {
   min-height: 100%;
 }
 
+.access-page {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-4);
+}
+
+.access-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-major-card);
+  box-shadow: var(--shadow-raised);
+  display: grid;
+  gap: var(--space-4);
+  max-width: 32rem;
+  padding: var(--space-6);
+  width: 100%;
+}
+
+.access-card h1,
+.access-card p {
+  margin: 0;
+}
+
+.access-card button {
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-field);
+  color: var(--color-on-primary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  min-height: var(--touch-target);
+  padding: var(--space-3) var(--space-4);
+}
+
+.access-card button:focus-visible {
+  outline: 3px solid var(--color-primary-strong);
+  outline-offset: 3px;
+}
+
+.access-card button:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.team-access {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.team-access > header,
+.team-access li {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.team-access ul {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.team-access li {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+}
+
+.team-access li > div {
+  display: grid;
+  margin-right: auto;
+}
+
+.team-access button {
+  min-height: var(--touch-target);
+}
+
 body {
   background: var(--color-canvas);
   color: var(--color-text);

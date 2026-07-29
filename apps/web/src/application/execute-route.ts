@@ -33,6 +33,7 @@ export interface RouteDefinition<Input, Output> {
   readonly authorize: AuthorizationPolicy<RouteContext<Input>>;
   readonly execute: (context: RouteContext<Input>) => MaybePromise<Output>;
   readonly validate: (request: Request) => MaybePromise<Input>;
+  readonly verifyRequest?: (request: Request) => MaybePromise<void>;
 }
 
 export interface RouteDependencies {
@@ -49,6 +50,7 @@ export async function executeRoute<Input, Output>(
   dependencies: RouteDependencies,
 ): Promise<Response> {
   try {
+    await definition.verifyRequest?.(request);
     const session = await dependencies.verifySession();
     const identity = await dependencies.loadIdentity(session);
     const input = await definition.validate(request);

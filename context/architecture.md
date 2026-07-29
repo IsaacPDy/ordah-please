@@ -72,6 +72,10 @@ Cache only non-secret display data and short-lived session state. The server rem
 - No external identity webhook exists. A product user is created or reused on the first authenticated request, with uniqueness protecting concurrent provisioning.
 - Web uses same-origin HTTP-only cookies. Android uses the Better Auth Expo plugin with SecureStore-backed cookies and sends that cookie to the trusted API.
 - Every API request verifies the Better Auth session, ensures or loads the application identity, loads application roles from Neon, and checks resource-level permission.
+- Group owners issue expiring invitation tokens whose public values are deployment-bound; Neon stores only their hashes so a database read cannot reveal a usable invitation.
+- Invitation acceptance consumes the token and creates or reactivates a member role in one transaction. A partial unique index permits at most one active group per user, while acceptance never enrolls the member in an order.
+- Browser product mutations reject cross-site origins before session work; Android may send its SecureStore cookie without a browser Origin header.
+- Group owners can list active members, promote members to organizers, demote organizers, remove non-owner members, and submit one pending platform-admin request. Compare-and-set updates and single-flight controls prevent duplicate role audits; every mutation is audited, while approval and rejection remain V1-06 behavior.
 - Authentication deletion or session revocation never erases product history.
 - Platform admins manage catalog and admin requests.
 - Group owners manage membership and organizer promotion.

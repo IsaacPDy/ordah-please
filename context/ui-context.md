@@ -7,6 +7,8 @@ Option 1 is the approved V1 visual direction. Its corrected reference is `contex
 ## Structural UI Rules
 
 - Web and Android invitation screens preserve the invitation through Better Auth Google sign-in and do not expose email/password or public registration.
+- Invitation screens show sign-in before Join group, state that joining does not add the person to an order, disable duplicate submission, and provide one safe retryable error without exposing provider details.
+- The Team screen spells roles as Owner, Organizer, and Member. Only owners see member-management data and actions; removing a member requires explicit confirmation, and platform-admin access can be requested but not approved there.
 - Android is touch-first and native-feeling.
 - The iPhone PWA provides equivalent ordering behavior and clear Home Screen installation guidance.
 - The desktop admin portal prioritizes dense menu comparison, validation errors, and audit information.
