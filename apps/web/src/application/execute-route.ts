@@ -19,6 +19,7 @@ const PUBLIC_ERROR_STATUS = {
   FORBIDDEN: 403,
   INTERNAL_FAILURE: 500,
   INVALID_INPUT: 400,
+  NOT_FOUND: 404,
   UNAUTHENTICATED: 401,
   UNAVAILABLE: 503,
 } as const satisfies Readonly<Record<ApiErrorCode, number>>;

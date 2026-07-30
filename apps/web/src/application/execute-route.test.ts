@@ -173,6 +173,9 @@ describe("executeRoute", () => {
     ["CONFLICT", 409],
     ["UNAVAILABLE", 503],
     ["INTERNAL_FAILURE", 500],
+    ["FORBIDDEN", 403],
+    ["NOT_FOUND", 404],
+    ["UNAUTHENTICATED", 401],
   ] as const)("maps %s to HTTP %i", async (code, status) => {
     const response = await executeRoute(
       new Request("https://example.test/api/example"),
