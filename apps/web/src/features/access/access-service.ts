@@ -135,11 +135,7 @@ interface AdminDecisionRepositories {
       readonly reason?: string;
     }): Promise<{
       readonly id: string;
-      readonly requesterUserId: string;
-      readonly status: "approved" | "rejected";
-      readonly decidedAt: Date;
-      readonly decidedByUserId: string;
-      readonly decisionReason: string | null;
+      readonly status: AdminRequestStatus;
     }>;
     findAdminAccessRequestById(requestId: string): Promise<
       | {
@@ -496,6 +492,11 @@ export function decideAdminAccessRequest(
       resourceType: "admin_access_request",
     });
 
+    if (updated.status === "pending") {
+      throw new Error(
+        "Admin access request did not transition to a decided status.",
+      );
+    }
     return { requestId: updated.id, status: updated.status };
   });
 }

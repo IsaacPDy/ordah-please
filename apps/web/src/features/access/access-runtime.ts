@@ -12,7 +12,9 @@ import { loadAppIdentity } from "../../auth/load-app-identity";
 import { verifySession } from "../../auth/verify-session";
 import {
   acceptGroupInvitation,
+  decideAdminAccessRequest,
   issueGroupInvitation,
+  listPendingAdminAccessRequests,
   manageGroupMember,
   submitAdminAccessRequest,
 } from "./access-service";
@@ -82,12 +84,19 @@ export function readDeploymentId(
 export const accessRuntime = {
   acceptInvitation: (command: Parameters<typeof acceptGroupInvitation>[0]) =>
     acceptGroupInvitation(command, { run: runAccessTransaction }),
+  decideAdminRequest: (
+    command: Parameters<typeof decideAdminAccessRequest>[0],
+  ) => decideAdminAccessRequest(command, { run: runAccessTransaction }),
   issueInvitation: (command: Parameters<typeof issueGroupInvitation>[0]) =>
     issueGroupInvitation(command, { run: runAccessTransaction }),
   listMembers: (groupId: string) =>
     createRepositories(getRuntimeDatabase()).groupAccess.listActiveMembers(
       groupId,
     ),
+  listPendingAdminRequests: async () =>
+    (
+      await listPendingAdminAccessRequests({ run: runAccessTransaction })
+    ).requests,
   loadIdentity: loadRuntimeIdentity,
   manageMember: (command: Parameters<typeof manageGroupMember>[0]) =>
     manageGroupMember(command, { run: runAccessTransaction }),
