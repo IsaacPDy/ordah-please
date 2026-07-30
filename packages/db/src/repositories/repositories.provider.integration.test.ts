@@ -20,8 +20,8 @@ import {
   users,
 } from "../schema/index.js";
 import * as schema from "../schema/index.js";
-import { withTransaction } from "../transaction.js";
-import { createRepositories } from "./index.js";
+import { withTransaction, type DatabaseTransaction } from "../transaction.js";
+import { createRepositories, type Repositories } from "./index.js";
 
 const migrationDirectory = fileURLToPath(
   new URL("../../drizzle/", import.meta.url),
@@ -493,5 +493,210 @@ describe("focused repositories", () => {
     await expect(
       repositories.groupAccess.findPendingAdminAccessRequest(owner.id),
     ).resolves.toMatchObject({ id: request.id, status: "pending" });
+  });
+});
+
+/**
+ * Forces the surrounding drizzle transaction to roll back while still
+ * returning the test body's value, so each V1-06 decide-flow test runs
+ * in isolation against the shared temporary schema.
+ */
+class RollbackSignal extends Error {
+  constructor(public readonly result: unknown) {
+    super("ROLLBACK_SIGNAL");
+    this.name = "RollbackSignal";
+  }
+}
+
+/** Runs a test body inside a transaction that always rolls back. */
+async function withRolledBackRepositories<T>(
+  test: (
+    repositories: Repositories,
+    tx: DatabaseTransaction,
+  ) => Promise<T>,
+): Promise<T> {
+  try {
+    await database.transaction(async (transaction) => {
+      const repositories = createRepositories(transaction);
+      const result = await test(repositories, transaction);
+      throw new RollbackSignal(result);
+    });
+    throw new Error("Rolled back transaction should not commit.");
+  } catch (error) {
+    if (error instanceof RollbackSignal) {
+      return error.result as T;
+    }
+    throw error;
+  }
+}
+
+/** Inserts a Better Auth user row so a product user can reference it. */
+async function insertAuthUser(
+  tx: DatabaseTransaction,
+  authUserId: string,
+  name: string,
+): Promise<void> {
+  await tx.insert(authUsers).values({
+    email: `${name.toLowerCase().replaceAll(" ", "-")}-${authUserId}@example.test`,
+    emailVerified: true,
+    id: authUserId,
+    name,
+  });
+}
+
+/** Seeds the four rows V1-06 decide-flow tests need to exercise. */
+async function seedPendingRequestFixture(
+  repositories: Repositories,
+  tx: DatabaseTransaction,
+): Promise<{
+  readonly decidingAdminId: string;
+  readonly groupId: string;
+  readonly requestId: string;
+  readonly requesterId: string;
+}> {
+  const requesterAuthId = randomUUID();
+  await insertAuthUser(tx, requesterAuthId, "Owner Riley");
+  const requester = await repositories.identityAccess.ensureUserForAuthIdentity({
+    authUserId: requesterAuthId,
+    displayName: "Owner Riley",
+  });
+  const decidingAdminAuthId = randomUUID();
+  await insertAuthUser(tx, decidingAdminAuthId, "Admin Quinn");
+  const decidingAdmin =
+    await repositories.identityAccess.ensureUserForAuthIdentity({
+      authUserId: decidingAdminAuthId,
+      displayName: "Admin Quinn",
+    });
+  await repositories.identityAccess.setPlatformAdminFlag(
+    decidingAdmin.id,
+    true,
+  );
+  const [group] = await tx
+    .insert(groups)
+    .values({ createdByUserId: requester.id, name: "Fixture Group" })
+    .returning();
+  if (group === undefined) {
+    throw new Error("Expected the fixture group to be created.");
+  }
+  await repositories.identityAccess.addMembership({
+    groupId: group.id,
+    role: "owner",
+    userId: requester.id,
+  });
+  const request = await repositories.groupAccess.createAdminAccessRequest({
+    groupId: group.id,
+    requesterUserId: requester.id,
+  });
+  return {
+    decidingAdminId: decidingAdmin.id,
+    groupId: group.id,
+    requestId: request.id,
+    requesterId: requester.id,
+  };
+}
+
+describe("group access V1-06 decide flow", () => {
+  it("lists pending requests with requester and group names", async () => {
+    await withRolledBackRepositories(async (repositories, tx) => {
+      const requesterAuthId = randomUUID();
+      await insertAuthUser(tx, requesterAuthId, "Owner Riley");
+      const requester =
+        await repositories.identityAccess.ensureUserForAuthIdentity({
+          authUserId: requesterAuthId,
+          displayName: "Owner Riley",
+        });
+      const [group] = await tx
+        .insert(groups)
+        .values({ createdByUserId: requester.id, name: "List Group" })
+        .returning();
+      if (group === undefined) {
+        throw new Error("Expected the list test group to be created.");
+      }
+      await repositories.identityAccess.addMembership({
+        groupId: group.id,
+        role: "owner",
+        userId: requester.id,
+      });
+      const request = await repositories.groupAccess.createAdminAccessRequest({
+        groupId: group.id,
+        requesterUserId: requester.id,
+      });
+
+      const pending =
+        await repositories.groupAccess.listPendingAdminAccessRequests();
+      const matched = pending.find((row) => row.id === request.id);
+      expect(matched).toBeDefined();
+      expect(matched).toEqual(
+        expect.objectContaining({
+          id: request.id,
+          requesterUserId: requester.id,
+          requesterDisplayName: "Owner Riley",
+          groupId: group.id,
+          groupName: "List Group",
+          status: "pending",
+        }),
+      );
+    });
+  });
+
+  it("approves a pending request and exposes the new status", async () => {
+    await withRolledBackRepositories(async (repositories, tx) => {
+      const { decidingAdminId, requestId } =
+        await seedPendingRequestFixture(repositories, tx);
+
+      const updated = await repositories.groupAccess.decideAdminAccessRequest({
+        requestId,
+        decision: "approved",
+        decidedByUserId: decidingAdminId,
+        decidedAt: new Date("2026-07-30T10:00:00.000Z"),
+      });
+      expect(updated.status).toBe("approved");
+      expect(updated.decidedByUserId).toBe(decidingAdminId);
+      expect(updated.decisionReason).toBeNull();
+    });
+  });
+
+  it("throws when deciding a request that is no longer pending", async () => {
+    await withRolledBackRepositories(async (repositories, tx) => {
+      const { decidingAdminId, requestId } =
+        await seedPendingRequestFixture(repositories, tx);
+
+      await repositories.groupAccess.decideAdminAccessRequest({
+        requestId,
+        decision: "rejected",
+        decidedByUserId: decidingAdminId,
+        decidedAt: new Date("2026-07-30T10:00:00.000Z"),
+      });
+      await expect(
+        repositories.groupAccess.decideAdminAccessRequest({
+          requestId,
+          decision: "approved",
+          decidedByUserId: decidingAdminId,
+          decidedAt: new Date("2026-07-30T10:00:01.000Z"),
+        }),
+      ).rejects.toThrow();
+    });
+  });
+
+  it("promotes a user to platform admin and finds a request by id", async () => {
+    await withRolledBackRepositories(async (repositories, tx) => {
+      const { decidingAdminId, requestId, requesterId } =
+        await seedPendingRequestFixture(repositories, tx);
+
+      const before = await repositories.groupAccess.findAdminAccessRequestById(
+        requestId,
+      );
+      expect(before?.status).toBe("pending");
+
+      await repositories.groupAccess.promoteToPlatformAdmin(requesterId);
+      await repositories.groupAccess.promoteToPlatformAdmin(decidingAdminId);
+
+      const direct = await tx
+        .select({ isPlatformAdmin: users.isPlatformAdmin })
+        .from(users)
+        .where(eq(users.id, requesterId))
+        .limit(1);
+      expect(direct[0]?.isPlatformAdmin).toBe(true);
+    });
   });
 });
