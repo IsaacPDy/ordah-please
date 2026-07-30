@@ -5,8 +5,10 @@ import { PublicApiError } from "@ordah-please/contracts";
 import {
   createAcceptInvitationHandler,
   createAdminRequestHandler,
+  createDecideAdminRequestHandler,
   createIssueInvitationHandler,
   createListMembersHandler,
+  createListPendingAdminRequestsHandler,
   createManageMemberHandler,
 } from "./access-route-handlers";
 
@@ -207,5 +209,149 @@ describe("access route handlers", () => {
     expect(issueInvitation).toHaveBeenCalledTimes(1);
     expect(listMembers).toHaveBeenCalledWith("group-1");
     expect(submitAdminRequest).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("createDecideAdminRequestHandler", () => {
+  it("returns 403 when the caller is not a platform admin", async () => {
+    const handler = createDecideAdminRequestHandler({
+      decideAdminRequest: vi.fn(),
+      loadIdentity: () => ({
+        authUserId: "auth-1",
+        groupId: "group-1" as never,
+        roles: ["group-owner"],
+        userId: "user-1" as never,
+      }),
+      now: () => new Date("2026-07-30T08:00:00.000Z"),
+      verifySession: () => ({ authUserId: "auth-1", displayName: "Owner" }),
+    });
+
+    const response = await handler(
+      new Request("https://example.test/api/access/admin-requests/decide", {
+        method: "POST",
+        body: JSON.stringify({ requestId: "req-1", decision: "approved" }),
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    expect(response.status).toBe(403);
+  });
+
+  it("approves through the service and returns the new status", async () => {
+    const decideAdminRequest = vi.fn(() =>
+      Promise.resolve({
+        requestId: "req-1",
+        status: "approved" as const,
+      }),
+    );
+    const handler = createDecideAdminRequestHandler({
+      decideAdminRequest,
+      loadIdentity: () => ({
+        authUserId: "auth-admin",
+        roles: ["platform-admin"],
+        userId: "admin-1" as never,
+      }),
+      now: () => new Date("2026-07-30T08:00:00.000Z"),
+      verifySession: () => ({ authUserId: "auth-admin", displayName: "Admin" }),
+    });
+
+    const response = await handler(
+      new Request("https://example.test/api/access/admin-requests/decide", {
+        method: "POST",
+        body: JSON.stringify({ requestId: "req-1", decision: "approved" }),
+        headers: {
+          "content-type": "application/json",
+          origin: "https://example.test",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(decideAdminRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: "admin-1",
+        requestId: "req-1",
+        decision: "approved",
+      }),
+    );
+  });
+
+  it("returns 400 on a malformed body", async () => {
+    const handler = createDecideAdminRequestHandler({
+      decideAdminRequest: vi.fn(),
+      loadIdentity: () => ({
+        authUserId: "auth-admin",
+        roles: ["platform-admin"],
+        userId: "admin-1" as never,
+      }),
+      now: () => new Date("2026-07-30T08:00:00.000Z"),
+      verifySession: () => ({ authUserId: "auth-admin", displayName: "Admin" }),
+    });
+
+    const response = await handler(
+      new Request("https://example.test/api/access/admin-requests/decide", {
+        method: "POST",
+        body: JSON.stringify({ decision: "approved" }),
+        headers: {
+          "content-type": "application/json",
+          origin: "https://example.test",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+  });
+});
+
+describe("createListPendingAdminRequestsHandler", () => {
+  it("returns 403 when the caller is not a platform admin", async () => {
+    const handler = createListPendingAdminRequestsHandler({
+      listPendingAdminRequests: vi.fn(() => Promise.resolve([])),
+      loadIdentity: () => ({
+        authUserId: "auth-1",
+        roles: [],
+        userId: "user-1" as never,
+      }),
+      verifySession: () => ({ authUserId: "auth-1", displayName: "Member" }),
+    });
+
+    const response = await handler(
+      new Request("https://example.test/api/access/admin-requests/pending"),
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("returns the pending list for a platform admin", async () => {
+    const listPendingAdminRequests = vi.fn(() =>
+      Promise.resolve([
+        {
+          id: "req-1",
+          requesterUserId: "usr-1",
+          requesterDisplayName: "Owner One",
+          groupId: "grp-1",
+          groupName: "Group One",
+          status: "pending" as const,
+          createdAt: "2026-07-28T08:00:00.000Z",
+        },
+      ]),
+    );
+    const handler = createListPendingAdminRequestsHandler({
+      listPendingAdminRequests,
+      loadIdentity: () => ({
+        authUserId: "auth-admin",
+        roles: ["platform-admin"],
+        userId: "admin-1" as never,
+      }),
+      verifySession: () => ({ authUserId: "auth-admin", displayName: "Admin" }),
+    });
+
+    const response = await handler(
+      new Request("https://example.test/api/access/admin-requests/pending"),
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      data: { requests: unknown[] };
+    };
+    expect(body.data.requests).toHaveLength(1);
   });
 });
