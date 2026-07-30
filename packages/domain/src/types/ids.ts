@@ -4,6 +4,7 @@ export type RecordId<RecordName extends string> = string & {
   readonly [recordIdBrand]: RecordName;
 };
 
+export type AdminAccessRequestId = RecordId<"admin-access-request">;
 export type BranchId = RecordId<"branch">;
 export type FavoriteId = RecordId<"favorite">;
 export type FileId = RecordId<"file">;

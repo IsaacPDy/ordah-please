@@ -1,4 +1,9 @@
-import type { UserId, UtcTimestamp } from "@ordah-please/domain";
+import type {
+  AdminAccessRequestId,
+  GroupId,
+  UserId,
+  UtcTimestamp,
+} from "@ordah-please/domain";
 
 import {
   parseRecordId,
@@ -49,4 +54,95 @@ export function parseCreateAdminAccessRequest(
   const object = parseStrictObject(value, "Admin access request");
   rejectUnknownFields(object, [], "Admin access request");
   return {};
+}
+
+export type AdminAccessDecision = "approved" | "rejected";
+
+export type DecideAdminAccessRequestRequest = Readonly<{
+  requestId: AdminAccessRequestId;
+  decision: AdminAccessDecision;
+  reason?: string;
+}>;
+
+export type AdminAccessRequestSummary = Readonly<{
+  id: AdminAccessRequestId;
+  requesterUserId: UserId;
+  requesterDisplayName: string;
+  groupId: GroupId;
+  groupName: string;
+  status: "pending";
+  createdAt: UtcTimestamp;
+}>;
+
+export type ListPendingAdminAccessRequestsResponse = Readonly<{
+  requests: readonly AdminAccessRequestSummary[];
+}>;
+
+/** Validates the body of a platform-admin's decide action on a pending request. */
+export function parseDecideAdminAccessRequestRequest(
+  value: unknown,
+): DecideAdminAccessRequestRequest {
+  const object = parseStrictObject(value, "Admin access decision request");
+  rejectUnknownFields(
+    object,
+    ["requestId", "decision", "reason"],
+    "Admin access decision request",
+  );
+  const requestId = parseRecordId<AdminAccessRequestId>(
+    object.requestId,
+    "Admin access request id",
+  );
+  if (object.decision !== "approved" && object.decision !== "rejected") {
+    throw new TypeError("Admin access decision must be approved or rejected.");
+  }
+  const decision: AdminAccessDecision = object.decision;
+  let reason: string | undefined;
+  if (object.reason !== undefined) {
+    if (typeof object.reason !== "string") {
+      throw new TypeError("Admin access decision reason must be a string.");
+    }
+    const trimmed = object.reason.trim();
+    if (trimmed === "") {
+      throw new TypeError("Admin access decision reason must not be empty.");
+    }
+    if (trimmed.length > 500) {
+      throw new TypeError("Admin access decision reason must be at most 500 characters.");
+    }
+    reason = trimmed;
+  }
+  return reason === undefined
+    ? { requestId, decision }
+    : { requestId, decision, reason };
+}
+
+/** Validates the typed list returned to a platform-admin deciding pending requests. */
+export function parseListPendingAdminAccessRequestsResponse(
+  value: unknown,
+): ListPendingAdminAccessRequestsResponse {
+  const object = parseStrictObject(value, "List pending admin access requests response");
+  rejectUnknownFields(object, ["requests"], "List pending admin access requests response");
+  if (!Array.isArray(object.requests)) {
+    throw new TypeError("Pending admin access requests must be an array.");
+  }
+  const requests = object.requests.map((entry) => {
+    const row = parseStrictObject(entry, "Pending admin access request summary");
+    rejectUnknownFields(
+      row,
+      ["id", "requesterUserId", "requesterDisplayName", "groupId", "groupName", "status", "createdAt"],
+      "Pending admin access request summary",
+    );
+    if (row.status !== "pending") {
+      throw new TypeError("Pending admin access request status must be pending.");
+    }
+    return {
+      id: parseRecordId<AdminAccessRequestId>(row.id, "Admin access request id"),
+      requesterUserId: parseRecordId<UserId>(row.requesterUserId, "Requester user id"),
+      requesterDisplayName: parseString(row.requesterDisplayName, "Requester display name"),
+      groupId: parseRecordId<GroupId>(row.groupId, "Group id"),
+      groupName: parseString(row.groupName, "Group name"),
+      status: "pending" as const,
+      createdAt: parseUtcString(row.createdAt, "Request created at"),
+    };
+  });
+  return { requests };
 }
