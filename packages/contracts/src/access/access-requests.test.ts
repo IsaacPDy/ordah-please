@@ -14,22 +14,35 @@ describe("access request contracts", () => {
     expect(
       parseIssueInvitationRequest({
         expiresAt: "2026-07-26T08:00:00.000Z",
+        groupId: "group-1",
       }),
-    ).toEqual({ expiresAt: "2026-07-26T08:00:00.000Z" });
+    ).toEqual({
+      expiresAt: "2026-07-26T08:00:00.000Z",
+      groupId: "group-1",
+    });
     expect(parseAcceptInvitationRequest({ token: "invite-token" })).toEqual({
       token: "invite-token",
     });
-    expect(parseMemberActionRequest({ userId: "user-1" })).toEqual({
+    expect(
+      parseMemberActionRequest({ groupId: "group-1", userId: "user-1" }),
+    ).toEqual({
+      groupId: "group-1",
       userId: "user-1",
     });
-    expect(parseCreateAdminAccessRequest({})).toEqual({});
+    expect(parseCreateAdminAccessRequest({ groupId: "group-1" })).toEqual({
+      groupId: "group-1",
+    });
   });
 
   it.each([
-    () => parseIssueInvitationRequest({ expiresAt: "tomorrow" }),
+    () =>
+      parseIssueInvitationRequest({
+        expiresAt: "tomorrow",
+        groupId: "group-1",
+      }),
     () => parseAcceptInvitationRequest({ token: "x", groupId: "group-1" }),
-    () => parseMemberActionRequest({ userId: "" }),
-    () => parseCreateAdminAccessRequest({ reason: "please" }),
+    () => parseMemberActionRequest({ groupId: "group-1", userId: "" }),
+    () => parseCreateAdminAccessRequest({ groupId: "", reason: "please" }),
   ])("rejects malformed or unknown access fields", (parse) => {
     expect(parse).toThrow(TypeError);
   });

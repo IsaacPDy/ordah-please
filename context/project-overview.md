@@ -107,7 +107,7 @@ The first platform admin is assigned manually. A group owner may request platfor
 - Public registration, public API, App Store, or Play Store release.
 - Automatic Grab cart creation, checkout, payment, or order submission.
 - In-app collection or settlement of money.
-- Payment is made by the organizer in Grab and any repayment happens outside ordah please.
+- Payment is made by the Manager or Group Owner in Grab, and any repayment happens outside ordah please.
 - Public or commercial redistribution of Grab data.
 - Unattended backend scraping or bypassing Grab access controls.
 - Restaurant recommendations based on dietary profiles or AI.

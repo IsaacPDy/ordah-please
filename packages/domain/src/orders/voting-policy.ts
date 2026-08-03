@@ -9,7 +9,7 @@ export type RestaurantVoteResolution = Readonly<{
 export function resolveRestaurantVote(input: {
   selectedParticipantIds: readonly UserId[];
   initialRestaurantId: RestaurantId;
-  organizerInitialVote: Readonly<{
+  managerInitialVote: Readonly<{
     userId: UserId;
     restaurantId: RestaurantId;
   }>;
@@ -27,22 +27,19 @@ export function resolveRestaurantVote(input: {
     throw new Error("Selected participant IDs must be unique.");
   }
 
-  if (!selectedParticipants.has(input.organizerInitialVote.userId)) {
-    throw new Error("The organizer must be a selected participant.");
+  if (!selectedParticipants.has(input.managerInitialVote.userId)) {
+    throw new Error("The manager must be a selected participant.");
   }
 
-  if (input.organizerInitialVote.restaurantId !== input.initialRestaurantId) {
+  if (input.managerInitialVote.restaurantId !== input.initialRestaurantId) {
     throw new Error(
-      "The organizer's initial vote must use the initial restaurant.",
+      "The manager's initial vote must use the initial restaurant.",
     );
   }
 
   const submittedUsers = new Set<UserId>();
   const votesByUser = new Map<UserId, RestaurantId>([
-    [
-      input.organizerInitialVote.userId,
-      input.organizerInitialVote.restaurantId,
-    ],
+    [input.managerInitialVote.userId, input.managerInitialVote.restaurantId],
   ]);
 
   for (const vote of input.votes) {

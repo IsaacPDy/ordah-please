@@ -40,7 +40,7 @@ function parseMembers(value: unknown): readonly GroupMemberView[] {
       typeof member.userId !== "string" ||
       !("role" in member) ||
       (member.role !== "owner" &&
-        member.role !== "organizer" &&
+        member.role !== "manager" &&
         member.role !== "member")
     ) {
       throw new Error("request-failed");
@@ -54,8 +54,11 @@ function parseMembers(value: unknown): readonly GroupMemberView[] {
 }
 
 /** Fetches and validates the owner-visible active member list. */
-async function fetchMembers(): Promise<readonly GroupMemberView[]> {
-  const response = await fetch("/api/access/members");
+async function fetchMembers(
+  groupId: string,
+): Promise<readonly GroupMemberView[]> {
+  const query = new URLSearchParams({ groupId });
+  const response = await fetch(`/api/access/members?${query.toString()}`);
   return parseMembers(await responseData(response));
 }
 
@@ -67,7 +70,7 @@ function memberLoadFailure(error: unknown): PanelStatus {
 }
 
 /** Connects the owner Team view to authenticated group-access routes. */
-export function TeamAccessPanel() {
+export function TeamAccessPanel({ groupId }: Readonly<{ groupId: string }>) {
   const [members, setMembers] = useState<readonly GroupMemberView[]>([]);
   const [status, setStatus] = useState<PanelStatus>("loading");
   const [message, setMessage] = useState<string | null>(null);
@@ -94,7 +97,7 @@ export function TeamAccessPanel() {
   /** Reloads the member list after an owner changes group access. */
   const refreshMembers = async () => {
     try {
-      setMembers(await fetchMembers());
+      setMembers(await fetchMembers(groupId));
       setStatus("ready");
     } catch (error) {
       setStatus(memberLoadFailure(error));
@@ -103,7 +106,7 @@ export function TeamAccessPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    void fetchMembers()
+    void fetchMembers(groupId)
       .then((loadedMembers) => {
         if (!cancelled) {
           setMembers(loadedMembers);
@@ -118,7 +121,7 @@ export function TeamAccessPanel() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [groupId]);
 
   /** Applies one allowed owner role action and refreshes the visible team. */
   const performMemberAction = async (
@@ -138,7 +141,7 @@ export function TeamAccessPanel() {
     try {
       await responseData(
         await fetch(`/api/access/members/${action}`, {
-          body: JSON.stringify({ userId }),
+          body: JSON.stringify({ groupId, userId }),
           headers: { "Content-Type": "application/json" },
           method: "POST",
         }),
@@ -161,7 +164,10 @@ export function TeamAccessPanel() {
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000);
       const data = await responseData(
         await fetch("/api/access/invitations", {
-          body: JSON.stringify({ expiresAt: expiresAt.toISOString() }),
+          body: JSON.stringify({
+            expiresAt: expiresAt.toISOString(),
+            groupId,
+          }),
           headers: { "Content-Type": "application/json" },
           method: "POST",
         }),
@@ -193,7 +199,7 @@ export function TeamAccessPanel() {
     try {
       await responseData(
         await fetch("/api/access/admin-requests", {
-          body: "{}",
+          body: JSON.stringify({ groupId }),
           headers: { "Content-Type": "application/json" },
           method: "POST",
         }),

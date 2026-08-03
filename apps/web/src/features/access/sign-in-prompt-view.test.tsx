@@ -4,12 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 import { SignInPromptView } from "./sign-in-prompt-view";
 
 describe("SignInPromptView", () => {
-  it("renders a Google sign-in button and reason when idle", () => {
+  it("renders the brand, tagline, and Google sign-in button when idle", () => {
     const markup = renderToStaticMarkup(
       <SignInPromptView onSignIn={() => undefined} status="idle" />,
     );
 
-    expect(markup).toContain("Sign in is required");
+    expect(markup).toContain("ordah please");
+    expect(markup).toContain("Order together, hassle less.");
     expect(markup).toContain("Sign in with Google");
   });
 

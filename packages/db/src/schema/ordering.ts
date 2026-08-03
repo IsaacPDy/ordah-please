@@ -124,7 +124,7 @@ export const orders = pgTable(
     groupId: uuid("group_id")
       .notNull()
       .references(() => groups.id),
-    organizerUserId: uuid("organizer_user_id")
+    managerUserId: uuid("manager_user_id")
       .notNull()
       .references(() => users.id),
     state: orderStateEnum("state").default("draft").notNull(),
@@ -235,7 +235,7 @@ export const foodSelections = pgTable(
     }),
     check(
       "food_selections_source_fields_match",
-      sql`(${table.source} = 'saved_favorite' and ${table.favoriteId} is not null and ${table.resolvedByUserId} is null) or (${table.source} = 'organizer_resolution' and ${table.resolvedByUserId} is not null) or (${table.source} in ('inline', 'declined') and ${table.favoriteId} is null and ${table.resolvedByUserId} is null)`,
+      sql`(${table.source} = 'saved_favorite' and ${table.favoriteId} is not null and ${table.resolvedByUserId} is null) or (${table.source} = 'manager_resolution' and ${table.resolvedByUserId} is not null) or (${table.source} in ('inline', 'declined') and ${table.favoriteId} is null and ${table.resolvedByUserId} is null)`,
     ),
   ],
 );

@@ -21,7 +21,7 @@ This plan was rebuilt from these implementation facts:
 - `packages/domain/src/` already contains favorite-ranking, voting, food-deadline, order-state, and handoff policies with tests.
 - The current member and admin screens render realistic local mock data. Except for existing access-request behavior, they are not connected to APIs or Neon.
 - `memberships_one_active_group_per_user` still enforces one active group per user.
-- Product roles still use `organizer`; the approved name is `manager`.
+- Product roles still use the legacy persisted role value; the approved name is `manager`.
 - The shared admin layout does not yet enforce Platform Admin access at the page boundary.
 
 ## 2. Completed permanent product history
@@ -59,7 +59,7 @@ The following visual work exists but is not a completed connected journey:
 
 #### Access entry and multi-group migration
 
-**Why it exists:** The approved app lets any Google account browse restaurants and Favorites, then join several groups. The current data model still permits only one active group and still uses Organizer.
+**Why it exists:** The approved app lets any Google account browse restaurants and Favorites, then join several groups. The starting data model permits only one active group and still uses the legacy role label.
 
 **Build:**
 
@@ -67,7 +67,7 @@ The following visual work exists but is not a completed connected journey:
 - Protect member and admin pages with real session checks.
 - Allow restaurant and Favorites access before group membership.
 - Remove the one-active-group database constraint without losing existing memberships, invitations, or audit history.
-- Rename Organizer to Manager across domain types, contracts, database enum/data, APIs, tests, and UI.
+- Rename the legacy role to Manager across domain types, contracts, database enum/data, APIs, tests, and UI.
 - Enforce one non-transferable Group Owner per group.
 - Return all active memberships and the role held in each group.
 

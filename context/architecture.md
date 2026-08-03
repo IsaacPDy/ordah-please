@@ -72,16 +72,19 @@ Cache only non-secret display data and short-lived session state. The server rem
 - No external identity webhook exists. A product user is created or reused on the first authenticated request, with uniqueness protecting concurrent provisioning.
 - Web uses same-origin HTTP-only cookies. Android uses the Better Auth Expo plugin with SecureStore-backed cookies and sends that cookie to the trusted API.
 - Every API request verifies the Better Auth session, ensures or loads the application identity, loads application roles from Neon, and checks resource-level permission.
+- Server-rendered member and admin layouts verify the same Better Auth session and Neon product identity before rendering their navigation shells. The request-cached page loader prevents child pages from repeating that database read.
+- Group-scoped APIs carry an explicit group ID and authorize against that exact membership; no first or default membership grants permission in another group. Platform Admin remains an account-wide flag.
 - Group owners issue expiring invitation tokens whose public values are deployment-bound; Neon stores only their hashes so a database read cannot reveal a usable invitation.
 - Invitation acceptance consumes the token and creates or reactivates one group membership in a transaction. A user may hold multiple active memberships with a different role in each group, while acceptance never enrolls the member in an order.
 - Browser product mutations reject cross-site origins before session work; Android may send its SecureStore cookie without a browser Origin header.
+- Android loads the minimal shared identity summary through its SecureStore-backed Better Auth cookie, mounts it once above member tabs, and never adds a bearer token or client-visible backend secret.
 - Group Owners and Managers act only through their effective action permissions. Role changes, removal, assignment, suspension, and account-wide Platform Admin overrides are audited; compare-and-set updates prevent duplicate role events.
 - Authentication deletion or session revocation never erases product history.
 - Platform admins manage catalog and admin requests.
 - Group Owners and Managers manage membership actions allowed by their effective permissions.
 - Managers manage only orders they are authorized to manage.
 - Members mutate only their own favorites and their own active-order responses.
-- Order data is visible only to the organizer and selected participants, except platform admins performing support or audit duties.
+- Order data is visible only to its Manager and selected participants, except Platform Admins performing support or audit duties.
 
 ## Core Data Rules
 
@@ -103,7 +106,7 @@ Cache only non-secret display data and short-lived session state. The server rem
 - Voting-disabled orders may move directly from Draft to Food Confirmation.
 - State transitions run only through domain services and are idempotent.
 - At the restaurant deadline, an option with at least 50% of selected-participant votes can win; the initial restaurant wins if the threshold is unmet or the result is tied.
-- At the food deadline, a valid Rank 1 is included for a non-responder. Missing or invalid selections require organizer resolution before handoff.
+- At the food deadline, a valid Rank 1 is included for a non-responder. Missing or invalid selections require Manager or Group Owner resolution before handoff.
 
 ## Background Work
 
@@ -119,7 +122,7 @@ Cache only non-secret display data and short-lived session state. The server rem
 - Suspicious removals or major changes require review rather than automatic publication.
 - Duplicate job delivery is ignored through idempotency keys.
 - Failed notification delivery is logged and does not roll back the underlying order transition.
-- Missing or unavailable favorites block readiness until the member or organizer resolves them.
+- Missing or unavailable favorites block readiness until the member, Manager, or Group Owner resolves them.
 - R2 upload failures do not create finalized database records.
 - Grab-opening failure leaves the consolidated handoff copyable and visible.
 

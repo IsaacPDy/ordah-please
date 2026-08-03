@@ -15,12 +15,14 @@ type SocialSignIn = (input: {
 
 type SignInPromptProps = Readonly<{
   callbackURL: string;
+  purpose?: "admin" | "member";
   signIn?: SocialSignIn;
 }>;
 
-/** Connects the platform-admin sign-in prompt to Better Auth Google sign-in. */
+/** Connects a protected-surface sign-in prompt to Better Auth Google sign-in. */
 export function SignInPrompt({
   callbackURL,
+  purpose = "admin",
   signIn = authClient.signIn.social,
 }: SignInPromptProps) {
   const [status, setStatus] = useState<SignInPromptStatus>("idle");
@@ -40,6 +42,7 @@ export function SignInPrompt({
       onSignIn={() => {
         void start();
       }}
+      purpose={purpose}
       status={status}
     />
   );

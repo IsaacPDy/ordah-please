@@ -9,6 +9,7 @@ Option 1 is the approved V1 visual direction. Its corrected reference is `contex
 - Web and Android invitation screens preserve the invitation through Better Auth Google sign-in and do not expose email/password or public registration.
 - Invitation screens show sign-in before Join group, state that joining does not add the person to an order, disable duplicate submission, and provide one safe retryable error without exposing provider details.
 - The Groups screen lists every group the user belongs to and spells roles as Group Owner, Manager, and Member. Opening a group shows its owner and members; management actions appear only when the effective permissions allow them.
+- A signed-in user with no memberships still sees restaurant discovery and account-owned Favorites, never sees invented active orders, and receives clear join-first empty states on Orders and Groups.
 - Android is touch-first and native-feeling.
 - The iPhone PWA provides equivalent ordering behavior and clear Home Screen installation guidance.
 - The desktop admin portal prioritizes dense menu comparison, validation errors, and audit information.

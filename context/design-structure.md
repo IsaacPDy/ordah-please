@@ -32,6 +32,7 @@
 
 - **Invitation Onboarding:** Preserves one private invitation through Better Auth Google sign-in, explains that group membership is separate from order participation, and accepts only after authentication.
 - **Groups Access:** Lists multiple memberships, shows exact Group Owner, Manager, and Member labels, and reveals actions from the user's effective role permissions and account-wide overrides.
+- **No-membership State:** Keeps account-owned Home discovery and Favorites available, removes invented active-order content, and replaces Orders and Groups with truthful join-first empty states.
 - **Catalog Browser:** Finds published restaurants and exact branches.
 - **Menu Viewer:** Shows versioned items, modifiers, availability, and captured prices.
 - **Favorite Builder:** Saves complete combinations and enforces three ranks.

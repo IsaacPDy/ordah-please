@@ -129,6 +129,42 @@ describe("access service", () => {
     expect(transactionRunner).not.toHaveProperty("orders");
   });
 
+  it("returns a stable conflict when another invitation already created the membership", async () => {
+    const access = {
+      acceptInvitation: vi.fn(() => Promise.resolve(true)),
+      addMembership: vi.fn(() => Promise.resolve(undefined)),
+      findInvitationByTokenHash: vi.fn(() =>
+        Promise.resolve({
+          acceptedAt: null,
+          expiresAt: new Date("2026-07-26T08:00:00.000Z"),
+          groupId: "group-1",
+          id: "invitation-2",
+        }),
+      ),
+      listActiveMemberships: vi.fn(() => Promise.resolve([])),
+    };
+    const append = vi.fn(() => Promise.resolve({ id: "audit-1" }));
+
+    await expect(
+      acceptGroupInvitation(
+        {
+          deploymentId: "preview.ordah-please.test",
+          now: new Date("2026-07-25T08:00:00.000Z"),
+          publicToken: "second-token",
+          userId: "user-1",
+        },
+        {
+          run: (operation) => operation({ access, auditEvents: { append } }),
+        },
+        () => "persisted-hash",
+      ),
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: "Your account already belongs to this group.",
+    });
+    expect(append).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       acceptedAt: new Date("2026-07-25T07:00:00.000Z"),
@@ -224,12 +260,50 @@ describe("access service", () => {
       "group-1",
       "member-1",
       "member",
-      "organizer",
+      "manager",
     );
     expect(append).not.toHaveBeenCalled();
   });
 
-  it("rejects acceptance when the authenticated user already has an active group", async () => {
+  it("rejects member actions against a Group Owner without writing an audit", async () => {
+    const access = {
+      listActiveMembers: vi.fn(() =>
+        Promise.resolve([
+          {
+            displayName: "Owner",
+            role: "owner" as const,
+            userId: "owner-2",
+          },
+        ]),
+      ),
+      removeMembership: vi.fn(() => Promise.resolve(true)),
+      setMembershipRole: vi.fn(() => Promise.resolve(true)),
+    };
+    const append = vi.fn(() => Promise.resolve({ id: "audit-1" }));
+
+    await expect(
+      manageGroupMember(
+        {
+          action: "remove",
+          actorUserId: "owner-1",
+          groupId: "group-1",
+          now: new Date("2026-07-25T09:00:00.000Z"),
+          targetUserId: "owner-2",
+        },
+        {
+          run: (operation) => operation({ access, auditEvents: { append } }),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: "This member action is not available.",
+    });
+    expect(access.removeMembership).not.toHaveBeenCalled();
+    expect(access.setMembershipRole).not.toHaveBeenCalled();
+    expect(append).not.toHaveBeenCalled();
+  });
+
+  it("accepts a second group when the authenticated user belongs to another group", async () => {
     const access = {
       acceptInvitation: vi.fn(() => Promise.resolve(true)),
       addMembership: vi.fn(() => Promise.resolve({})),
@@ -271,11 +345,65 @@ describe("access service", () => {
         transactionRunner,
         () => "persisted-hash",
       ),
+    ).resolves.toEqual({ groupId: "group-2", role: "member" });
+    expect(access.acceptInvitation).toHaveBeenCalledWith(
+      "invitation-1",
+      "user-1",
+      new Date("2026-07-25T08:00:00.000Z"),
+    );
+    expect(access.addMembership).toHaveBeenCalledWith(
+      expect.objectContaining({ groupId: "group-2", userId: "user-1" }),
+    );
+  });
+
+  it("rejects a duplicate membership in the invitation group", async () => {
+    const access = {
+      acceptInvitation: vi.fn(() => Promise.resolve(true)),
+      addMembership: vi.fn(() => Promise.resolve({})),
+      findInvitationByTokenHash: vi.fn(() =>
+        Promise.resolve({
+          acceptedAt: null,
+          expiresAt: new Date("2026-07-26T08:00:00.000Z"),
+          groupId: "group-2",
+          id: "invitation-1",
+        }),
+      ),
+      listActiveMemberships: vi.fn(() =>
+        Promise.resolve([{ groupId: "group-2" }]),
+      ),
+    };
+    const transactionRunner = {
+      run: <Result>(
+        operation: (repositories: {
+          access: typeof access;
+          auditEvents: { append: () => Promise<{ id: string }> };
+        }) => Promise<Result>,
+      ) =>
+        operation({
+          access,
+          auditEvents: {
+            append: () => Promise.resolve({ id: "audit-1" }),
+          },
+        }),
+    };
+
+    await expect(
+      acceptGroupInvitation(
+        {
+          deploymentId: "preview.ordah-please.test",
+          now: new Date("2026-07-25T08:00:00.000Z"),
+          publicToken: "public-token",
+          userId: "user-1",
+        },
+        transactionRunner,
+        () => "persisted-hash",
+      ),
     ).rejects.toMatchObject({
       code: "CONFLICT",
-      message: "Your account already belongs to a group.",
+      message: "Your account already belongs to this group.",
     });
     expect(access.acceptInvitation).not.toHaveBeenCalled();
+    expect(access.addMembership).not.toHaveBeenCalled();
   });
 
   it("rejects a concurrently consumed invitation before creating membership", async () => {
@@ -330,12 +458,12 @@ describe("access service", () => {
       action: "promote" as const,
       auditAction: "group.member_promoted",
       currentRole: "member" as const,
-      expectedRole: "organizer" as const,
+      expectedRole: "manager" as const,
     },
     {
       action: "demote" as const,
       auditAction: "group.member_demoted",
-      currentRole: "organizer" as const,
+      currentRole: "manager" as const,
       expectedRole: "member" as const,
     },
     {

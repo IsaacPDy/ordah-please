@@ -64,7 +64,7 @@ These are developer-only dependencies; they do not ship to users.
 ## External collection and handoff
 
 - **Codex Computer Use** — An AI tool an admin uses externally to read menus off Grab's website and turn them into JSON or CSV files. A human reviews the files before import. Not part of the running app.
-- **Grab** — The food delivery app. This product does not order from Grab automatically; it compiles the final order text so an organizer can paste it into Grab manually.
+- **Grab** — The food delivery app. This product does not order from Grab automatically; it compiles the final order text so a Manager or Group Owner can paste it into Grab manually.
 
 ## Recurring patterns
 

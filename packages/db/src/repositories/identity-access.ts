@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { memberships, users } from "../schema/index.js";
 import type { RepositoryDatabase } from "./database.js";
@@ -12,7 +12,7 @@ export interface AuthIdentityInput {
 export interface IdentityAccessRepository {
   addMembership(
     input: typeof memberships.$inferInsert,
-  ): Promise<typeof memberships.$inferSelect>;
+  ): Promise<typeof memberships.$inferSelect | undefined>;
   createUser(
     input: typeof users.$inferInsert,
   ): Promise<typeof users.$inferSelect>;
@@ -33,22 +33,23 @@ export function createIdentityAccessRepository(
   database: RepositoryDatabase,
 ): IdentityAccessRepository {
   return {
-    addMembership: async (input) =>
-      requireWrittenRow(
-        await database
-          .insert(memberships)
-          .values(input)
-          .onConflictDoUpdate({
-            set: {
-              joinedAt: input.joinedAt ?? new Date(),
-              removedAt: null,
-              role: input.role,
-            },
-            setWhere: isNotNull(memberships.removedAt),
-            target: [memberships.groupId, memberships.userId],
-          })
-          .returning(),
-      ),
+    addMembership: async (input) => {
+      const [membership] = await database
+        .insert(memberships)
+        .values(input)
+        .onConflictDoUpdate({
+          set: {
+            joinedAt: input.joinedAt ?? new Date(),
+            removedAt: null,
+            role: input.role,
+          },
+          setWhere: isNotNull(memberships.removedAt),
+          target: [memberships.groupId, memberships.userId],
+        })
+        .returning();
+
+      return membership;
+    },
     createUser: async (input) =>
       requireWrittenRow(await database.insert(users).values(input).returning()),
     ensureUserForAuthIdentity: async (input) => {
@@ -80,7 +81,8 @@ export function createIdentityAccessRepository(
         .from(memberships)
         .where(
           and(eq(memberships.userId, userId), isNull(memberships.removedAt)),
-        ),
+        )
+        .orderBy(asc(memberships.groupId)),
     setPlatformAdminFlag: async (userId, value) => {
       const [updated] = await database
         .update(users)

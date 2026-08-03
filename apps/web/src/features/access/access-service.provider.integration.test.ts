@@ -254,7 +254,7 @@ describe("access service provider transactions", () => {
     ).resolves.toHaveLength(0);
   });
 
-  it("allows one competing invitation, rolls the loser back, and permits a later rejoin", async () => {
+  it("accepts concurrent invitations to different groups and permits a later rejoin", async () => {
     const firstOwnerId = await createTestUser("First Owner");
     const secondOwnerId = await createTestUser("Second Owner");
     const memberUserId = await createTestUser("Competing Member");
@@ -290,16 +290,20 @@ describe("access service provider transactions", () => {
 
     expect(
       competing.filter((result) => result.status === "fulfilled"),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
     expect(
       competing.filter((result) => result.status === "rejected"),
-    ).toHaveLength(1);
-    const [activeMembership] =
+    ).toHaveLength(0);
+    const activeMemberships =
       await createRepositories(database).identityAccess.listActiveMemberships(
         memberUserId,
       );
+    expect(activeMemberships.map(({ groupId }) => groupId).sort()).toEqual(
+      [firstGroupId, secondGroupId].sort(),
+    );
+    const [activeMembership] = activeMemberships;
     if (activeMembership === undefined) {
-      throw new Error("Expected one competing membership to commit.");
+      throw new Error("Expected both group memberships to commit.");
     }
 
     await expect(
@@ -330,6 +334,67 @@ describe("access service provider transactions", () => {
       groupId: activeMembership.groupId,
       role: "member",
     });
+  });
+
+  it("returns one stable conflict for concurrent invitations to the same group", async () => {
+    const ownerUserId = await createTestUser("Same Group Owner");
+    const memberUserId = await createTestUser("Same Group Member");
+    const groupId = await createOwnedGroup(ownerUserId, "Same Group");
+    const firstHash = randomUUID().replaceAll("-", "");
+    const secondHash = randomUUID().replaceAll("-", "");
+    await createTestInvitation(groupId, ownerUserId, firstHash);
+    await createTestInvitation(groupId, ownerUserId, secondHash);
+
+    const results = await Promise.allSettled([
+      acceptGroupInvitation(
+        {
+          deploymentId: "provider.test",
+          now: new Date("2026-07-29T12:40:00.000Z"),
+          publicToken: "first-same-group-token",
+          userId: memberUserId,
+        },
+        createAccessTransactionRunner(),
+        () => firstHash,
+      ),
+      acceptGroupInvitation(
+        {
+          deploymentId: "provider.test",
+          now: new Date("2026-07-29T12:40:00.000Z"),
+          publicToken: "second-same-group-token",
+          userId: memberUserId,
+        },
+        createAccessTransactionRunner(),
+        () => secondHash,
+      ),
+    ]);
+
+    expect(results.filter(({ status }) => status === "fulfilled")).toHaveLength(
+      1,
+    );
+    expect(results.find(({ status }) => status === "rejected")).toMatchObject({
+      reason: {
+        code: "CONFLICT",
+        message: "Your account already belongs to this group.",
+      },
+      status: "rejected",
+    });
+    await expect(
+      createRepositories(database).identityAccess.listActiveMemberships(
+        memberUserId,
+      ),
+    ).resolves.toHaveLength(1);
+    await expect(
+      database
+        .select({ total: count() })
+        .from(auditEvents)
+        .where(
+          and(
+            eq(auditEvents.action, "group.invitation_accepted"),
+            eq(auditEvents.actorUserId, memberUserId),
+            eq(auditEvents.resourceId, groupId),
+          ),
+        ),
+    ).resolves.toEqual([{ total: 1 }]);
   });
 
   it("commits only one duplicate role action and one concurrent admin request", async () => {
@@ -423,6 +488,6 @@ describe("access service provider transactions", () => {
             isNull(memberships.removedAt),
           ),
         ),
-    ).resolves.toMatchObject([{ role: "organizer" }]);
+    ).resolves.toMatchObject([{ role: "manager" }]);
   });
 });

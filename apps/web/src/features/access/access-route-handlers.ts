@@ -3,6 +3,7 @@ import {
   parseAcceptInvitationRequest,
   parseDecideAdminAccessRequestRequest,
   parseIssueInvitationRequest,
+  parseAppIdentitySummary,
   parseListPendingAdminAccessRequestsResponse,
   parseMemberActionRequest,
   PublicApiError,
@@ -10,11 +11,14 @@ import {
   type CreateAdminAccessRequest,
   type DecideAdminAccessRequestRequest,
   type IssueInvitationRequest,
+  type AppIdentitySummary,
   type ListPendingAdminAccessRequestsResponse,
   type MemberActionRequest,
 } from "@ordah-please/contracts";
+import { parseId, type GroupId } from "@ordah-please/domain";
 
 import { executeRoute } from "../../application/execute-route";
+import { findGroupMembership } from "../../application/group-authorization";
 import type { AppIdentity } from "../../auth/load-app-identity";
 import type { VerifiedSession } from "../../auth/verify-session";
 import type {
@@ -44,7 +48,7 @@ export interface ManageMemberHandlerDependencies {
     session: VerifiedSession,
   ) => MaybePromise<AppIdentity>;
   readonly manageMember: (command: ManageGroupMemberCommand) => Promise<{
-    readonly role: "organizer" | "member" | null;
+    readonly role: "manager" | "member" | null;
     readonly userId: string;
   }>;
   readonly now: () => Date;
@@ -70,7 +74,7 @@ export interface IssueInvitationHandlerDependencies extends OwnerHandlerDependen
 
 type GroupMember = Readonly<{
   displayName: string;
-  role: "owner" | "organizer" | "member";
+  role: "owner" | "manager" | "member";
   userId: string;
 }>;
 
@@ -148,27 +152,19 @@ async function parseRequestBody<Value>(
   }
 }
 
-/** Identifies a group owner with active group context for owner-only routes. */
-function isGroupOwner(identity: AppIdentity): boolean {
-  return (
-    identity.groupId !== undefined && identity.roles.includes("group-owner")
-  );
-}
-
-/** Identifies a platform admin (cross-group) for decide and pending-list routes. */
-function isPlatformAdmin(identity: AppIdentity): boolean {
-  return identity.roles.includes("platform-admin");
-}
-
-/** Returns the active group ID after the route's owner policy has passed. */
-function requireOwnerGroupId(identity: AppIdentity): string {
-  if (!isGroupOwner(identity) || identity.groupId === undefined) {
-    throw new PublicApiError(
-      "FORBIDDEN",
-      "You do not have access to this action.",
-    );
+/** Reads the single explicit group identifier from a member-list query. */
+function parseGroupQuery(request: Request): Readonly<{ groupId: GroupId }> {
+  const searchParams = new URL(request.url).searchParams;
+  const keys = [...searchParams.keys()];
+  const groupIds = searchParams.getAll("groupId");
+  if (keys.length !== 1 || keys[0] !== "groupId" || groupIds.length !== 1) {
+    throw new PublicApiError("INVALID_INPUT", "Invalid group query.");
   }
-  return identity.groupId;
+  try {
+    return { groupId: parseId<GroupId>(groupIds[0]) };
+  } catch {
+    throw new PublicApiError("INVALID_INPUT", "Invalid group query.");
+  }
 }
 
 /** Rejects browser cross-site mutations while allowing native requests that do not send Origin. */
@@ -236,18 +232,19 @@ export function createManageMemberHandler(
     executeRoute<
       MemberActionRequest,
       {
-        readonly role: "organizer" | "member" | null;
+        readonly role: "manager" | "member" | null;
         readonly userId: string;
       }
     >(
       request,
       {
-        authorize: ({ identity }) => isGroupOwner(identity),
+        authorize: ({ identity, input }) =>
+          findGroupMembership(identity, input.groupId)?.role === "group-owner",
         execute: ({ identity, input }) => {
           return dependencies.manageMember({
             action,
             actorUserId: identity.userId,
-            groupId: requireOwnerGroupId(identity),
+            groupId: input.groupId,
             now: dependencies.now(),
             targetUserId: input.userId,
           });
@@ -263,7 +260,7 @@ export function createManageMemberHandler(
     );
 }
 
-/** Creates the owner-only route that issues an expiring private-group invitation. */
+/** Creates the Group Owner or Platform Admin route that issues a private invitation. */
 export function createIssueInvitationHandler(
   dependencies: IssueInvitationHandlerDependencies,
 ): (request: Request) => Promise<Response> {
@@ -278,13 +275,15 @@ export function createIssueInvitationHandler(
     >(
       request,
       {
-        authorize: ({ identity }) => isGroupOwner(identity),
+        authorize: ({ identity, input }) =>
+          identity.isPlatformAdmin ||
+          findGroupMembership(identity, input.groupId)?.role === "group-owner",
         execute: ({ identity, input }) =>
           dependencies.issueInvitation({
             actorUserId: identity.userId,
             deploymentId: dependencies.deploymentId,
             expiresAt: new Date(input.expiresAt),
-            groupId: requireOwnerGroupId(identity),
+            groupId: input.groupId,
             now: dependencies.now(),
           }),
         validate: (incomingRequest) =>
@@ -303,13 +302,13 @@ export function createListMembersHandler(
   dependencies: ListMembersHandlerDependencies,
 ): (request: Request) => Promise<Response> {
   return (request) =>
-    executeRoute<undefined, readonly GroupMember[]>(
+    executeRoute<Readonly<{ groupId: GroupId }>, readonly GroupMember[]>(
       request,
       {
-        authorize: ({ identity }) => isGroupOwner(identity),
-        execute: ({ identity }) =>
-          dependencies.listMembers(requireOwnerGroupId(identity)),
-        validate: () => undefined,
+        authorize: ({ identity, input }) =>
+          findGroupMembership(identity, input.groupId)?.role === "group-owner",
+        execute: ({ input }) => dependencies.listMembers(input.groupId),
+        validate: parseGroupQuery,
       },
       {
         loadIdentity: dependencies.loadIdentity,
@@ -329,11 +328,12 @@ export function createAdminRequestHandler(
     >(
       request,
       {
-        authorize: ({ identity }) => isGroupOwner(identity),
-        execute: ({ identity }) =>
+        authorize: ({ identity, input }) =>
+          findGroupMembership(identity, input.groupId)?.role === "group-owner",
+        execute: ({ identity, input }) =>
           dependencies.submitAdminRequest({
             actorUserId: identity.userId,
-            groupId: requireOwnerGroupId(identity),
+            groupId: input.groupId,
           }),
         validate: (incomingRequest) =>
           parseRequestBody(incomingRequest, parseCreateAdminAccessRequest),
@@ -357,7 +357,7 @@ export function createDecideAdminRequestHandler(
     >(
       request,
       {
-        authorize: ({ identity }) => isPlatformAdmin(identity),
+        authorize: ({ identity }) => identity.isPlatformAdmin,
         execute: ({ identity, input }) =>
           dependencies.decideAdminRequest({
             actorUserId: identity.userId,
@@ -388,7 +388,7 @@ export function createListPendingAdminRequestsHandler(
     executeRoute<undefined, ListPendingAdminAccessRequestsResponse>(
       request,
       {
-        authorize: ({ identity }) => isPlatformAdmin(identity),
+        authorize: ({ identity }) => identity.isPlatformAdmin,
         execute: async () => {
           const requests = await dependencies.listPendingAdminRequests();
           return parseListPendingAdminAccessRequestsResponse({ requests });
@@ -407,25 +407,24 @@ export function createIdentityMeHandler(
   dependencies: IdentityMeHandlerDependencies,
 ): (request: Request) => Promise<Response> {
   return (request) =>
-    executeRoute<
-      undefined,
-      { isPlatformAdmin: boolean; pendingAdminRequestCount: number }
-    >(
+    executeRoute<undefined, AppIdentitySummary>(
       request,
       {
         authorize: () => true,
         execute: async ({ identity }) => {
-          if (isPlatformAdmin(identity)) {
+          if (identity.isPlatformAdmin) {
             const pending = await dependencies.countPendingAdminRequests();
-            return {
+            return parseAppIdentitySummary({
               isPlatformAdmin: true,
+              memberships: identity.memberships,
               pendingAdminRequestCount: pending.length,
-            };
+            });
           }
-          return {
+          return parseAppIdentitySummary({
             isPlatformAdmin: false,
+            memberships: identity.memberships,
             pendingAdminRequestCount: 0,
-          };
+          });
         },
         validate: () => undefined,
       },

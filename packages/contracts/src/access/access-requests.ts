@@ -14,9 +14,15 @@ import {
 } from "../common/strict-boundary.js";
 
 export type AcceptInvitationRequest = Readonly<{ token: string }>;
-export type IssueInvitationRequest = Readonly<{ expiresAt: UtcTimestamp }>;
-export type MemberActionRequest = Readonly<{ userId: UserId }>;
-export type CreateAdminAccessRequest = Readonly<Record<string, never>>;
+export type IssueInvitationRequest = Readonly<{
+  expiresAt: UtcTimestamp;
+  groupId: GroupId;
+}>;
+export type MemberActionRequest = Readonly<{
+  groupId: GroupId;
+  userId: UserId;
+}>;
+export type CreateAdminAccessRequest = Readonly<{ groupId: GroupId }>;
 
 /** Validates the public token submitted by an authenticated invitation recipient. */
 export function parseAcceptInvitationRequest(
@@ -32,28 +38,36 @@ export function parseIssueInvitationRequest(
   value: unknown,
 ): IssueInvitationRequest {
   const object = parseStrictObject(value, "Invitation issue request");
-  rejectUnknownFields(object, ["expiresAt"], "Invitation issue request");
+  rejectUnknownFields(
+    object,
+    ["expiresAt", "groupId"],
+    "Invitation issue request",
+  );
   return {
     expiresAt: parseUtcString(object.expiresAt, "Invitation expiry"),
+    groupId: parseRecordId<GroupId>(object.groupId, "Invitation group id"),
   };
 }
 
 /** Validates the member targeted by an owner role or removal action. */
 export function parseMemberActionRequest(value: unknown): MemberActionRequest {
   const object = parseStrictObject(value, "Member action request");
-  rejectUnknownFields(object, ["userId"], "Member action request");
+  rejectUnknownFields(object, ["groupId", "userId"], "Member action request");
   return {
+    groupId: parseRecordId<GroupId>(object.groupId, "Member action group id"),
     userId: parseRecordId<UserId>(object.userId, "Target member id"),
   };
 }
 
-/** Requires admin-access submission to carry no client-controlled decision fields. */
+/** Validates the owned group used to justify one platform-admin access request. */
 export function parseCreateAdminAccessRequest(
   value: unknown,
 ): CreateAdminAccessRequest {
   const object = parseStrictObject(value, "Admin access request");
-  rejectUnknownFields(object, [], "Admin access request");
-  return {};
+  rejectUnknownFields(object, ["groupId"], "Admin access request");
+  return {
+    groupId: parseRecordId<GroupId>(object.groupId, "Admin request group id"),
+  };
 }
 
 export type AdminAccessDecision = "approved" | "rejected";

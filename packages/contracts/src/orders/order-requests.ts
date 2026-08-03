@@ -25,7 +25,7 @@ export type SubmitFoodResponseRequest = Readonly<{
     | Readonly<{ kind: "declined" }>;
 }>;
 
-export type OrganizerResolutionRequest = Readonly<{
+export type ManagerResolutionRequest = Readonly<{
   orderId: OrderId;
   userId: UserId;
   selection: FoodSelectionSnapshot;
@@ -81,15 +81,15 @@ export function parseSubmitFoodResponseRequest(
   };
 }
 
-/** Validates an organizer's food choice for one unresolved participant. */
-export function parseOrganizerResolutionRequest(
+/** Validates a Manager's food choice for one unresolved participant. */
+export function parseManagerResolutionRequest(
   value: unknown,
-): OrganizerResolutionRequest {
-  const object = parseStrictObject(value, "Organizer resolution request");
+): ManagerResolutionRequest {
+  const object = parseStrictObject(value, "Manager resolution request");
   rejectUnknownFields(
     object,
     ["orderId", "userId", "selection"],
-    "Organizer resolution request",
+    "Manager resolution request",
   );
 
   return {

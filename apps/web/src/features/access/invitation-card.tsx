@@ -27,8 +27,8 @@ export function InvitationCard({
       ) : (
         <>
           <p>
-            Joining the group does not add you to any food order. An organizer
-            chooses order participants separately.
+            Joining the group does not add you to any food order. A Manager or
+            Group Owner chooses order participants separately.
           </p>
           <button
             disabled={status === "submitting" || status === "success"}

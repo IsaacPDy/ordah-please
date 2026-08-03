@@ -102,6 +102,25 @@ function secureTestConnectionString(connectionString: string): string {
   return connectionUrl.toString();
 }
 
+/** Loads selected migrations and redirects their public-schema references into one isolated schema. */
+async function readIsolatedMigrationSql(
+  schemaName: string,
+  fileNames: readonly string[],
+): Promise<string> {
+  const quotedSchemaName = quoteTestSchema(schemaName);
+  const migrationSql = (
+    await Promise.all(
+      fileNames.map((fileName) =>
+        readFile(new URL(`../../drizzle/${fileName}`, import.meta.url), "utf8"),
+      ),
+    )
+  ).join("\n");
+
+  return migrationSql
+    .replaceAll('"public".', `${quotedSchemaName}.`)
+    .replaceAll("--> statement-breakpoint", "");
+}
+
 describe("initial Neon schema", () => {
   it("applies the generated migration and enforces V1 data invariants", async () => {
     const migrationFiles = await readMigrationFiles();
@@ -200,14 +219,18 @@ describe("initial Neon schema", () => {
         [groupOne, "First Group", userOne, groupTwo, "Second Group"],
       );
       await client.query(
-        "INSERT INTO memberships (group_id, user_id, role) VALUES ($1, $2, 'owner')",
-        [groupOne, userOne],
+        "INSERT INTO memberships (group_id, user_id, role) VALUES ($1, $2, 'owner'), ($3, $4, 'owner')",
+        [groupOne, userOne, groupTwo, userTwo],
+      );
+      await client.query(
+        "INSERT INTO memberships (group_id, user_id, role) VALUES ($1, $2, 'member')",
+        [groupTwo, userOne],
       );
       await expectConstraintFailure(
         client,
-        "INSERT INTO memberships (group_id, user_id, role) VALUES ($1, $2, 'member')",
-        [groupTwo, userOne],
-        "memberships_one_active_group_per_user",
+        "INSERT INTO memberships (group_id, user_id, role) VALUES ($1, $2, 'owner')",
+        [groupOne, userTwo],
+        "memberships_one_active_owner_per_group",
       );
       await expectConstraintFailure(
         client,
@@ -247,7 +270,7 @@ describe("initial Neon schema", () => {
       );
       await expectConstraintFailure(
         client,
-        "INSERT INTO orders (group_id, organizer_user_id, state, choice_mode, initial_restaurant_id, initial_branch_id, delivery_address_snapshot, restaurant_deadline, food_deadline) VALUES ($1, $2, 'draft', 'shortlist', $3, $4, $5::jsonb, $6, $7)",
+        "INSERT INTO orders (group_id, manager_user_id, state, choice_mode, initial_restaurant_id, initial_branch_id, delivery_address_snapshot, restaurant_deadline, food_deadline) VALUES ($1, $2, 'draft', 'shortlist', $3, $4, $5::jsonb, $6, $7)",
         [
           groupOne,
           userOne,
@@ -261,7 +284,7 @@ describe("initial Neon schema", () => {
       );
       await expectConstraintFailure(
         client,
-        "INSERT INTO orders (group_id, organizer_user_id, state, choice_mode, initial_restaurant_id, initial_branch_id, selected_restaurant_id, selected_branch_id, delivery_address_snapshot, restaurant_deadline, food_deadline) VALUES ($1, $2, 'food_confirmation', 'shortlist', $3, $4, $3, $4, $5::jsonb, $6, $7)",
+        "INSERT INTO orders (group_id, manager_user_id, state, choice_mode, initial_restaurant_id, initial_branch_id, selected_restaurant_id, selected_branch_id, delivery_address_snapshot, restaurant_deadline, food_deadline) VALUES ($1, $2, 'food_confirmation', 'shortlist', $3, $4, $3, $4, $5::jsonb, $6, $7)",
         [
           groupOne,
           userOne,
@@ -275,7 +298,7 @@ describe("initial Neon schema", () => {
       );
       await expectConstraintFailure(
         client,
-        "INSERT INTO orders (group_id, organizer_user_id, state, choice_mode, initial_restaurant_id, initial_branch_id, selected_restaurant_id, selected_branch_id, selected_restaurant_name_snapshot, selected_branch_name_snapshot, delivery_address_snapshot, restaurant_deadline, food_deadline) VALUES ($1, $2, 'food_confirmation', 'shortlist', $3, $4, $3, $5, $6, $7, $8::jsonb, $9, $10)",
+        "INSERT INTO orders (group_id, manager_user_id, state, choice_mode, initial_restaurant_id, initial_branch_id, selected_restaurant_id, selected_branch_id, selected_restaurant_name_snapshot, selected_branch_name_snapshot, delivery_address_snapshot, restaurant_deadline, food_deadline) VALUES ($1, $2, 'food_confirmation', 'shortlist', $3, $4, $3, $5, $6, $7, $8::jsonb, $9, $10)",
         [
           groupOne,
           userOne,
@@ -338,7 +361,7 @@ describe("initial Neon schema", () => {
       const orderId = randomUUID();
       await expectConstraintFailure(
         client,
-        "INSERT INTO orders (group_id, organizer_user_id, state, choice_mode, initial_restaurant_id, initial_branch_id, delivery_address_snapshot, restaurant_deadline, food_deadline) VALUES ($1, $2, 'draft', 'shortlist', $3, $4, $5::jsonb, $6, $7)",
+        "INSERT INTO orders (group_id, manager_user_id, state, choice_mode, initial_restaurant_id, initial_branch_id, delivery_address_snapshot, restaurant_deadline, food_deadline) VALUES ($1, $2, 'draft', 'shortlist', $3, $4, $5::jsonb, $6, $7)",
         [
           groupOne,
           userOne,
@@ -351,7 +374,7 @@ describe("initial Neon schema", () => {
         "orders_food_deadline_after_restaurant_deadline",
       );
       await client.query(
-        "INSERT INTO orders (id, group_id, organizer_user_id, state, choice_mode, initial_restaurant_id, initial_branch_id, delivery_address_snapshot, restaurant_deadline, food_deadline) VALUES ($1, $2, $3, 'restaurant_voting', 'shortlist', $4, $5, $6::jsonb, $7, $8)",
+        "INSERT INTO orders (id, group_id, manager_user_id, state, choice_mode, initial_restaurant_id, initial_branch_id, delivery_address_snapshot, restaurant_deadline, food_deadline) VALUES ($1, $2, $3, 'restaurant_voting', 'shortlist', $4, $5, $6::jsonb, $7, $8)",
         [
           orderId,
           groupOne,
@@ -364,7 +387,7 @@ describe("initial Neon schema", () => {
         ],
       );
       await client.query(
-        "INSERT INTO order_participants (order_id, user_id, display_name_snapshot, role) VALUES ($1, $2, $3, 'organizer')",
+        "INSERT INTO order_participants (order_id, user_id, display_name_snapshot, role) VALUES ($1, $2, $3, 'manager')",
         [orderId, userOne, "Alex"],
       );
       await expectConstraintFailure(
@@ -430,6 +453,211 @@ describe("initial Neon schema", () => {
           session_count: "0",
         },
       ]);
+    } finally {
+      await client.query("ROLLBACK");
+      await client.end();
+    }
+  });
+
+  it("upgrades and preserves representative legacy Organizer records", async () => {
+    const connectionString = process.env.DATABASE_MIGRATION_URL;
+    if (connectionString === undefined || connectionString.length === 0) {
+      throw new Error("DATABASE_MIGRATION_URL is required for provider tests.");
+    }
+
+    const schemaName = `ordah_upgrade_${randomUUID().replaceAll("-", "")}`;
+    const quotedSchemaName = quoteTestSchema(schemaName);
+    const legacySql = await readIsolatedMigrationSql(schemaName, [
+      "0000_initial_schema.sql",
+      "0001_yielding_stepford_cuckoos.sql",
+      "0002_adorable_lily_hollister.sql",
+    ]);
+    const upgradeSql = await readIsolatedMigrationSql(schemaName, [
+      "0003_multi_group_foundation.sql",
+    ]);
+    const client = new Client({
+      connectionString: secureTestConnectionString(connectionString),
+    });
+    const authOwnerId = randomUUID();
+    const authManagerId = randomUUID();
+    const ownerId = randomUUID();
+    const managerId = randomUUID();
+    const groupId = randomUUID();
+    const restaurantId = randomUUID();
+    const branchId = randomUUID();
+    const orderId = randomUUID();
+    const invitationId = randomUUID();
+    const auditId = randomUUID();
+
+    await client.connect();
+    await client.query("BEGIN");
+    try {
+      await client.query(`CREATE SCHEMA ${quotedSchemaName}`);
+      await client.query(
+        `SET LOCAL search_path TO ${quotedSchemaName}, public`,
+      );
+      await client.query(legacySql);
+      await client.query(
+        "INSERT INTO auth_users (id, name, email, email_verified) VALUES ($1, 'Owner', $2, true), ($3, 'Organizer', $4, true)",
+        [
+          authOwnerId,
+          `owner-${randomUUID()}@example.test`,
+          authManagerId,
+          `organizer-${randomUUID()}@example.test`,
+        ],
+      );
+      await client.query(
+        "INSERT INTO users (id, auth_user_id, display_name) VALUES ($1, $2, 'Owner'), ($3, $4, 'Organizer')",
+        [ownerId, authOwnerId, managerId, authManagerId],
+      );
+      await client.query(
+        "INSERT INTO groups (id, name, created_by_user_id) VALUES ($1, 'Legacy Group', $2)",
+        [groupId, ownerId],
+      );
+      await client.query(
+        "INSERT INTO memberships (group_id, user_id, role) VALUES ($1, $2, 'owner'), ($1, $3, 'organizer')",
+        [groupId, ownerId, managerId],
+      );
+      await client.query(
+        "INSERT INTO restaurants (id, name) VALUES ($1, 'Legacy Restaurant')",
+        [restaurantId],
+      );
+      await client.query(
+        "INSERT INTO branches (id, restaurant_id, name) VALUES ($1, $2, 'Legacy Branch')",
+        [branchId, restaurantId],
+      );
+      await client.query(
+        "INSERT INTO orders (id, group_id, organizer_user_id, choice_mode, initial_restaurant_id, initial_branch_id, delivery_address_snapshot, restaurant_deadline, food_deadline) VALUES ($1, $2, $3, 'shortlist', $4, $5, '{}'::jsonb, $6, $7)",
+        [
+          orderId,
+          groupId,
+          managerId,
+          restaurantId,
+          branchId,
+          "2026-08-03T10:00:00.000Z",
+          "2026-08-03T11:00:00.000Z",
+        ],
+      );
+      await client.query(
+        "INSERT INTO order_participants (order_id, user_id, display_name_snapshot, role) VALUES ($1, $2, 'Organizer', 'organizer')",
+        [orderId, managerId],
+      );
+      await client.query(
+        "INSERT INTO food_selections (order_id, user_id, source, resolved_by_user_id) VALUES ($1, $2, 'organizer_resolution', $3)",
+        [orderId, managerId, managerId],
+      );
+      await client.query(
+        "INSERT INTO invitations (id, group_id, token_hash, created_by_user_id, expires_at) VALUES ($1, $2, $3, $4, $5)",
+        [
+          invitationId,
+          groupId,
+          `legacy-${randomUUID()}`,
+          ownerId,
+          "2026-08-04T00:00:00.000Z",
+        ],
+      );
+      await client.query(
+        "INSERT INTO audit_events (id, actor_user_id, action, resource_type, resource_id) VALUES ($1, $2, 'legacy.event', 'group', $3)",
+        [auditId, ownerId, groupId],
+      );
+
+      await client.query(upgradeSql);
+
+      const renamedRows = await client.query<{
+        manager_user_id: string;
+        membership_role: string;
+        participant_role: string;
+        selection_source: string;
+      }>(
+        `SELECT
+          "membership"."role"::text AS membership_role,
+          "participant"."role"::text AS participant_role,
+          "selection"."source"::text AS selection_source,
+          "order_record"."manager_user_id"::text AS manager_user_id
+        FROM "memberships" AS "membership"
+        JOIN "order_participants" AS "participant" ON "participant"."user_id" = "membership"."user_id"
+        JOIN "food_selections" AS "selection" ON "selection"."order_id" = "participant"."order_id" AND "selection"."user_id" = "participant"."user_id"
+        JOIN "orders" AS "order_record" ON "order_record"."id" = "participant"."order_id"
+        WHERE "membership"."group_id" = $1 AND "membership"."user_id" = $2`,
+        [groupId, managerId],
+      );
+      expect(renamedRows.rows).toEqual([
+        {
+          manager_user_id: managerId,
+          membership_role: "manager",
+          participant_role: "manager",
+          selection_source: "manager_resolution",
+        },
+      ]);
+      const preservedRows = await client.query<{
+        audit_count: string;
+        invitation_count: string;
+      }>(
+        `SELECT
+          (SELECT count(*)::text FROM "audit_events" WHERE "id" = $1) AS audit_count,
+          (SELECT count(*)::text FROM "invitations" WHERE "id" = $2) AS invitation_count`,
+        [auditId, invitationId],
+      );
+      expect(preservedRows.rows).toEqual([
+        { audit_count: "1", invitation_count: "1" },
+      ]);
+      const legacyColumn = await client.query(
+        "SELECT 1 FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'orders' AND column_name = 'organizer_user_id'",
+        [schemaName],
+      );
+      expect(legacyColumn.rowCount).toBe(0);
+    } finally {
+      await client.query("ROLLBACK");
+      await client.end();
+    }
+  });
+
+  it("aborts the multi-group migration when an active group has no owner", async () => {
+    const connectionString = process.env.DATABASE_MIGRATION_URL;
+    if (connectionString === undefined || connectionString.length === 0) {
+      throw new Error("DATABASE_MIGRATION_URL is required for provider tests.");
+    }
+
+    const schemaName = `ordah_preflight_${randomUUID().replaceAll("-", "")}`;
+    const quotedSchemaName = quoteTestSchema(schemaName);
+    const legacySql = await readIsolatedMigrationSql(schemaName, [
+      "0000_initial_schema.sql",
+      "0001_yielding_stepford_cuckoos.sql",
+      "0002_adorable_lily_hollister.sql",
+    ]);
+    const upgradeSql = await readIsolatedMigrationSql(schemaName, [
+      "0003_multi_group_foundation.sql",
+    ]);
+    const client = new Client({
+      connectionString: secureTestConnectionString(connectionString),
+    });
+
+    await client.connect();
+    await client.query("BEGIN");
+    try {
+      await client.query(`CREATE SCHEMA ${quotedSchemaName}`);
+      await client.query(
+        `SET LOCAL search_path TO ${quotedSchemaName}, public`,
+      );
+      await client.query(legacySql);
+      const authUserId = randomUUID();
+      const userId = randomUUID();
+      await client.query(
+        "INSERT INTO auth_users (id, name, email, email_verified) VALUES ($1, 'Ownerless', $2, true)",
+        [authUserId, `ownerless-${randomUUID()}@example.test`],
+      );
+      await client.query(
+        "INSERT INTO users (id, auth_user_id, display_name) VALUES ($1, $2, 'Ownerless')",
+        [userId, authUserId],
+      );
+      await client.query(
+        "INSERT INTO groups (name, created_by_user_id) VALUES ('Ownerless Group', $1)",
+        [userId],
+      );
+
+      await expect(client.query(upgradeSql)).rejects.toThrow(
+        "Each active group must have exactly one active owner",
+      );
     } finally {
       await client.query("ROLLBACK");
       await client.end();

@@ -4,6 +4,8 @@ import { Image, StyleSheet, View } from "react-native";
 import { Button, IconButton, Text } from "react-native-paper";
 
 import { MemberPage } from "../../src/components/member-page";
+import { MobileMemberAccessState } from "../../src/features/access/member-access-state";
+import { useMobileAppIdentity } from "../../src/features/access/mobile-member-gate";
 import greenTableImage from "../../assets/images/green-table.jpg";
 
 const combinations = [
@@ -19,58 +21,64 @@ const combinations = [
 
 /** Shows the native ranked-combination editor grouped by exact restaurant branch. */
 export default function FavoritesScreen() {
+  const identity = useMobileAppIdentity();
+
   return (
-    <MemberPage title="Favorites">
-      <Text style={styles.description}>
-        Your top three combinations are ready when a group order starts.
-      </Text>
-      <View style={styles.restaurant}>
-        <View style={styles.restaurantHeader}>
-          <Image
-            accessibilityLabel="Green Table food"
-            source={greenTableImage}
-            style={styles.image}
-          />
-          <View style={styles.headerBody}>
-            <Text style={styles.restaurantName}>Green Table · BGC</Text>
-            <Text style={styles.description}>3 saved combinations</Text>
-          </View>
-        </View>
-        {combinations.map(([rank, name, details, price]) => (
-          <View key={rank} style={styles.combination}>
-            <Text style={styles.rank}>{rank}</Text>
-            <View style={styles.body}>
-              <Text style={styles.name}>{name}</Text>
-              <Text style={styles.details}>{details}</Text>
-            </View>
-            <Text style={styles.price}>{price}</Text>
-            <IconButton
-              accessibilityLabel={`Edit ${name}`}
-              icon={() => (
-                <Edit3 color={designTokens.colors.textPrimary} size={18} />
-              )}
+    <MobileMemberAccessState identity={identity} surface="favorites">
+      <MemberPage title="Favorites">
+        <Text style={styles.description}>
+          Your top three combinations are ready when a group order starts.
+        </Text>
+        <View style={styles.restaurant}>
+          <View style={styles.restaurantHeader}>
+            <Image
+              accessibilityLabel="Green Table food"
+              source={greenTableImage}
+              style={styles.image}
             />
+            <View style={styles.headerBody}>
+              <Text style={styles.restaurantName}>Green Table · BGC</Text>
+              <Text style={styles.description}>3 saved combinations</Text>
+            </View>
           </View>
-        ))}
-        <View style={styles.actions}>
-          <Button
-            icon={() => (
-              <Heart color={designTokens.colors.textPrimary} size={18} />
-            )}
-            mode="outlined"
-          >
-            Add another
-          </Button>
-          <Button
-            icon={() => <Trash2 color={designTokens.colors.error} size={18} />}
-            mode="outlined"
-            textColor={designTokens.colors.error}
-          >
-            Remove restaurant favorites
-          </Button>
+          {combinations.map(([rank, name, details, price]) => (
+            <View key={rank} style={styles.combination}>
+              <Text style={styles.rank}>{rank}</Text>
+              <View style={styles.body}>
+                <Text style={styles.name}>{name}</Text>
+                <Text style={styles.details}>{details}</Text>
+              </View>
+              <Text style={styles.price}>{price}</Text>
+              <IconButton
+                accessibilityLabel={`Edit ${name}`}
+                icon={() => (
+                  <Edit3 color={designTokens.colors.textPrimary} size={18} />
+                )}
+              />
+            </View>
+          ))}
+          <View style={styles.actions}>
+            <Button
+              icon={() => (
+                <Heart color={designTokens.colors.textPrimary} size={18} />
+              )}
+              mode="outlined"
+            >
+              Add another
+            </Button>
+            <Button
+              icon={() => (
+                <Trash2 color={designTokens.colors.error} size={18} />
+              )}
+              mode="outlined"
+              textColor={designTokens.colors.error}
+            >
+              Remove restaurant favorites
+            </Button>
+          </View>
         </View>
-      </View>
-    </MemberPage>
+      </MemberPage>
+    </MobileMemberAccessState>
   );
 }
 

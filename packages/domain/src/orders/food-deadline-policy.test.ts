@@ -88,7 +88,7 @@ describe("resolveFoodDeadline", () => {
     });
   });
 
-  it("requires organizer resolution for unavailable or missing Rank 1", () => {
+  it("requires manager resolution for unavailable or missing Rank 1", () => {
     expect(
       policy()({
         participants: [

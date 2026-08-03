@@ -11,7 +11,7 @@ import type {
   OrderId,
   OrderParticipant,
   OrderReceipt,
-  OrganizerResolution,
+  ManagerResolution,
   RestaurantChoiceMode,
   RestaurantId,
   RestaurantVote,
@@ -32,7 +32,7 @@ import {
 } from "../common/strict-boundary.js";
 import { parseFoodSelectionSnapshot } from "./food-selection.js";
 
-const orderRoles = ["participant", "organizer"] as const;
+const orderRoles = ["participant", "manager"] as const;
 const restaurantStatuses = ["pending", "responded"] as const;
 const foodStatuses = ["pending", "confirmed", "declined", "resolved"] as const;
 
@@ -144,13 +144,13 @@ function parseFoodResponse(value: unknown): FoodResponse {
       };
 }
 
-/** Parses one organizer decision made for a participant. */
-function parseOrganizerResolution(value: unknown): OrganizerResolution {
-  const object = parseStrictObject(value, "Organizer resolution");
+/** Parses one Manager decision made for a participant. */
+function parseManagerResolution(value: unknown): ManagerResolution {
+  const object = parseStrictObject(value, "Manager resolution");
   rejectUnknownFields(
     object,
     ["userId", "selection", "resolvedByUserId", "resolvedAt"],
-    "Organizer resolution",
+    "Manager resolution",
   );
 
   return {
@@ -158,7 +158,7 @@ function parseOrganizerResolution(value: unknown): OrganizerResolution {
     selection: parseFoodSelectionSnapshot(object.selection),
     resolvedByUserId: parseRecordId<UserId>(
       object.resolvedByUserId,
-      "Resolving organizer id",
+      "Resolving Manager id",
     ),
     resolvedAt: parseUtcString(object.resolvedAt, "Resolution time"),
   };
@@ -224,7 +224,7 @@ function parseHandoffLine(value: unknown): HandoffLine {
   };
 }
 
-/** Parses one member subtotal shown in the organizer handoff. */
+/** Parses one member subtotal shown in the Manager handoff. */
 function parseMemberBreakdown(value: unknown): MemberSubtotal {
   const object = parseStrictObject(value, "Member breakdown");
   rejectUnknownFields(
@@ -298,7 +298,7 @@ export function parseOrderHistorySnapshot(
     [
       "id",
       "groupId",
-      "organizerId",
+      "managerId",
       "state",
       "choiceMode",
       "initialRestaurantId",
@@ -313,7 +313,7 @@ export function parseOrderHistorySnapshot(
       "participants",
       "votes",
       "foodResponses",
-      "organizerResolutions",
+      "managerResolutions",
       "handoff",
       "receipt",
       "createdAt",
@@ -325,10 +325,7 @@ export function parseOrderHistorySnapshot(
   return {
     id: parseRecordId<OrderId>(object.id, "Order id"),
     groupId: parseRecordId<GroupId>(object.groupId, "Order group id"),
-    organizerId: parseRecordId<UserId>(
-      object.organizerId,
-      "Order organizer id",
-    ),
+    managerId: parseRecordId<UserId>(object.managerId, "Order Manager id"),
     state: parseEnum(
       object.state,
       ["ordered", "cancelled"] as const,
@@ -382,10 +379,10 @@ export function parseOrderHistorySnapshot(
       "Food responses",
       parseFoodResponse,
     ),
-    organizerResolutions: parseArray(
-      object.organizerResolutions,
-      "Organizer resolutions",
-      parseOrganizerResolution,
+    managerResolutions: parseArray(
+      object.managerResolutions,
+      "Manager resolutions",
+      parseManagerResolution,
     ),
     handoff: parseHandoff(object.handoff),
     receipt: object.receipt === null ? null : parseReceipt(object.receipt),

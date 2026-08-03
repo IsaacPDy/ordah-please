@@ -2,7 +2,7 @@ import { pgEnum } from "drizzle-orm/pg-core";
 
 export const membershipRoleEnum = pgEnum("membership_role", [
   "owner",
-  "organizer",
+  "manager",
   "member",
 ]);
 export const adminRequestStatusEnum = pgEnum("admin_request_status", [
@@ -64,7 +64,7 @@ export const restaurantChoiceModeEnum = pgEnum("restaurant_choice_mode", [
   "global_catalog",
 ]);
 export const orderParticipantRoleEnum = pgEnum("order_participant_role", [
-  "organizer",
+  "manager",
   "member",
 ]);
 export const restaurantResponseStatusEnum = pgEnum(
@@ -80,7 +80,7 @@ export const foodResponseStatusEnum = pgEnum("food_response_status", [
 export const foodSelectionSourceEnum = pgEnum("food_selection_source", [
   "saved_favorite",
   "inline",
-  "organizer_resolution",
+  "manager_resolution",
   "declined",
 ]);
 export const notificationStatusEnum = pgEnum("notification_status", [

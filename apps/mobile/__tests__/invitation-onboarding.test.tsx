@@ -35,7 +35,7 @@ describe("InvitationOnboarding", () => {
 
     expect(
       screen.getByText(
-        "Joining the group does not add you to any food order. An organizer chooses order participants separately.",
+        "Joining the group does not add you to any food order. A Manager or Group Owner chooses order participants separately.",
       ),
     ).toBeTruthy();
     await fireEvent.press(screen.getByText("Join group"));

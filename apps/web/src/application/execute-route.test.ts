@@ -2,7 +2,15 @@ import { PublicApiError } from "@ordah-please/contracts";
 import { parseId, type UserId } from "@ordah-please/domain";
 import { describe, expect, it } from "vitest";
 
+import type { AppIdentity } from "../auth/load-app-identity";
 import { executeRoute } from "./execute-route";
+
+const memberIdentity = {
+  authUserId: "10000000-0000-4000-8000-000000000001",
+  isPlatformAdmin: false,
+  memberships: [],
+  userId: parseId<UserId>("internal-user-1"),
+} as const satisfies AppIdentity;
 
 describe("executeRoute", () => {
   it("runs the authenticated route sequence before serializing success", async () => {
@@ -10,11 +18,7 @@ describe("executeRoute", () => {
     const request = new Request("https://example.test/api/example", {
       method: "POST",
     });
-    const identity = {
-      authUserId: "10000000-0000-4000-8000-000000000001",
-      roles: ["member"] as const,
-      userId: parseId<UserId>("internal-user-1"),
-    };
+    const identity = memberIdentity;
 
     const response = await executeRoute(
       request,
@@ -78,11 +82,7 @@ describe("executeRoute", () => {
         },
       },
       {
-        loadIdentity: () => ({
-          authUserId: "10000000-0000-4000-8000-000000000001",
-          roles: ["member"] as const,
-          userId: parseId<UserId>("internal-user-1"),
-        }),
+        loadIdentity: () => memberIdentity,
         verifySession: () => {
           throw new PublicApiError("UNAUTHENTICATED", "Sign in is required.");
         },
@@ -101,11 +101,7 @@ describe("executeRoute", () => {
   });
 
   it("returns a safe 403 when the loaded identity fails authorization", async () => {
-    const identity = {
-      authUserId: "10000000-0000-4000-8000-000000000001",
-      roles: ["member"] as const,
-      userId: parseId<UserId>("internal-user-1"),
-    };
+    const identity = memberIdentity;
     const response = await executeRoute(
       new Request("https://example.test/api/admin"),
       {
@@ -133,11 +129,7 @@ describe("executeRoute", () => {
   });
 
   it("hides unexpected internal details behind the stable failure envelope", async () => {
-    const identity = {
-      authUserId: "10000000-0000-4000-8000-000000000001",
-      roles: ["member"] as const,
-      userId: parseId<UserId>("internal-user-1"),
-    };
+    const identity = memberIdentity;
     const response = await executeRoute(
       new Request("https://example.test/api/example"),
       {
@@ -187,11 +179,7 @@ describe("executeRoute", () => {
         },
       },
       {
-        loadIdentity: () => ({
-          authUserId: "10000000-0000-4000-8000-000000000001",
-          roles: ["member"] as const,
-          userId: parseId<UserId>("internal-user-1"),
-        }),
+        loadIdentity: () => memberIdentity,
         verifySession: () => ({
           authUserId: "10000000-0000-4000-8000-000000000001",
           displayName: "Avery",

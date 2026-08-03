@@ -1,6 +1,6 @@
 export type GroupMemberView = Readonly<{
   displayName: string;
-  role: "owner" | "organizer" | "member";
+  role: "owner" | "manager" | "member";
   userId: string;
 }>;
 
@@ -14,7 +14,7 @@ type TeamAccessViewProps = Readonly<{
 
 const ROLE_LABELS = {
   member: "Member",
-  organizer: "Organizer",
+  manager: "Manager",
   owner: "Owner",
 } as const;
 
@@ -56,10 +56,10 @@ export function TeamAccessView({
                 }}
                 type="button"
               >
-                Promote organizer
+                Promote manager
               </button>
             ) : null}
-            {member.role === "organizer" ? (
+            {member.role === "manager" ? (
               <button
                 disabled={actionsDisabled}
                 onClick={() => {

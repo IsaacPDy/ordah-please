@@ -17,7 +17,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   │   └── src/
 │   │       ├── auth/           # SecureStore cookie client and authenticated request boundary
 │   │       ├── components/     # Shared native member-page and access-screen composition
-│   │       ├── features/access/# Invitation acceptance and native onboarding UI
+│   │       ├── features/access/# Cookie-authenticated identity gate, multi-membership states, invitations, and admin access UI
 │   │       ├── navigation/     # Shared member-tab labels, icons, and runtime styles
 │   │       └── theme/          # React Native Paper mapping to shared tokens
 │   └── web/                    # Next.js App Router shell for the PWA, admin portal, and API
@@ -32,11 +32,11 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │       │   ├── shell-colors.ts # Accessible semantic color pairings for approved tokens
 │       │   └── shell-navigation.ts # Separate member and admin destination definitions
 │       └── src/
-│           ├── application/    # Ordered validation, authorization, use-case, and API-result execution
-│           ├── auth/           # Better Auth server/client composition, session verification, and product identity loading
+│           ├── application/    # Ordered route execution plus exact-group authorization in group-authorization.ts
+│           ├── auth/           # Better Auth, multi-membership identity, and request-cached gates in load-server-page-identity.ts
 │           └── features/access/# Access policies, route composition, and PWA access views
 ├── packages/
-│   ├── contracts/              # Strict catalog, favorite, order, and common API boundary parsers
+│   ├── contracts/              # Strict API parsers, including the shared multi-membership identity summary
 │   │   └── src/
 │   │       ├── catalog/        # Immutable catalog response validation
 │   │       ├── common/         # API envelopes, errors, pagination, and strict JSON helpers
@@ -87,7 +87,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 └── vitest.config.ts            # Node test projects and clean-clone workspace source resolution
 ```
 
-The current UI baseline replaces the original empty member shells with Home, Orders, Favorites, and Groups mock-data views on web/PWA and native mobile. The web admin shell now contains the approved eight desktop destinations and limits mobile navigation to Groups, Catalog, Access Requests, and Audit Log. These screens establish presentation and navigation only; upcoming journey bundles connect them to persistent multi-group, catalog, permission, order, receipt, and notification behavior.
+The current UI baseline replaces the original empty member shells with Home, Orders, Favorites, and Groups views on web/PWA and native mobile. Groups now renders the signed-in account's real membership IDs and exact roles from the protected identity boundary; group names, member rosters, and order details remain deferred instead of being invented. The web admin shell contains the approved eight desktop destinations and limits mobile navigation to Groups, Catalog, Access Requests, and Audit Log. Upcoming journey bundles connect the remaining catalog, permission, order, receipt, and notification behavior.
 
 ## Ownership Rules
 
@@ -96,6 +96,7 @@ The current UI baseline replaces the original empty member shells with Home, Ord
 - `packages/db` does not decide permissions or product behavior; it persists decisions made by domain services.
 - Provider packages expose small interfaces so R2, OneSignal, or QStash can be replaced without rewriting the product.
 - API route handlers authenticate, validate, authorize, call one use case, and translate the result into a response.
+- Server-rendered member and admin layouts load one request-cached application identity before rendering protected navigation; child pages reuse that boundary instead of querying auth or Neon again.
 - `context/assets/ordah-please-option-1.png` is the approved V1 member-screen visual reference; implementation should reproduce its hierarchy and visual language without treating the bitmap as application UI.
 - `context/services/service-setup.md` owns provider setup steps, variable names, environment placement, and rename/rotation checklists; it never stores real credential values. `services.md`, `service-limits.md`, and `technology-reference.md` sit alongside it under `context/services/`.
 

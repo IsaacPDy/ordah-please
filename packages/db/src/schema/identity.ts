@@ -55,9 +55,9 @@ export const memberships = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.groupId, table.userId] }),
-    uniqueIndex("memberships_one_active_group_per_user")
-      .on(table.userId)
-      .where(sql`${table.removedAt} is null`),
+    uniqueIndex("memberships_one_active_owner_per_group")
+      .on(table.groupId)
+      .where(sql`${table.role} = 'owner' and ${table.removedAt} is null`),
   ],
 );
 

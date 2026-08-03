@@ -10,7 +10,7 @@ describe("TeamAccessView", () => {
         actionsDisabled={false}
         members={[
           { displayName: "Owner", role: "owner", userId: "owner-1" },
-          { displayName: "Organizer", role: "organizer", userId: "user-2" },
+          { displayName: "Manager", role: "manager", userId: "user-2" },
           { displayName: "Member", role: "member", userId: "user-3" },
         ]}
         onAction={() => undefined}
@@ -19,9 +19,9 @@ describe("TeamAccessView", () => {
     );
 
     expect(markup).toContain("Owner");
-    expect(markup).toContain("Organizer");
+    expect(markup).toContain("Manager");
     expect(markup).toContain("Member");
-    expect(markup).toContain("Promote organizer");
+    expect(markup).toContain("Promote manager");
     expect(markup).toContain("Demote to member");
     expect(markup).toContain("Remove member");
     expect(markup).toContain("Request platform-admin access");

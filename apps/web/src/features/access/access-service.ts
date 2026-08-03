@@ -44,7 +44,7 @@ interface InvitationAcceptanceRepositories {
       readonly joinedAt: Date;
       readonly role: "member";
       readonly userId: string;
-    }): Promise<unknown>;
+    }): Promise<object | undefined>;
     findInvitationByTokenHash(tokenHash: string): Promise<
       | {
           readonly acceptedAt: Date | null;
@@ -69,7 +69,7 @@ interface InvitationAcceptanceTransactionRunner {
   ): Promise<Result>;
 }
 
-type MembershipRole = "owner" | "organizer" | "member";
+type MembershipRole = "owner" | "manager" | "member";
 
 interface MemberManagementRepositories {
   readonly access: {
@@ -292,13 +292,13 @@ export async function acceptGroupInvitation(
     ) {
       throw new PublicApiError("CONFLICT", UNAVAILABLE_INVITATION_MESSAGE);
     }
-    if (
-      (await repositories.access.listActiveMemberships(command.userId)).length >
-      0
-    ) {
+    const alreadyInGroup = (
+      await repositories.access.listActiveMemberships(command.userId)
+    ).some((membership) => membership.groupId === invitation.groupId);
+    if (alreadyInGroup) {
       throw new PublicApiError(
         "CONFLICT",
-        "Your account already belongs to a group.",
+        "Your account already belongs to this group.",
       );
     }
 
@@ -310,12 +310,18 @@ export async function acceptGroupInvitation(
     if (!accepted) {
       throw new PublicApiError("CONFLICT", UNAVAILABLE_INVITATION_MESSAGE);
     }
-    await repositories.access.addMembership({
+    const membership = await repositories.access.addMembership({
       groupId: invitation.groupId,
       joinedAt: command.now,
       role: "member",
       userId: command.userId,
     });
+    if (membership === undefined) {
+      throw new PublicApiError(
+        "CONFLICT",
+        "Your account already belongs to this group.",
+      );
+    }
     await repositories.auditEvents.append({
       action: "group.invitation_accepted",
       actorUserId: command.userId,
@@ -333,7 +339,7 @@ export function manageGroupMember(
   command: ManageGroupMemberCommand,
   transactionRunner: MemberManagementTransactionRunner,
 ): Promise<{
-  readonly role: "organizer" | "member" | null;
+  readonly role: "manager" | "member" | null;
   readonly userId: string;
 }> {
   return transactionRunner.run(async (repositories) => {
@@ -351,7 +357,7 @@ export function manageGroupMember(
       command.action === "promote"
         ? "member"
         : command.action === "demote"
-          ? "organizer"
+          ? "manager"
           : target.role;
     if (target.role !== expectedRole) {
       throw new PublicApiError(
@@ -362,7 +368,7 @@ export function manageGroupMember(
 
     const nextRole =
       command.action === "promote"
-        ? ("organizer" as const)
+        ? ("manager" as const)
         : command.action === "demote"
           ? ("member" as const)
           : null;

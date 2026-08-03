@@ -9,6 +9,7 @@ import ImportsPage from "./admin/imports/page";
 import RefreshPage from "./admin/refresh/page";
 import MemberLayout from "./(member)/layout";
 import FavoritesPage from "./(member)/favorites/page";
+import GroupsPage from "./(member)/groups/page";
 import MemberHomePage from "./(member)/page";
 import OrdersPage from "./(member)/orders/page";
 import TeamPage from "./(member)/team/page";
@@ -16,6 +17,22 @@ import { adminNavigation, memberNavigation } from "./shell-navigation";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
+}));
+
+vi.mock("../src/auth/load-server-page-identity", () => ({
+  getCurrentServerPageIdentity: () =>
+    Promise.resolve({
+      identity: {
+        authUserId: "auth-test-user",
+        isPlatformAdmin: true,
+        memberships: [
+          { groupId: "group-alpha", role: "group-owner" },
+          { groupId: "group-beta", role: "manager" },
+        ],
+        userId: "test-user",
+      },
+      status: "authenticated",
+    }),
 }));
 
 describe("web navigation shells", () => {
@@ -45,12 +62,10 @@ describe("web navigation shells", () => {
     ).toEqual(["Groups", "Catalog", "Access requests", "Audit log"]);
   });
 
-  it("renders the active-order and restaurant sections from the approved Home design", () => {
-    const html = renderToStaticMarkup(
-      <MemberLayout>
-        <MemberHomePage />
-      </MemberLayout>,
-    );
+  it("renders the active-order and restaurant sections from the approved Home design", async () => {
+    const home = await MemberHomePage();
+    const layout = await MemberLayout({ children: home });
+    const html = renderToStaticMarkup(layout);
 
     expect(html).toContain("ordah please");
     expect(html).toContain("Active group order");
@@ -60,8 +75,8 @@ describe("web navigation shells", () => {
     expect(html).toContain("Green Table");
   });
 
-  it("renders active and historical orders with the approved filters", () => {
-    const html = renderToStaticMarkup(<OrdersPage />);
+  it("renders active and historical orders with the approved filters", async () => {
+    const html = renderToStaticMarkup(await OrdersPage());
 
     expect(html).toContain("Active orders");
     expect(html).toContain("Order history");
@@ -71,8 +86,8 @@ describe("web navigation shells", () => {
     expect(html).toContain("Date");
   });
 
-  it("groups ranked Favorites under their exact restaurant branch", () => {
-    const html = renderToStaticMarkup(<FavoritesPage />);
+  it("groups ranked Favorites under their exact restaurant branch", async () => {
+    const html = renderToStaticMarkup(await FavoritesPage());
 
     expect(html).toContain("Green Table · BGC");
     expect(html).toContain("Rank 1");
@@ -80,22 +95,29 @@ describe("web navigation shells", () => {
     expect(html).toContain("Remove restaurant favorites");
   });
 
-  it("shows multiple groups and role-aware member details", () => {
-    const html = renderToStaticMarkup(<TeamPage />);
+  it("shows every real membership with its exact role", async () => {
+    const html = renderToStaticMarkup(await GroupsPage());
 
     expect(html).toContain("Your groups");
-    expect(html).toContain("Friends");
-    expect(html).toContain("Design team");
+    expect(html).toContain("group-alpha");
+    expect(html).toContain("group-beta");
     expect(html).toContain("Group Owner");
     expect(html).toContain("Manager");
+    expect(html).not.toContain("Friends");
+    expect(html).not.toContain("Design team");
   });
 
-  it("renders a distinct admin operations overview", () => {
-    const html = renderToStaticMarkup(
-      <AdminLayout>
-        <AdminHomePage />
-      </AdminLayout>,
-    );
+  it("keeps the former Team URL on the same truthful membership view", async () => {
+    const html = renderToStaticMarkup(await TeamPage());
+
+    expect(html).toContain("group-alpha");
+    expect(html).toContain("group-beta");
+    expect(html).not.toContain("Friends");
+  });
+
+  it("renders a distinct admin operations overview", async () => {
+    const layout = await AdminLayout({ children: <AdminHomePage /> });
+    const html = renderToStaticMarkup(layout);
 
     expect(html).toContain("Admin overview");
     expect(html).toContain("Pending decisions");

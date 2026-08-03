@@ -6,11 +6,11 @@ describe("domain package public entry", () => {
 
     expect(publicEntry.APPLICATION_ROLES).toEqual([
       "member",
-      "organizer",
+      "manager",
       "group-owner",
       "platform-admin",
     ]);
-    expect(publicEntry.ORDER_ROLES).toEqual(["participant", "organizer"]);
+    expect(publicEntry.ORDER_ROLES).toEqual(["participant", "manager"]);
     expect(typeof publicEntry.formatCentavos).toBe("function");
     expect(typeof publicEntry.parseCentavos).toBe("function");
     expect(typeof publicEntry.parseId).toBe("function");

@@ -53,9 +53,9 @@ describe("order mutation request parsers", () => {
     expect(parseSubmitFoodResponseRequest(request)).toEqual(request);
   });
 
-  it("parses organizer-selected inline food for another participant", () => {
-    const parseOrganizerResolutionRequest = requiredParser(
-      "parseOrganizerResolutionRequest",
+  it("parses manager-selected inline food for another participant", () => {
+    const parseManagerResolutionRequest = requiredParser(
+      "parseManagerResolutionRequest",
     );
     const request = {
       orderId: "order-1",
@@ -63,6 +63,6 @@ describe("order mutation request parsers", () => {
       selection: inlineSelection,
     };
 
-    expect(parseOrganizerResolutionRequest(request)).toEqual(request);
+    expect(parseManagerResolutionRequest(request)).toEqual(request);
   });
 });

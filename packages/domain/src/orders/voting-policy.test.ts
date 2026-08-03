@@ -5,7 +5,7 @@ import * as domain from "../index.js";
 type ResolveVote = (input: {
   selectedParticipantIds: readonly string[];
   initialRestaurantId: string;
-  organizerInitialVote: { userId: string; restaurantId: string };
+  managerInitialVote: { userId: string; restaurantId: string };
   votes: readonly { userId: string; restaurantId: string }[];
 }) => {
   restaurantId: string;
@@ -26,15 +26,10 @@ describe("resolveRestaurantVote", () => {
   it("uses the initial restaurant below 50 percent", () => {
     expect(
       policy()({
-        selectedParticipantIds: [
-          "organizer",
-          "member-1",
-          "member-2",
-          "member-3",
-        ],
+        selectedParticipantIds: ["manager", "member-1", "member-2", "member-3"],
         initialRestaurantId: "initial",
-        organizerInitialVote: {
-          userId: "organizer",
+        managerInitialVote: {
+          userId: "manager",
           restaurantId: "initial",
         },
         votes: [],
@@ -42,24 +37,19 @@ describe("resolveRestaurantVote", () => {
     ).toEqual({ restaurantId: "initial", reason: "initial_fallback" });
   });
 
-  it("lets the organizer replace the initial vote and reach the threshold", () => {
+  it("lets the manager replace the initial vote and reach the threshold", () => {
     const resolve = policy();
     const baseVotes = [
-      { userId: "organizer", restaurantId: "alternative" },
+      { userId: "manager", restaurantId: "alternative" },
       { userId: "member-1", restaurantId: "alternative" },
     ];
 
     expect(
       resolve({
-        selectedParticipantIds: [
-          "organizer",
-          "member-1",
-          "member-2",
-          "member-3",
-        ],
+        selectedParticipantIds: ["manager", "member-1", "member-2", "member-3"],
         initialRestaurantId: "initial",
-        organizerInitialVote: {
-          userId: "organizer",
+        managerInitialVote: {
+          userId: "manager",
           restaurantId: "initial",
         },
         votes: baseVotes,
@@ -67,15 +57,10 @@ describe("resolveRestaurantVote", () => {
     ).toEqual({ restaurantId: "alternative", reason: "threshold" });
     expect(
       resolve({
-        selectedParticipantIds: [
-          "organizer",
-          "member-1",
-          "member-2",
-          "member-3",
-        ],
+        selectedParticipantIds: ["manager", "member-1", "member-2", "member-3"],
         initialRestaurantId: "initial",
-        organizerInitialVote: {
-          userId: "organizer",
+        managerInitialVote: {
+          userId: "manager",
           restaurantId: "initial",
         },
         votes: [
@@ -89,15 +74,10 @@ describe("resolveRestaurantVote", () => {
   it("lets the initial restaurant win a tie", () => {
     expect(
       policy()({
-        selectedParticipantIds: [
-          "organizer",
-          "member-1",
-          "member-2",
-          "member-3",
-        ],
+        selectedParticipantIds: ["manager", "member-1", "member-2", "member-3"],
         initialRestaurantId: "initial",
-        organizerInitialVote: {
-          userId: "organizer",
+        managerInitialVote: {
+          userId: "manager",
           restaurantId: "initial",
         },
         votes: [
@@ -112,10 +92,10 @@ describe("resolveRestaurantVote", () => {
   it("rejects votes from users outside the selected participant set", () => {
     expect(() =>
       policy()({
-        selectedParticipantIds: ["organizer", "member-1"],
+        selectedParticipantIds: ["manager", "member-1"],
         initialRestaurantId: "initial",
-        organizerInitialVote: {
-          userId: "organizer",
+        managerInitialVote: {
+          userId: "manager",
           restaurantId: "initial",
         },
         votes: [{ userId: "outsider", restaurantId: "alternative" }],
@@ -123,10 +103,10 @@ describe("resolveRestaurantVote", () => {
     ).toThrow("Only selected participants may vote.");
   });
 
-  it("requires the organizer's initial vote to belong to a selected participant and the initial restaurant", () => {
+  it("requires the manager's initial vote to belong to a selected participant and the initial restaurant", () => {
     const resolve = policy();
     const baseInput = {
-      selectedParticipantIds: ["organizer", "member-1"],
+      selectedParticipantIds: ["manager", "member-1"],
       initialRestaurantId: "initial",
       votes: [],
     } as const;
@@ -134,26 +114,26 @@ describe("resolveRestaurantVote", () => {
     expect(() =>
       resolve({
         ...baseInput,
-        organizerInitialVote: {
+        managerInitialVote: {
           userId: "outsider",
           restaurantId: "initial",
         },
       }),
-    ).toThrow("The organizer must be a selected participant.");
+    ).toThrow("The manager must be a selected participant.");
     expect(() =>
       resolve({
         ...baseInput,
-        organizerInitialVote: {
-          userId: "organizer",
+        managerInitialVote: {
+          userId: "manager",
           restaurantId: "alternative",
         },
       }),
-    ).toThrow("The organizer's initial vote must use the initial restaurant.");
+    ).toThrow("The manager's initial vote must use the initial restaurant.");
   });
 
   it("requires at least one selected participant", () => {
-    const organizerInitialVote = {
-      userId: "organizer",
+    const managerInitialVote = {
+      userId: "manager",
       restaurantId: "initial",
     } as const;
 
@@ -161,23 +141,23 @@ describe("resolveRestaurantVote", () => {
       policy()({
         selectedParticipantIds: [],
         initialRestaurantId: "initial",
-        organizerInitialVote,
+        managerInitialVote,
         votes: [],
       }),
     ).toThrow("At least one selected participant is required.");
   });
 
   it("requires selected participant IDs to be unique", () => {
-    const organizerInitialVote = {
-      userId: "organizer",
+    const managerInitialVote = {
+      userId: "manager",
       restaurantId: "initial",
     } as const;
 
     expect(() =>
       policy()({
-        selectedParticipantIds: ["organizer", "organizer"],
+        selectedParticipantIds: ["manager", "manager"],
         initialRestaurantId: "initial",
-        organizerInitialVote,
+        managerInitialVote,
         votes: [],
       }),
     ).toThrow("Selected participant IDs must be unique.");

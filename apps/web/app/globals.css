@@ -1392,3 +1392,87 @@ button.admin-table__row {
     transition: transform 120ms ease;
   }
 }
+
+.sign-in-screen {
+  align-items: center;
+  background: var(--color-primary);
+  display: flex;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--space-6) var(--space-4);
+}
+
+.sign-in-content {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 24rem;
+  text-align: center;
+  width: 100%;
+}
+
+.sign-in-brand {
+  color: var(--color-on-primary);
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.sign-in-tagline {
+  color: var(--color-on-primary);
+  font-size: var(--font-size-body);
+  margin: 0 0 var(--space-4);
+  opacity: 0.9;
+}
+
+.sign-in-button {
+  align-items: center;
+  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-pill, 999px);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 700;
+  gap: var(--space-2);
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 var(--space-6);
+  width: 100%;
+}
+
+.sign-in-button:focus-visible {
+  outline: 3px solid var(--color-on-primary);
+  outline-offset: 3px;
+}
+
+.sign-in-button:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.sign-in-button__google {
+  flex-shrink: 0;
+}
+
+.sign-in-error {
+  color: var(--color-on-primary);
+  margin: 0;
+  opacity: 0.95;
+}
+
+@media (min-width: 600px) {
+  .sign-in-brand {
+    font-size: 48px;
+  }
+
+  .sign-in-button {
+    width: auto;
+    min-width: 20rem;
+  }
+}

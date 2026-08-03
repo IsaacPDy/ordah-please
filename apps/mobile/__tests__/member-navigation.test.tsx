@@ -11,6 +11,7 @@ import {
   memberTabItemStyle,
   memberTabs,
 } from "../src/navigation/member-tabs";
+import { MobileAppIdentityProvider } from "../src/features/access/mobile-member-gate";
 
 jest.mock("expo-router", () => {
   const React = jest.requireActual<typeof import("react")>("react");
@@ -69,25 +70,23 @@ describe("member navigation", () => {
     expect(memberTabBarStyle).not.toHaveProperty("paddingBottom");
   });
 
-  it("renders the approved active-order and restaurant Home sections", async () => {
+  it("keeps restaurant discovery and removes fake orders for a groupless account", async () => {
     const screen = await render(<HomeScreen />);
 
     expect(screen.getByText("ordah please")).toBeTruthy();
-    expect(screen.getByText("Active group order")).toBeTruthy();
-    expect(screen.getByRole("header", { name: "Friday lunch" })).toBeTruthy();
-    expect(screen.getByText("Choose restaurant")).toBeTruthy();
+    expect(screen.queryByText("Active group order")).toBeNull();
+    expect(screen.queryByRole("header", { name: "Friday lunch" })).toBeNull();
     expect(screen.getByRole("header", { name: "Restaurants" })).toBeTruthy();
     expect(screen.getByTestId("member-safe-area").props.edges).toEqual(
       expect.objectContaining({ bottom: "off", top: "additive" }),
     );
   });
 
-  it("renders native Orders sections", async () => {
+  it("renders the honest groupless Orders state", async () => {
     const screen = await render(<OrdersScreen />);
 
-    expect(screen.getByRole("header", { name: "Active orders" })).toBeTruthy();
-    expect(screen.getByRole("header", { name: "Order history" })).toBeTruthy();
-    expect(screen.getByText("Friday lunch")).toBeTruthy();
+    expect(screen.getByText("No group orders yet")).toBeTruthy();
+    expect(screen.queryByText("Friday lunch")).toBeNull();
   });
 
   it("renders ranked native Favorites", async () => {
@@ -98,12 +97,33 @@ describe("member navigation", () => {
     expect(screen.getByText("Remove restaurant favorites")).toBeTruthy();
   });
 
-  it("renders multiple native groups and their roles", async () => {
+  it("renders the honest groupless Groups state", async () => {
     const screen = await render(<TeamScreen />);
 
+    expect(screen.getByText("You have not joined a group yet")).toBeTruthy();
+  });
+
+  it("renders every backend membership with its exact role label", async () => {
+    const screen = await render(
+      <MobileAppIdentityProvider
+        identity={{
+          isPlatformAdmin: false,
+          memberships: [
+            { groupId: "group-a" as never, role: "group-owner" },
+            { groupId: "group-b" as never, role: "manager" },
+            { groupId: "group-c" as never, role: "member" },
+          ],
+          pendingAdminRequestCount: 0,
+        }}
+      >
+        <TeamScreen />
+      </MobileAppIdentityProvider>,
+    );
+
     expect(screen.getByRole("header", { name: "Your groups" })).toBeTruthy();
-    expect(screen.getByText("Friends")).toBeTruthy();
-    expect(screen.getByText("Design team")).toBeTruthy();
+    expect(screen.getByText("group-a")).toBeTruthy();
     expect(screen.getByText("Group Owner")).toBeTruthy();
+    expect(screen.getByText("Manager")).toBeTruthy();
+    expect(screen.getByText("Member")).toBeTruthy();
   });
 });

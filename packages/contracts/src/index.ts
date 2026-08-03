@@ -1,4 +1,5 @@
 export * from "./access/access-requests.js";
+export * from "./access/identity-summary.js";
 export * from "./catalog/catalog-read-model.js";
 export * from "./common/api-result.js";
 export * from "./common/errors.js";

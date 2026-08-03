@@ -28,7 +28,8 @@ describe("loadAppIdentity", () => {
       ),
     ).resolves.toEqual({
       authUserId: AUTH_USER_ID,
-      roles: [],
+      isPlatformAdmin: false,
+      memberships: [],
       userId: "internal-user-1",
     });
   });
@@ -60,7 +61,7 @@ describe("loadAppIdentity", () => {
     });
   });
 
-  it("maps the active Neon membership and platform-admin flag into app roles", async () => {
+  it("maps every active Neon membership and the platform-admin flag", async () => {
     const timestamp = new Date("2026-07-29T05:00:00.000Z");
     const repository = {
       ensureUserForAuthIdentity: (input: {
@@ -79,10 +80,17 @@ describe("loadAppIdentity", () => {
       listActiveMemberships: () =>
         Promise.resolve([
           {
+            groupId: "group-2",
+            joinedAt: timestamp,
+            removedAt: null,
+            role: "member" as const,
+            userId: "internal-user-1",
+          },
+          {
             groupId: "group-1",
             joinedAt: timestamp,
             removedAt: null,
-            role: "organizer" as const,
+            role: "manager" as const,
             userId: "internal-user-1",
           },
         ]),
@@ -95,8 +103,11 @@ describe("loadAppIdentity", () => {
       ),
     ).resolves.toEqual({
       authUserId: AUTH_USER_ID,
-      groupId: "group-1",
-      roles: ["organizer", "platform-admin"],
+      isPlatformAdmin: true,
+      memberships: [
+        { groupId: "group-1", role: "manager" },
+        { groupId: "group-2", role: "member" },
+      ],
       userId: "internal-user-1",
     });
   });

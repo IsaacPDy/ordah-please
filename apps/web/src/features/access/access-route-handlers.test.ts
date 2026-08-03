@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { PublicApiError } from "@ordah-please/contracts";
+import { parseId, type GroupId, type UserId } from "@ordah-please/domain";
+
+import type { AppIdentity } from "../../auth/load-app-identity";
 
 import {
   createAcceptInvitationHandler,
@@ -12,6 +15,28 @@ import {
   createListPendingAdminRequestsHandler,
   createManageMemberHandler,
 } from "./access-route-handlers";
+
+/** Creates a typed application identity without hiding its membership permissions. */
+function createIdentity(
+  input: Readonly<{
+    authUserId?: string;
+    isPlatformAdmin?: boolean;
+    memberships?: AppIdentity["memberships"];
+    userId?: string;
+  }> = {},
+): AppIdentity {
+  return {
+    authUserId: input.authUserId ?? "auth-user-1",
+    isPlatformAdmin: input.isPlatformAdmin ?? false,
+    memberships: input.memberships ?? [],
+    userId: parseId<UserId>(input.userId ?? "user-1"),
+  };
+}
+
+/** Brands a readable test group identifier at the same boundary as production input. */
+function testGroupId(value: string): GroupId {
+  return parseId<GroupId>(value);
+}
 
 describe("access route handlers", () => {
   it("requires authentication before invitation acceptance", async () => {
@@ -52,11 +77,10 @@ describe("access route handlers", () => {
     const handler = createAcceptInvitationHandler({
       acceptInvitation,
       deploymentId: "https://preview.ordah-please.test",
-      loadIdentity: () => ({
-        authUserId: "10000000-0000-4000-8000-000000000001",
-        roles: [],
-        userId: "user-1" as never,
-      }),
+      loadIdentity: () =>
+        createIdentity({
+          authUserId: "10000000-0000-4000-8000-000000000001",
+        }),
       now: () => new Date("2026-07-25T08:00:00.000Z"),
       verifySession,
     });
@@ -87,11 +111,10 @@ describe("access route handlers", () => {
     const handler = createAcceptInvitationHandler({
       acceptInvitation,
       deploymentId: "preview.ordah-please.test",
-      loadIdentity: () => ({
-        authUserId: "10000000-0000-4000-8000-000000000001",
-        roles: [],
-        userId: "user-1" as never,
-      }),
+      loadIdentity: () =>
+        createIdentity({
+          authUserId: "10000000-0000-4000-8000-000000000001",
+        }),
       now: () => new Date("2026-07-25T08:00:00.000Z"),
       verifySession: () => ({
         authUserId: "10000000-0000-4000-8000-000000000001",
@@ -115,28 +138,29 @@ describe("access route handlers", () => {
     });
   });
 
-  it("rejects organizer access to owner member actions", async () => {
+  it("rejects a Group B owner action when ownership belongs only to Group A", async () => {
     const manageMember = vi.fn(() =>
-      Promise.resolve({ role: "organizer" as const, userId: "member-1" }),
+      Promise.resolve({ role: "manager" as const, userId: "member-1" }),
     );
     const handler = createManageMemberHandler("promote", {
-      loadIdentity: () => ({
-        authUserId: "10000000-0000-4000-8000-000000000001",
-        groupId: "group-1" as never,
-        roles: ["organizer"],
-        userId: "user-1" as never,
-      }),
+      loadIdentity: () =>
+        createIdentity({
+          memberships: [
+            { groupId: testGroupId("group-a"), role: "group-owner" },
+            { groupId: testGroupId("group-b"), role: "manager" },
+          ],
+        }),
       manageMember,
       now: () => new Date("2026-07-25T09:00:00.000Z"),
       verifySession: () => ({
         authUserId: "10000000-0000-4000-8000-000000000001",
-        displayName: "Organizer",
+        displayName: "Manager",
       }),
     });
 
     const response = await handler(
       new Request("https://preview.ordah-please.test/api/access/promote", {
-        body: JSON.stringify({ userId: "member-1" }),
+        body: JSON.stringify({ groupId: "group-b", userId: "member-1" }),
         method: "POST",
       }),
     );
@@ -147,12 +171,15 @@ describe("access route handlers", () => {
 
   it("executes invitation, member-list, and admin-request handlers for a group owner", async () => {
     const base = {
-      loadIdentity: () => ({
-        authUserId: "10000000-0000-4000-8000-000000000001",
-        groupId: "group-1" as never,
-        roles: ["group-owner" as const],
-        userId: "owner-1" as never,
-      }),
+      loadIdentity: () =>
+        createIdentity({
+          authUserId: "10000000-0000-4000-8000-000000000001",
+          memberships: [
+            { groupId: testGroupId("group-1"), role: "group-owner" },
+            { groupId: testGroupId("group-2"), role: "member" },
+          ],
+          userId: "owner-1",
+        }),
       verifySession: () => ({
         authUserId: "10000000-0000-4000-8000-000000000001",
         displayName: "Owner",
@@ -181,14 +208,21 @@ describe("access route handlers", () => {
       now: () => new Date("2026-07-25T08:00:00.000Z"),
     })(
       new Request("https://preview.ordah-please.test/api/access/invitations", {
-        body: JSON.stringify({ expiresAt: "2026-07-26T08:00:00.000Z" }),
+        body: JSON.stringify({
+          expiresAt: "2026-07-26T08:00:00.000Z",
+          groupId: "group-1",
+        }),
         method: "POST",
       }),
     );
     const membersResponse = await createListMembersHandler({
       ...base,
       listMembers,
-    })(new Request("https://preview.ordah-please.test/api/access/members"));
+    })(
+      new Request(
+        "https://preview.ordah-please.test/api/access/members?groupId=group-1",
+      ),
+    );
     const adminResponse = await createAdminRequestHandler({
       ...base,
       submitAdminRequest,
@@ -196,7 +230,7 @@ describe("access route handlers", () => {
       new Request(
         "https://preview.ordah-please.test/api/access/admin-requests",
         {
-          body: "{}",
+          body: JSON.stringify({ groupId: "group-1" }),
           method: "POST",
         },
       ),
@@ -208,8 +242,51 @@ describe("access route handlers", () => {
       adminResponse.status,
     ]).toEqual([200, 200, 200]);
     expect(issueInvitation).toHaveBeenCalledTimes(1);
+    expect(issueInvitation).toHaveBeenCalledWith(
+      expect.objectContaining({ groupId: "group-1" }),
+    );
     expect(listMembers).toHaveBeenCalledWith("group-1");
     expect(submitAdminRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets a Platform Admin issue an invitation without group membership", async () => {
+    const issueInvitation = vi.fn(() =>
+      Promise.resolve({
+        expiresAt: "2026-07-26T08:00:00.000Z",
+        invitationId: "invitation-1",
+        publicToken: "public-token",
+      }),
+    );
+    const handler = createIssueInvitationHandler({
+      deploymentId: "preview.ordah-please.test",
+      issueInvitation,
+      loadIdentity: () =>
+        createIdentity({
+          isPlatformAdmin: true,
+          memberships: [],
+          userId: "admin-1",
+        }),
+      now: () => new Date("2026-07-25T08:00:00.000Z"),
+      verifySession: () => ({
+        authUserId: "10000000-0000-4000-8000-000000000001",
+        displayName: "Platform Admin",
+      }),
+    });
+
+    const response = await handler(
+      new Request("https://preview.ordah-please.test/api/access/invitations", {
+        body: JSON.stringify({
+          expiresAt: "2026-07-26T08:00:00.000Z",
+          groupId: "group-1",
+        }),
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(issueInvitation).toHaveBeenCalledWith(
+      expect.objectContaining({ actorUserId: "admin-1", groupId: "group-1" }),
+    );
   });
 });
 
@@ -217,12 +294,13 @@ describe("createDecideAdminRequestHandler", () => {
   it("returns 403 when the caller is not a platform admin", async () => {
     const handler = createDecideAdminRequestHandler({
       decideAdminRequest: vi.fn(),
-      loadIdentity: () => ({
-        authUserId: "auth-1",
-        groupId: "group-1" as never,
-        roles: ["group-owner"],
-        userId: "user-1" as never,
-      }),
+      loadIdentity: () =>
+        createIdentity({
+          authUserId: "auth-1",
+          memberships: [
+            { groupId: testGroupId("group-1"), role: "group-owner" },
+          ],
+        }),
       now: () => new Date("2026-07-30T08:00:00.000Z"),
       verifySession: () => ({ authUserId: "auth-1", displayName: "Owner" }),
     });
@@ -247,11 +325,12 @@ describe("createDecideAdminRequestHandler", () => {
     );
     const handler = createDecideAdminRequestHandler({
       decideAdminRequest,
-      loadIdentity: () => ({
-        authUserId: "auth-admin",
-        roles: ["platform-admin"],
-        userId: "admin-1" as never,
-      }),
+      loadIdentity: () =>
+        createIdentity({
+          authUserId: "auth-admin",
+          isPlatformAdmin: true,
+          userId: "admin-1",
+        }),
       now: () => new Date("2026-07-30T08:00:00.000Z"),
       verifySession: () => ({ authUserId: "auth-admin", displayName: "Admin" }),
     });
@@ -280,11 +359,12 @@ describe("createDecideAdminRequestHandler", () => {
   it("returns 400 on a malformed body", async () => {
     const handler = createDecideAdminRequestHandler({
       decideAdminRequest: vi.fn(),
-      loadIdentity: () => ({
-        authUserId: "auth-admin",
-        roles: ["platform-admin"],
-        userId: "admin-1" as never,
-      }),
+      loadIdentity: () =>
+        createIdentity({
+          authUserId: "auth-admin",
+          isPlatformAdmin: true,
+          userId: "admin-1",
+        }),
       now: () => new Date("2026-07-30T08:00:00.000Z"),
       verifySession: () => ({ authUserId: "auth-admin", displayName: "Admin" }),
     });
@@ -308,11 +388,7 @@ describe("createListPendingAdminRequestsHandler", () => {
   it("returns 403 when the caller is not a platform admin", async () => {
     const handler = createListPendingAdminRequestsHandler({
       listPendingAdminRequests: vi.fn(() => Promise.resolve([])),
-      loadIdentity: () => ({
-        authUserId: "auth-1",
-        roles: [],
-        userId: "user-1" as never,
-      }),
+      loadIdentity: () => createIdentity({ authUserId: "auth-1" }),
       verifySession: () => ({ authUserId: "auth-1", displayName: "Member" }),
     });
 
@@ -338,11 +414,12 @@ describe("createListPendingAdminRequestsHandler", () => {
     );
     const handler = createListPendingAdminRequestsHandler({
       listPendingAdminRequests,
-      loadIdentity: () => ({
-        authUserId: "auth-admin",
-        roles: ["platform-admin"],
-        userId: "admin-1" as never,
-      }),
+      loadIdentity: () =>
+        createIdentity({
+          authUserId: "auth-admin",
+          isPlatformAdmin: true,
+          userId: "admin-1",
+        }),
       verifySession: () => ({ authUserId: "auth-admin", displayName: "Admin" }),
     });
 
@@ -380,11 +457,13 @@ describe("createIdentityMeHandler", () => {
     const countPendingAdminRequests = vi.fn(() => Promise.resolve([]));
     const handler = createIdentityMeHandler({
       countPendingAdminRequests,
-      loadIdentity: () => ({
-        authUserId: "auth-1",
-        roles: ["group-owner"],
-        userId: "user-1" as never,
-      }),
+      loadIdentity: () =>
+        createIdentity({
+          authUserId: "auth-1",
+          memberships: [
+            { groupId: testGroupId("group-1"), role: "group-owner" },
+          ],
+        }),
       verifySession: () => ({ authUserId: "auth-1", displayName: "Owner" }),
     });
 
@@ -394,10 +473,15 @@ describe("createIdentityMeHandler", () => {
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
-      data: { isPlatformAdmin: boolean; pendingAdminRequestCount: number };
+      data: {
+        isPlatformAdmin: boolean;
+        memberships: AppIdentity["memberships"];
+        pendingAdminRequestCount: number;
+      };
     };
     expect(body.data).toEqual({
       isPlatformAdmin: false,
+      memberships: [{ groupId: "group-1", role: "group-owner" }],
       pendingAdminRequestCount: 0,
     });
   });
@@ -427,11 +511,13 @@ describe("createIdentityMeHandler", () => {
     );
     const handler = createIdentityMeHandler({
       countPendingAdminRequests,
-      loadIdentity: () => ({
-        authUserId: "auth-admin",
-        roles: ["platform-admin"],
-        userId: "admin-1" as never,
-      }),
+      loadIdentity: () =>
+        createIdentity({
+          authUserId: "auth-admin",
+          isPlatformAdmin: true,
+          memberships: [{ groupId: testGroupId("group-9"), role: "member" }],
+          userId: "admin-1",
+        }),
       verifySession: () => ({ authUserId: "auth-admin", displayName: "Admin" }),
     });
 
@@ -441,10 +527,15 @@ describe("createIdentityMeHandler", () => {
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
-      data: { isPlatformAdmin: boolean; pendingAdminRequestCount: number };
+      data: {
+        isPlatformAdmin: boolean;
+        memberships: AppIdentity["memberships"];
+        pendingAdminRequestCount: number;
+      };
     };
     expect(body.data).toEqual({
       isPlatformAdmin: true,
+      memberships: [{ groupId: "group-9", role: "member" }],
       pendingAdminRequestCount: 2,
     });
     expect(countPendingAdminRequests).toHaveBeenCalledTimes(1);

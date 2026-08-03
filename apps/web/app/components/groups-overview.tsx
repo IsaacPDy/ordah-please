@@ -1,24 +1,25 @@
-import { ChevronRight, Clock3, Crown, ShieldCheck, Users } from "lucide-react";
+import type { AppIdentitySummary } from "@ordah-please/contracts";
+import { Crown, ShieldCheck, Users } from "lucide-react";
 
-const groups = [
-  {
-    activeOrders: 1,
-    members: 7,
-    name: "Friends",
-    nextDeadline: "Today, 11:30 AM",
-    role: "Member",
-  },
-  {
-    activeOrders: 1,
-    members: 12,
-    name: "Design team",
-    nextDeadline: "Tomorrow, 5:00 PM",
-    role: "Manager",
-  },
-] as const;
+export interface GroupsOverviewProps {
+  readonly memberships: AppIdentitySummary["memberships"];
+}
 
-/** Shows every group the signed-in user belongs to and a role-aware member preview. */
-export function GroupsOverview() {
+/** Converts the stored role key into the exact role wording shown to people. */
+function roleLabel(role: AppIdentitySummary["memberships"][number]["role"]) {
+  if (role === "group-owner") {
+    return "Group Owner";
+  }
+
+  if (role === "manager") {
+    return "Manager";
+  }
+
+  return "Member";
+}
+
+/** Shows only the signed-in account's real group memberships and roles. */
+export function GroupsOverview({ memberships }: GroupsOverviewProps) {
   return (
     <div className="member-page">
       <header className="page-intro">
@@ -29,73 +30,39 @@ export function GroupsOverview() {
         </p>
       </header>
       <div className="group-list">
-        {groups.map((group) => (
-          <article className="group-card" key={group.name}>
+        {memberships.map((membership) => (
+          <article className="group-card" key={membership.groupId}>
             <div className="group-card__icon">
               <Users aria-hidden="true" />
             </div>
             <div className="group-card__body">
               <div>
-                <h2>{group.name}</h2>
-                <span className="role-pill">{group.role}</span>
+                <h2>{membership.groupId}</h2>
+                <span
+                  className={
+                    membership.role === "group-owner"
+                      ? "role-pill role-pill--owner"
+                      : membership.role === "member"
+                        ? "role-pill role-pill--member"
+                        : "role-pill"
+                  }
+                >
+                  {membership.role === "group-owner" ? (
+                    <Crown aria-hidden="true" size={14} />
+                  ) : membership.role === "manager" ? (
+                    <ShieldCheck aria-hidden="true" size={14} />
+                  ) : null}
+                  {roleLabel(membership.role)}
+                </span>
               </div>
               <p>
-                <Users aria-hidden="true" size={16} /> {group.members} members ·{" "}
-                {group.activeOrders} active order
-              </p>
-              <p>
-                <Clock3 aria-hidden="true" size={16} /> Next deadline{" "}
-                {group.nextDeadline}
+                Group details will appear after the membership journey is
+                connected.
               </p>
             </div>
-            <ChevronRight aria-hidden="true" />
           </article>
         ))}
       </div>
-      <section
-        aria-labelledby="members-heading"
-        className="content-section group-detail-card"
-      >
-        <div className="section-heading-row">
-          <div>
-            <p className="eyebrow">Friends</p>
-            <h2 id="members-heading">Members</h2>
-          </div>
-          <button className="secondary-action" type="button">
-            View group
-          </button>
-        </div>
-        <ul className="member-list">
-          <li>
-            <span className="member-avatar">MP</span>
-            <div>
-              <strong>Mia Perez</strong>
-              <p>mia@example.com · 8 orders</p>
-            </div>
-            <span className="role-pill role-pill--owner">
-              <Crown aria-hidden="true" size={14} /> Group Owner
-            </span>
-          </li>
-          <li>
-            <span className="member-avatar member-avatar--alt">JD</span>
-            <div>
-              <strong>Jordan Diaz</strong>
-              <p>jordan@example.com · 6 orders</p>
-            </div>
-            <span className="role-pill">
-              <ShieldCheck aria-hidden="true" size={14} /> Manager
-            </span>
-          </li>
-          <li>
-            <span className="member-avatar member-avatar--soft">AK</span>
-            <div>
-              <strong>Alex Kim</strong>
-              <p>alex@example.com · 4 orders</p>
-            </div>
-            <span className="role-pill role-pill--member">Member</span>
-          </li>
-        </ul>
-      </section>
     </div>
   );
 }

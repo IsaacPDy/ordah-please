@@ -6,13 +6,13 @@ describe("role unions", () => {
   it("lists every canonical application role", () => {
     expect(APPLICATION_ROLES).toEqual([
       "member",
-      "organizer",
+      "manager",
       "group-owner",
       "platform-admin",
     ]);
   });
 
   it("lists every canonical order role", () => {
-    expect(ORDER_ROLES).toEqual(["participant", "organizer"]);
+    expect(ORDER_ROLES).toEqual(["participant", "manager"]);
   });
 });

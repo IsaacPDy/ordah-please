@@ -95,7 +95,7 @@ export type FoodResponse =
       submittedAt: UtcTimestamp;
     }>;
 
-export type OrganizerResolution = Readonly<{
+export type ManagerResolution = Readonly<{
   userId: UserId;
   selection: FoodSelectionSnapshot;
   resolvedByUserId: UserId;
@@ -134,7 +134,7 @@ export type OrderReceipt = Readonly<{
 export type OrderHistorySnapshot = Readonly<{
   id: OrderId;
   groupId: GroupId;
-  organizerId: UserId;
+  managerId: UserId;
   state: Extract<OrderState, "ordered" | "cancelled">;
   choiceMode: RestaurantChoiceMode;
   initialRestaurantId: RestaurantId;
@@ -149,7 +149,7 @@ export type OrderHistorySnapshot = Readonly<{
   participants: readonly OrderParticipant[];
   votes: readonly RestaurantVote[];
   foodResponses: readonly FoodResponse[];
-  organizerResolutions: readonly OrganizerResolution[];
+  managerResolutions: readonly ManagerResolution[];
   handoff: OrderHandoff;
   receipt: OrderReceipt | null;
   createdAt: UtcTimestamp;

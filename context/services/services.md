@@ -16,7 +16,7 @@ External services approved for V1 and the contribution each makes to the project
 | Expo EAS | Produces private Android development, preview, and production APK builds |
 | GitHub Actions | Runs provider-free continuous integration |
 | Codex Computer Use | External supervised tool for reading menus off Grab and producing reviewed JSON/CSV imports |
-| Grab | External handoff target; the organizer pastes the compiled order manually. Not integrated automatically |
+| Grab | External handoff target; a Manager or Group Owner pastes the compiled order manually. Not integrated automatically |
 
 ## Retired Services
 

@@ -24,7 +24,7 @@ export type FoodDeadlineResolution = Readonly<{
   unresolvedUserIds: readonly UserId[];
 }>;
 
-/** Applies explicit food responses, then Rank 1 defaults, and lists organizer work. */
+/** Applies explicit food responses, then Rank 1 defaults, and lists Manager work. */
 export function resolveFoodDeadline(input: {
   participants: readonly FoodDeadlineParticipant[];
   responses: readonly FoodDeadlineResponse[];

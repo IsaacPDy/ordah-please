@@ -16,7 +16,7 @@ function requiredParser(name: string): BoundaryParser {
 const orderFixture = {
   id: "order-1",
   groupId: "group-1",
-  organizerId: "user-1",
+  managerId: "user-1",
   state: "ordered",
   choiceMode: {
     kind: "shortlist",
@@ -35,7 +35,7 @@ const orderFixture = {
     {
       userId: "user-1",
       displayName: "Alex",
-      role: "organizer",
+      role: "manager",
       restaurantResponse: "responded",
       foodResponse: "confirmed",
     },
@@ -79,7 +79,7 @@ const orderFixture = {
       submittedAt: "2026-07-22T03:30:00.000Z",
     },
   ],
-  organizerResolutions: [],
+  managerResolutions: [],
   handoff: {
     lines: [
       {

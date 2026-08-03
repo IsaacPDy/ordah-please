@@ -141,9 +141,28 @@ describe("focused repositories", () => {
       role: "owner",
       userId: user.id,
     });
+
+    const [secondGroup] = await database
+      .insert(groups)
+      .values({ createdByUserId: user.id, name: "Second Repository Group" })
+      .returning();
+    if (secondGroup === undefined) {
+      throw new Error(
+        "Expected the second repository test group to be created.",
+      );
+    }
+    await repositories.identityAccess.addMembership({
+      groupId: secondGroup.id,
+      role: "manager",
+      userId: user.id,
+    });
     expect(
       await repositories.identityAccess.listActiveMemberships(user.id),
-    ).toHaveLength(1);
+    ).toMatchObject(
+      [group.id, secondGroup.id]
+        .sort((left, right) => left.localeCompare(right))
+        .map((groupId) => ({ groupId })),
+    );
 
     const [restaurant] = await database
       .insert(restaurants)
@@ -202,7 +221,7 @@ describe("focused repositories", () => {
         groupId: group.id,
         initialBranchId: branch.id,
         initialRestaurantId: restaurant.id,
-        organizerUserId: user.id,
+        managerUserId: user.id,
         restaurantDeadline: new Date("2026-07-24T11:00:00.000Z"),
       })
       .returning();
@@ -284,7 +303,7 @@ describe("focused repositories", () => {
         groupId: group.id,
         initialBranchId: branch.id,
         initialRestaurantId: restaurant.id,
-        organizerUserId: user.id,
+        managerUserId: user.id,
         restaurantDeadline: new Date("2026-07-25T11:00:00.000Z"),
       })
       .returning();
@@ -462,7 +481,7 @@ describe("focused repositories", () => {
         group.id,
         member.id,
         "member",
-        "organizer",
+        "manager",
       ),
     ).resolves.toBe(true);
     await expect(
