@@ -18,7 +18,7 @@ This plan implements the approved product design in `context/specs/00-v1-product
 - Keep all money as integer Philippine centavos.
 - Store timestamps in UTC and render them in the viewer's timezone.
 - Keep product roles in Neon product tables; Google proves identity and Better Auth creates the application session only.
-- Use `context/service-limits.md` as the operating register. A warning threshold never authorizes paid usage.
+- Use `context/services/service-limits.md` as the operating register. A warning threshold never authorizes paid usage.
 - Never allow a client to connect directly to Neon, R2, QStash, or the OneSignal server API.
 - Keep the last published menu usable when imports or refreshes fail.
 - Copy price, item, modifier, branch, participant, and delivery-address snapshots into order history.
@@ -39,7 +39,7 @@ The selected order is: local foundation → pure business rules → Neon → Bet
 
 ## 3. Implementation Workstreams and Branch Ownership
 
-The phase sequence remains the source of truth for dependency order. The workstreams below divide ownership so agents can work in separate branches and worktrees without treating the system as disconnected layers.
+The phase sequence remains the source of truth for dependency order. The workstreams below divide ownership so agents can work in separate branches without treating the system as disconnected layers.
 
 ### Workstream A — Foundation and Integration
 
@@ -107,8 +107,8 @@ The phase sequence remains the source of truth for dependency order. The workstr
 
 ### Parallel Work Rules
 
-1. Workstream A completes Task 0.1 before feature worktrees branch; this prevents conflicting workspace names, scripts, and dependency baselines.
-2. Every concurrent agent uses its own Git branch and Git worktree. Agents never share a writable checkout.
+1. Workstream A completes Task 0.1 before feature branches diverge; this prevents conflicting workspace names, scripts, and dependency baselines.
+2. Every concurrent agent uses its own Git branch. Agents never share a writable branch.
 3. A branch has one primary workstream owner. Cross-workstream changes must be explicitly listed in the handoff before integration.
 4. Only the integration owner edits `context/progress-tracker.md` during parallel work. Feature agents report completed verification and the integration owner records it after merge.
 5. Root `package.json`, `package-lock.json`, shared configuration, and provider variable names are integration-sensitive. Agents may change them only when their assigned task requires it and must call out the change before merge.
@@ -186,7 +186,7 @@ A package is complete only when:
 - [ ] Scaffold Next.js under `apps/web` with strict TypeScript, App Router, and no example product content.
 - [ ] Scaffold Expo under `apps/mobile` with Expo Router and the fixed identity: `ordah please`, `ordah-please`, `ordahplease.app`, and `ordahplease` scheme.
 - [ ] Create empty buildable shared packages with explicit public exports.
-- [ ] Add `.env.example` containing only the variable names already approved in `context/services.md`.
+- [ ] Add `.env.example` containing only the variable names already approved in `context/services/service-setup.md`.
 - [ ] Add ignore rules for real environment files, Expo output, Next output, coverage, credentials, and native build artifacts.
 - [ ] Run `npm install`, `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build:web`.
 - [ ] Expected result: both apps start, all packages type-check, and no service credential is required.
@@ -784,10 +784,10 @@ Create isolated production Neon, Better Auth, Google OAuth, R2, OneSignal, QStas
 **Files:**
 
 - Create: `context/operations/free-tier-monitoring.md`
-- Modify when necessary: `context/services.md`, `context/progress-tracker.md`
+- Modify when necessary: `context/services/service-setup.md`, `context/progress-tracker.md`
 
 - [ ] Record current free-tier limits and dashboard locations for each provider at release time.
-- [ ] Reverify and update `context/service-limits.md` warning thresholds for database/storage, bandwidth, function execution, QStash messages, OneSignal subscribers/messages, Google OAuth policy, GitHub Actions, and EAS builds.
+- [ ] Reverify and update `context/services/service-limits.md` warning thresholds for database/storage, bandwidth, function execution, QStash messages, OneSignal subscribers/messages, Google OAuth policy, GitHub Actions, and EAS builds.
 - [ ] Assign a person and monthly review cadence.
 - [ ] State that crossing a warning threshold requires review and does not authorize a paid upgrade.
 - [ ] Commit as `docs: add free-tier operating guardrails`.
@@ -840,4 +840,4 @@ Create isolated production Neon, Better Auth, Google OAuth, R2, OneSignal, QStas
 - **Scope:** Public registration, multiple groups, payment, automatic Grab ordering, unattended scraping, recommendations, chat, delivery tracking, promotions, and final-fee estimation remain excluded.
 - **Open decisions:** Custom domain and exact Grab link behavior are deferred to their safe decision points and have non-blocking fallbacks.
 - **Security:** No task requires a client-side secret or direct client connection to a privileged provider.
-- **Implementation state:** The user approved the V1 implementation on 2026-07-21. Phase 0 is authorized, beginning with the single-owner workspace foundation before parallel worktrees are created.
+- **Implementation state:** The user approved the V1 implementation on 2026-07-21. Phase 0 is authorized, beginning with the single-owner workspace foundation before parallel branches are created.

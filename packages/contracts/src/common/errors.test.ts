@@ -11,6 +11,7 @@ describe("API errors", () => {
     expect(API_ERROR_CODES).toEqual([
       "UNAUTHENTICATED",
       "FORBIDDEN",
+      "NOT_FOUND",
       "INVALID_INPUT",
       "CONFLICT",
       "UNAVAILABLE",

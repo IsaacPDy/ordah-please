@@ -1,6 +1,8 @@
-# Services Setup and Variable Registry
+# Service Setup and Variable Registry
 
 This file is the setup map for every external service approved for V1. It records variable names and where values belong, but it must never contain real passwords, tokens, private keys, connection strings, or credential files.
+
+For the simple list of services and their contributions, see `services.md`. For free-tier allowances and warning thresholds, see `service-limits.md`. For plain-language explanations of each technology, see `technology-reference.md`.
 
 ## First Principle
 
@@ -367,12 +369,6 @@ Before changing a name, domain, identifier, provider project, bucket, or key:
 - Android and installed iPhone PWA test subscriptions map to the same stable internal External ID in OneSignal.
 - A preview deployment never uses production database, storage, auth, notification, or scheduling credentials.
 - No `.env`, credential JSON, private key, token, or connection string is committed.
-
-## 11. Limits and Billing Guardrails
-
-`context/service-limits.md` records the current free allowances, reset periods, failure behavior, automatic-billing risk, internal warning thresholds, dashboards, and explicit upgrade triggers for every approved V1 service.
-
-Crossing a warning threshold does not authorize a paid upgrade. No agent may add a payment method, enable usage-based billing, accept overage terms, or upgrade a plan without explicit user approval.
 
 ## Retired Services
 

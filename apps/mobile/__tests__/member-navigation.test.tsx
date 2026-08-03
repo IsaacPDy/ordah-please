@@ -9,6 +9,27 @@ import {
   memberTabs,
 } from "../src/navigation/member-tabs";
 
+jest.mock("expo-router", () => {
+  const React = jest.requireActual<typeof import("react")>("react");
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+  return {
+    Link: (props: { children: React.ReactNode }) =>
+      React.createElement(View, { testID: "expo-link" }, props.children),
+    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+  };
+});
+
+jest.mock("../src/auth/auth-client", () => ({
+  getMobileAuthClient: () => {
+    throw new Error("no session in test");
+  },
+  readMobileApiUrl: () => "https://preview.ordah-please.test",
+  readMobileSessionCookie: () => {
+    throw new Error("no session in test");
+  },
+}));
+
 describe("member navigation", () => {
   it("provides the four approved member tabs with accessible names", () => {
     expect(memberTabs).toEqual([

@@ -72,12 +72,8 @@
           "name": "branches_restaurant_id_restaurants_id_fk",
           "tableFrom": "branches",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -87,18 +83,12 @@
         "branches_restaurant_id_source_key_unique": {
           "name": "branches_restaurant_id_source_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "restaurant_id",
-            "source_key"
-          ]
+          "columns": ["restaurant_id", "source_key"]
         },
         "branches_restaurant_id_id_unique": {
           "name": "branches_restaurant_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "restaurant_id",
-            "id"
-          ]
+          "columns": ["restaurant_id", "id"]
         }
       },
       "policies": {},
@@ -168,12 +158,8 @@
           "name": "catalog_imports_source_file_id_file_records_id_fk",
           "tableFrom": "catalog_imports",
           "tableTo": "file_records",
-          "columnsFrom": [
-            "source_file_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_file_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -181,12 +167,8 @@
           "name": "catalog_imports_validation_report_file_id_file_records_id_fk",
           "tableFrom": "catalog_imports",
           "tableTo": "file_records",
-          "columnsFrom": [
-            "validation_report_file_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["validation_report_file_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -194,12 +176,8 @@
           "name": "catalog_imports_created_by_user_id_users_id_fk",
           "tableFrom": "catalog_imports",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -246,12 +224,8 @@
           "name": "menu_categories_menu_version_id_menu_versions_id_fk",
           "tableFrom": "menu_categories",
           "tableTo": "menu_versions",
-          "columnsFrom": [
-            "menu_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["menu_version_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -261,10 +235,7 @@
         "menu_categories_version_sort_unique": {
           "name": "menu_categories_version_sort_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "menu_version_id",
-            "sort_order"
-          ]
+          "columns": ["menu_version_id", "sort_order"]
         }
       },
       "policies": {},
@@ -299,12 +270,8 @@
           "name": "menu_item_modifier_groups_menu_item_id_menu_items_id_fk",
           "tableFrom": "menu_item_modifier_groups",
           "tableTo": "menu_items",
-          "columnsFrom": [
-            "menu_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["menu_item_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -312,12 +279,8 @@
           "name": "menu_item_modifier_groups_modifier_group_id_menu_modifier_groups_id_fk",
           "tableFrom": "menu_item_modifier_groups",
           "tableTo": "menu_modifier_groups",
-          "columnsFrom": [
-            "modifier_group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["modifier_group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -325,10 +288,7 @@
       "compositePrimaryKeys": {
         "menu_item_modifier_groups_menu_item_id_modifier_group_id_pk": {
           "name": "menu_item_modifier_groups_menu_item_id_modifier_group_id_pk",
-          "columns": [
-            "menu_item_id",
-            "modifier_group_id"
-          ]
+          "columns": ["menu_item_id", "modifier_group_id"]
         }
       },
       "uniqueConstraints": {},
@@ -397,12 +357,8 @@
           "name": "menu_items_category_id_menu_categories_id_fk",
           "tableFrom": "menu_items",
           "tableTo": "menu_categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["category_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -412,10 +368,7 @@
         "menu_items_category_source_key_unique": {
           "name": "menu_items_category_source_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "category_id",
-            "source_key"
-          ]
+          "columns": ["category_id", "source_key"]
         }
       },
       "policies": {},
@@ -486,12 +439,8 @@
           "name": "menu_modifier_groups_menu_version_id_menu_versions_id_fk",
           "tableFrom": "menu_modifier_groups",
           "tableTo": "menu_versions",
-          "columnsFrom": [
-            "menu_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["menu_version_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -501,10 +450,7 @@
         "menu_modifier_groups_version_source_key_unique": {
           "name": "menu_modifier_groups_version_source_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "menu_version_id",
-            "source_key"
-          ]
+          "columns": ["menu_version_id", "source_key"]
         }
       },
       "policies": {},
@@ -576,12 +522,8 @@
           "name": "menu_modifier_options_modifier_group_id_menu_modifier_groups_id_fk",
           "tableFrom": "menu_modifier_options",
           "tableTo": "menu_modifier_groups",
-          "columnsFrom": [
-            "modifier_group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["modifier_group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -591,10 +533,7 @@
         "menu_modifier_options_group_source_key_unique": {
           "name": "menu_modifier_options_group_source_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "modifier_group_id",
-            "source_key"
-          ]
+          "columns": ["modifier_group_id", "source_key"]
         }
       },
       "policies": {},
@@ -662,12 +601,8 @@
           "name": "menu_variants_menu_item_id_menu_items_id_fk",
           "tableFrom": "menu_variants",
           "tableTo": "menu_items",
-          "columnsFrom": [
-            "menu_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["menu_item_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -677,10 +612,7 @@
         "menu_variants_item_source_key_unique": {
           "name": "menu_variants_item_source_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "menu_item_id",
-            "source_key"
-          ]
+          "columns": ["menu_item_id", "source_key"]
         }
       },
       "policies": {},
@@ -766,12 +698,8 @@
           "name": "menu_versions_branch_id_branches_id_fk",
           "tableFrom": "menu_versions",
           "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["branch_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -779,12 +707,8 @@
           "name": "menu_versions_source_import_id_catalog_imports_id_fk",
           "tableFrom": "menu_versions",
           "tableTo": "catalog_imports",
-          "columnsFrom": [
-            "source_import_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_import_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -794,18 +718,12 @@
         "menu_versions_branch_version_unique": {
           "name": "menu_versions_branch_version_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "branch_id",
-            "version_number"
-          ]
+          "columns": ["branch_id", "version_number"]
         },
         "menu_versions_branch_id_id_unique": {
           "name": "menu_versions_branch_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "branch_id",
-            "id"
-          ]
+          "columns": ["branch_id", "id"]
         }
       },
       "policies": {},
@@ -867,12 +785,8 @@
           "name": "refresh_review_outcomes_refresh_run_id_refresh_runs_id_fk",
           "tableFrom": "refresh_review_outcomes",
           "tableTo": "refresh_runs",
-          "columnsFrom": [
-            "refresh_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["refresh_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -880,12 +794,8 @@
           "name": "refresh_review_outcomes_decided_by_user_id_users_id_fk",
           "tableFrom": "refresh_review_outcomes",
           "tableTo": "users",
-          "columnsFrom": [
-            "decided_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["decided_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -960,12 +870,8 @@
           "name": "refresh_runs_restaurant_id_restaurants_id_fk",
           "tableFrom": "refresh_runs",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -973,12 +879,8 @@
           "name": "refresh_runs_created_by_user_id_users_id_fk",
           "tableFrom": "refresh_runs",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1111,12 +1013,8 @@
           "name": "file_records_owner_user_id_users_id_fk",
           "tableFrom": "file_records",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1126,9 +1024,7 @@
         "file_records_object_key_unique": {
           "name": "file_records_object_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "object_key"
-          ]
+          "columns": ["object_key"]
         }
       },
       "policies": {},
@@ -1220,12 +1116,8 @@
           "name": "admin_access_requests_requester_user_id_users_id_fk",
           "tableFrom": "admin_access_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "requester_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requester_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1233,12 +1125,8 @@
           "name": "admin_access_requests_group_id_groups_id_fk",
           "tableFrom": "admin_access_requests",
           "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1246,12 +1134,8 @@
           "name": "admin_access_requests_decided_by_user_id_users_id_fk",
           "tableFrom": "admin_access_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "decided_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["decided_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1353,12 +1237,8 @@
           "name": "group_addresses_group_id_groups_id_fk",
           "tableFrom": "group_addresses",
           "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1366,12 +1246,8 @@
           "name": "group_addresses_updated_by_user_id_users_id_fk",
           "tableFrom": "group_addresses",
           "tableTo": "users",
-          "columnsFrom": [
-            "updated_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1381,9 +1257,7 @@
         "group_addresses_group_id_unique": {
           "name": "group_addresses_group_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "group_id"
-          ]
+          "columns": ["group_id"]
         }
       },
       "policies": {},
@@ -1440,12 +1314,8 @@
           "name": "groups_created_by_user_id_users_id_fk",
           "tableFrom": "groups",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1517,12 +1387,8 @@
           "name": "invitations_group_id_groups_id_fk",
           "tableFrom": "invitations",
           "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1530,12 +1396,8 @@
           "name": "invitations_created_by_user_id_users_id_fk",
           "tableFrom": "invitations",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1543,12 +1405,8 @@
           "name": "invitations_accepted_by_user_id_users_id_fk",
           "tableFrom": "invitations",
           "tableTo": "users",
-          "columnsFrom": [
-            "accepted_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["accepted_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1558,9 +1416,7 @@
         "invitations_token_hash_unique": {
           "name": "invitations_token_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -1632,12 +1488,8 @@
           "name": "memberships_group_id_groups_id_fk",
           "tableFrom": "memberships",
           "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1645,12 +1497,8 @@
           "name": "memberships_user_id_users_id_fk",
           "tableFrom": "memberships",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1658,10 +1506,7 @@
       "compositePrimaryKeys": {
         "memberships_group_id_user_id_pk": {
           "name": "memberships_group_id_user_id_pk",
-          "columns": [
-            "group_id",
-            "user_id"
-          ]
+          "columns": ["group_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1727,9 +1572,7 @@
         "users_clerk_user_id_unique": {
           "name": "users_clerk_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "clerk_user_id"
-          ]
+          "columns": ["clerk_user_id"]
         }
       },
       "policies": {},
@@ -1798,12 +1641,8 @@
           "name": "audit_events_actor_user_id_users_id_fk",
           "tableFrom": "audit_events",
           "tableTo": "users",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1813,9 +1652,7 @@
         "audit_events_idempotency_key_unique": {
           "name": "audit_events_idempotency_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "idempotency_key"
-          ]
+          "columns": ["idempotency_key"]
         }
       },
       "policies": {},
@@ -1906,12 +1743,8 @@
           "name": "jobs_order_id_orders_id_fk",
           "tableFrom": "jobs",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1921,9 +1754,7 @@
         "jobs_idempotency_key_unique": {
           "name": "jobs_idempotency_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "idempotency_key"
-          ]
+          "columns": ["idempotency_key"]
         }
       },
       "policies": {},
@@ -2010,12 +1841,8 @@
           "name": "notifications_recipient_user_id_users_id_fk",
           "tableFrom": "notifications",
           "tableTo": "users",
-          "columnsFrom": [
-            "recipient_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["recipient_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2023,12 +1850,8 @@
           "name": "notifications_order_id_orders_id_fk",
           "tableFrom": "notifications",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2068,12 +1891,8 @@
           "name": "favorite_item_modifiers_favorite_item_id_favorite_items_id_fk",
           "tableFrom": "favorite_item_modifiers",
           "tableTo": "favorite_items",
-          "columnsFrom": [
-            "favorite_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["favorite_item_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2081,12 +1900,8 @@
           "name": "favorite_item_modifiers_modifier_option_id_menu_modifier_options_id_fk",
           "tableFrom": "favorite_item_modifiers",
           "tableTo": "menu_modifier_options",
-          "columnsFrom": [
-            "modifier_option_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["modifier_option_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2094,10 +1909,7 @@
       "compositePrimaryKeys": {
         "favorite_item_modifiers_favorite_item_id_modifier_option_id_pk": {
           "name": "favorite_item_modifiers_favorite_item_id_modifier_option_id_pk",
-          "columns": [
-            "favorite_item_id",
-            "modifier_option_id"
-          ]
+          "columns": ["favorite_item_id", "modifier_option_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2165,12 +1977,8 @@
           "name": "favorite_items_favorite_id_favorites_id_fk",
           "tableFrom": "favorite_items",
           "tableTo": "favorites",
-          "columnsFrom": [
-            "favorite_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["favorite_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2178,12 +1986,8 @@
           "name": "favorite_items_menu_item_id_menu_items_id_fk",
           "tableFrom": "favorite_items",
           "tableTo": "menu_items",
-          "columnsFrom": [
-            "menu_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["menu_item_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2191,12 +1995,8 @@
           "name": "favorite_items_variant_id_menu_variants_id_fk",
           "tableFrom": "favorite_items",
           "tableTo": "menu_variants",
-          "columnsFrom": [
-            "variant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["variant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2286,12 +2086,8 @@
           "name": "favorites_user_id_users_id_fk",
           "tableFrom": "favorites",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2299,12 +2095,8 @@
           "name": "favorites_branch_id_branches_id_fk",
           "tableFrom": "favorites",
           "tableTo": "branches",
-          "columnsFrom": [
-            "branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["branch_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2312,12 +2104,8 @@
           "name": "favorites_menu_version_id_menu_versions_id_fk",
           "tableFrom": "favorites",
           "tableTo": "menu_versions",
-          "columnsFrom": [
-            "menu_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["menu_version_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2325,14 +2113,8 @@
           "name": "favorites_menu_version_matches_branch_fk",
           "tableFrom": "favorites",
           "tableTo": "menu_versions",
-          "columnsFrom": [
-            "branch_id",
-            "menu_version_id"
-          ],
-          "columnsTo": [
-            "branch_id",
-            "id"
-          ],
+          "columnsFrom": ["branch_id", "menu_version_id"],
+          "columnsTo": ["branch_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2342,11 +2124,7 @@
         "favorites_user_branch_rank_unique": {
           "name": "favorites_user_branch_rank_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "branch_id",
-            "rank"
-          ]
+          "columns": ["user_id", "branch_id", "rank"]
         }
       },
       "policies": {},
@@ -2407,12 +2185,8 @@
           "name": "food_selections_favorite_id_favorites_id_fk",
           "tableFrom": "food_selections",
           "tableTo": "favorites",
-          "columnsFrom": [
-            "favorite_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["favorite_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2420,12 +2194,8 @@
           "name": "food_selections_resolved_by_user_id_users_id_fk",
           "tableFrom": "food_selections",
           "tableTo": "users",
-          "columnsFrom": [
-            "resolved_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resolved_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2433,14 +2203,8 @@
           "name": "food_selections_selected_participant_fk",
           "tableFrom": "food_selections",
           "tableTo": "order_participants",
-          "columnsFrom": [
-            "order_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "order_id",
-            "user_id"
-          ],
+          "columnsFrom": ["order_id", "user_id"],
+          "columnsTo": ["order_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2448,10 +2212,7 @@
       "compositePrimaryKeys": {
         "food_selections_order_id_user_id_pk": {
           "name": "food_selections_order_id_user_id_pk",
-          "columns": [
-            "order_id",
-            "user_id"
-          ]
+          "columns": ["order_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2506,12 +2267,8 @@
           "name": "order_line_modifiers_order_line_id_order_lines_id_fk",
           "tableFrom": "order_line_modifiers",
           "tableTo": "order_lines",
-          "columnsFrom": [
-            "order_line_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_line_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2606,12 +2363,8 @@
           "name": "order_lines_source_menu_item_id_menu_items_id_fk",
           "tableFrom": "order_lines",
           "tableTo": "menu_items",
-          "columnsFrom": [
-            "source_menu_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_menu_item_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2619,14 +2372,8 @@
           "name": "order_lines_selected_participant_fk",
           "tableFrom": "order_lines",
           "tableTo": "order_participants",
-          "columnsFrom": [
-            "order_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "order_id",
-            "user_id"
-          ],
+          "columnsFrom": ["order_id", "user_id"],
+          "columnsTo": ["order_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2713,12 +2460,8 @@
           "name": "order_participants_order_id_orders_id_fk",
           "tableFrom": "order_participants",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2726,12 +2469,8 @@
           "name": "order_participants_user_id_users_id_fk",
           "tableFrom": "order_participants",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2739,10 +2478,7 @@
       "compositePrimaryKeys": {
         "order_participants_order_id_user_id_pk": {
           "name": "order_participants_order_id_user_id_pk",
-          "columns": [
-            "order_id",
-            "user_id"
-          ]
+          "columns": ["order_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2869,12 +2605,8 @@
           "name": "orders_group_id_groups_id_fk",
           "tableFrom": "orders",
           "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2882,12 +2614,8 @@
           "name": "orders_organizer_user_id_users_id_fk",
           "tableFrom": "orders",
           "tableTo": "users",
-          "columnsFrom": [
-            "organizer_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organizer_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2895,12 +2623,8 @@
           "name": "orders_initial_restaurant_id_restaurants_id_fk",
           "tableFrom": "orders",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "initial_restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["initial_restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2908,12 +2632,8 @@
           "name": "orders_initial_branch_id_branches_id_fk",
           "tableFrom": "orders",
           "tableTo": "branches",
-          "columnsFrom": [
-            "initial_branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["initial_branch_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2921,12 +2641,8 @@
           "name": "orders_selected_restaurant_id_restaurants_id_fk",
           "tableFrom": "orders",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "selected_restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["selected_restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2934,12 +2650,8 @@
           "name": "orders_selected_branch_id_branches_id_fk",
           "tableFrom": "orders",
           "tableTo": "branches",
-          "columnsFrom": [
-            "selected_branch_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["selected_branch_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2947,14 +2659,8 @@
           "name": "orders_initial_branch_matches_restaurant_fk",
           "tableFrom": "orders",
           "tableTo": "branches",
-          "columnsFrom": [
-            "initial_restaurant_id",
-            "initial_branch_id"
-          ],
-          "columnsTo": [
-            "restaurant_id",
-            "id"
-          ],
+          "columnsFrom": ["initial_restaurant_id", "initial_branch_id"],
+          "columnsTo": ["restaurant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2962,14 +2668,8 @@
           "name": "orders_selected_branch_matches_restaurant_fk",
           "tableFrom": "orders",
           "tableTo": "branches",
-          "columnsFrom": [
-            "selected_restaurant_id",
-            "selected_branch_id"
-          ],
-          "columnsTo": [
-            "restaurant_id",
-            "id"
-          ],
+          "columnsFrom": ["selected_restaurant_id", "selected_branch_id"],
+          "columnsTo": ["restaurant_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3036,12 +2736,8 @@
           "name": "receipts_order_id_orders_id_fk",
           "tableFrom": "receipts",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3049,12 +2745,8 @@
           "name": "receipts_file_id_file_records_id_fk",
           "tableFrom": "receipts",
           "tableTo": "file_records",
-          "columnsFrom": [
-            "file_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["file_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3062,12 +2754,8 @@
           "name": "receipts_uploaded_by_user_id_users_id_fk",
           "tableFrom": "receipts",
           "tableTo": "users",
-          "columnsFrom": [
-            "uploaded_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["uploaded_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3077,16 +2765,12 @@
         "receipts_order_id_unique": {
           "name": "receipts_order_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "order_id"
-          ]
+          "columns": ["order_id"]
         },
         "receipts_file_id_unique": {
           "name": "receipts_file_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "file_id"
-          ]
+          "columns": ["file_id"]
         }
       },
       "policies": {},
@@ -3129,12 +2813,8 @@
           "name": "restaurant_votes_restaurant_id_restaurants_id_fk",
           "tableFrom": "restaurant_votes",
           "tableTo": "restaurants",
-          "columnsFrom": [
-            "restaurant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["restaurant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3142,14 +2822,8 @@
           "name": "restaurant_votes_selected_participant_fk",
           "tableFrom": "restaurant_votes",
           "tableTo": "order_participants",
-          "columnsFrom": [
-            "order_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "order_id",
-            "user_id"
-          ],
+          "columnsFrom": ["order_id", "user_id"],
+          "columnsTo": ["order_id", "user_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3157,10 +2831,7 @@
       "compositePrimaryKeys": {
         "restaurant_votes_order_id_user_id_pk": {
           "name": "restaurant_votes_order_id_user_id_pk",
-          "columns": [
-            "order_id",
-            "user_id"
-          ]
+          "columns": ["order_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -3173,30 +2844,17 @@
     "public.admin_request_status": {
       "name": "admin_request_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
+      "values": ["pending", "approved", "rejected"]
     },
     "public.catalog_import_status": {
       "name": "catalog_import_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "invalid",
-        "validated",
-        "published",
-        "failed"
-      ]
+      "values": ["draft", "invalid", "validated", "published", "failed"]
     },
     "public.favorite_availability": {
       "name": "favorite_availability",
       "schema": "public",
-      "values": [
-        "available",
-        "unavailable"
-      ]
+      "values": ["available", "unavailable"]
     },
     "public.file_purpose": {
       "name": "file_purpose",
@@ -3211,76 +2869,42 @@
     "public.file_status": {
       "name": "file_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "ready",
-        "failed"
-      ]
+      "values": ["pending", "ready", "failed"]
     },
     "public.food_response_status": {
       "name": "food_response_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "confirmed",
-        "declined",
-        "resolved"
-      ]
+      "values": ["pending", "confirmed", "declined", "resolved"]
     },
     "public.food_selection_source": {
       "name": "food_selection_source",
       "schema": "public",
-      "values": [
-        "saved_favorite",
-        "inline",
-        "organizer_resolution",
-        "declined"
-      ]
+      "values": ["saved_favorite", "inline", "organizer_resolution", "declined"]
     },
     "public.job_status": {
       "name": "job_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "running",
-        "completed",
-        "failed"
-      ]
+      "values": ["pending", "running", "completed", "failed"]
     },
     "public.membership_role": {
       "name": "membership_role",
       "schema": "public",
-      "values": [
-        "owner",
-        "organizer",
-        "member"
-      ]
+      "values": ["owner", "organizer", "member"]
     },
     "public.menu_version_status": {
       "name": "menu_version_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "published",
-        "superseded"
-      ]
+      "values": ["draft", "published", "superseded"]
     },
     "public.notification_status": {
       "name": "notification_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "sent",
-        "failed"
-      ]
+      "values": ["pending", "sent", "failed"]
     },
     "public.order_participant_role": {
       "name": "order_participant_role",
       "schema": "public",
-      "values": [
-        "organizer",
-        "member"
-      ]
+      "values": ["organizer", "member"]
     },
     "public.order_state": {
       "name": "order_state",
@@ -3297,12 +2921,7 @@
     "public.refresh_review_outcome": {
       "name": "refresh_review_outcome",
       "schema": "public",
-      "values": [
-        "auto_published",
-        "approved",
-        "rejected",
-        "failed"
-      ]
+      "values": ["auto_published", "approved", "rejected", "failed"]
     },
     "public.refresh_status": {
       "name": "refresh_status",
@@ -3318,19 +2937,12 @@
     "public.restaurant_choice_mode": {
       "name": "restaurant_choice_mode",
       "schema": "public",
-      "values": [
-        "voting_disabled",
-        "shortlist",
-        "global_catalog"
-      ]
+      "values": ["voting_disabled", "shortlist", "global_catalog"]
     },
     "public.restaurant_response_status": {
       "name": "restaurant_response_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "responded"
-      ]
+      "values": ["pending", "responded"]
     }
   },
   "schemas": {},

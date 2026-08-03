@@ -123,6 +123,71 @@ interface AdminRequestTransactionRunner {
   ): Promise<Result>;
 }
 
+type AdminRequestStatus = "pending" | "approved" | "rejected";
+
+interface AdminDecisionRepositories {
+  readonly access: {
+    decideAdminAccessRequest(input: {
+      readonly requestId: string;
+      readonly decision: "approved" | "rejected";
+      readonly decidedByUserId: string;
+      readonly decidedAt: Date;
+      readonly reason?: string;
+    }): Promise<{
+      readonly id: string;
+      readonly status: AdminRequestStatus;
+    }>;
+    findAdminAccessRequestById(requestId: string): Promise<
+      | {
+          readonly id: string;
+          readonly requesterUserId: string;
+          readonly groupId: string;
+          readonly status: AdminRequestStatus;
+        }
+      | undefined
+    >;
+    promoteToPlatformAdmin(userId: string): Promise<boolean>;
+  };
+  readonly auditEvents: {
+    appendOnce(input: {
+      readonly action: string;
+      readonly actorUserId: string | null;
+      readonly details: Readonly<Record<string, unknown>>;
+      readonly resourceId: string;
+      readonly resourceType: string;
+      readonly idempotencyKey: string;
+    }): Promise<{ readonly id: string } | undefined>;
+  };
+}
+
+interface AdminDecisionTransactionRunner {
+  run<Result>(
+    operation: (repositories: AdminDecisionRepositories) => Promise<Result>,
+  ): Promise<Result>;
+}
+
+interface AdminDecisionListRepositories {
+  readonly access: {
+    listPendingAdminAccessRequests(): Promise<
+      readonly {
+        readonly id: string;
+        readonly requesterUserId: string;
+        readonly requesterDisplayName: string;
+        readonly groupId: string;
+        readonly groupName: string;
+        readonly status: AdminRequestStatus;
+        readonly createdAt: Date;
+      }[]
+    >;
+  };
+}
+
+interface AdminDecisionListTransactionRunner {
+  run<Result>(
+    operation: (repositories: AdminDecisionListRepositories) => Promise<Result>,
+  ): Promise<Result>;
+}
+
 export interface IssueGroupInvitationCommand {
   readonly actorUserId: string;
   readonly deploymentId: string;
@@ -149,6 +214,14 @@ export interface ManageGroupMemberCommand {
 export interface SubmitAdminAccessRequestCommand {
   readonly actorUserId: string;
   readonly groupId: string;
+}
+
+export interface DecideAdminAccessRequestCommand {
+  readonly actorUserId: string;
+  readonly requestId: string;
+  readonly decision: "approved" | "rejected";
+  readonly reason?: string;
+  readonly now: Date;
 }
 
 const UNAVAILABLE_INVITATION_MESSAGE =
@@ -358,4 +431,102 @@ export function submitAdminAccessRequest(
     });
     return { requestId: request.id, status: "pending" };
   });
+}
+
+/** Applies one platform-admin's approve or reject decision with an idempotent audit row. */
+export function decideAdminAccessRequest(
+  command: DecideAdminAccessRequestCommand,
+  transactionRunner: AdminDecisionTransactionRunner,
+): Promise<{
+  readonly requestId: string;
+  readonly status: "approved" | "rejected";
+}> {
+  return transactionRunner.run(async (repositories) => {
+    const request = await repositories.access.findAdminAccessRequestById(
+      command.requestId,
+    );
+    if (request === undefined) {
+      throw new PublicApiError(
+        "NOT_FOUND",
+        "This admin access request could not be found.",
+      );
+    }
+    if (request.status !== "pending") {
+      throw new PublicApiError(
+        "CONFLICT",
+        "This admin access request has already been decided.",
+      );
+    }
+    if (request.requesterUserId === command.actorUserId) {
+      throw new PublicApiError(
+        "FORBIDDEN",
+        "You cannot decide your own platform-admin request.",
+      );
+    }
+
+    const updated = await repositories.access.decideAdminAccessRequest({
+      decidedAt: command.now,
+      decidedByUserId: command.actorUserId,
+      decision: command.decision,
+      ...(command.reason === undefined ? {} : { reason: command.reason }),
+      requestId: command.requestId,
+    });
+
+    if (command.decision === "approved") {
+      await repositories.access.promoteToPlatformAdmin(request.requesterUserId);
+    }
+
+    await repositories.auditEvents.appendOnce({
+      action:
+        command.decision === "approved"
+          ? "platform_admin.approved"
+          : "platform_admin.rejected",
+      actorUserId: command.actorUserId,
+      details: {
+        decision: command.decision,
+        reason: command.reason ?? null,
+        requesterUserId: request.requesterUserId,
+      },
+      idempotencyKey: `platform_admin:decide:${command.requestId}:${command.decision}`,
+      resourceId: updated.id,
+      resourceType: "admin_access_request",
+    });
+
+    if (updated.status === "pending") {
+      throw new Error(
+        "Admin access request did not transition to a decided status.",
+      );
+    }
+    return { requestId: updated.id, status: updated.status };
+  });
+}
+
+/** Returns every pending platform-admin request with the requester and group context the decider needs. */
+export async function listPendingAdminAccessRequests(
+  transactionRunner: AdminDecisionListTransactionRunner,
+): Promise<{
+  readonly requests: readonly {
+    readonly id: string;
+    readonly requesterUserId: string;
+    readonly requesterDisplayName: string;
+    readonly groupId: string;
+    readonly groupName: string;
+    readonly status: "pending";
+    readonly createdAt: string;
+  }[];
+}> {
+  const rows = await transactionRunner.run(async (repositories) => {
+    return repositories.access.listPendingAdminAccessRequests();
+  });
+  return {
+    requests: rows.map((row) => ({
+      createdAt: row.createdAt.toISOString(),
+      groupId: row.groupId,
+      groupName: row.groupName,
+      id: row.id,
+      requesterDisplayName: row.requesterDisplayName,
+      requesterUserId: row.requesterUserId,
+      status: "pending" as const,
+    })),
+  };
 }

@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   acceptGroupInvitation,
+  decideAdminAccessRequest,
   issueGroupInvitation,
+  listPendingAdminAccessRequests,
   manageGroupMember,
   submitAdminAccessRequest,
 } from "./access-service";
@@ -457,5 +459,345 @@ describe("access service", () => {
     });
     expect(access.createAdminAccessRequest).not.toHaveBeenCalled();
     expect(append).not.toHaveBeenCalled();
+  });
+});
+
+const baseDecisionRequest = {
+  decidedAt: null,
+  decidedByUserId: null,
+  createdAt: new Date("2026-07-28T08:00:00.000Z"),
+  groupId: "group-1",
+  id: "req-1",
+  requesterUserId: "owner-1",
+  status: "pending" as const,
+  decisionReason: null,
+};
+
+describe("decideAdminAccessRequest", () => {
+  it("approves a pending request, promotes the requester, and writes one idempotent audit row", async () => {
+    const findAdminAccessRequestById = vi.fn(() =>
+      Promise.resolve(baseDecisionRequest),
+    );
+    const decideAdminAccessRequestRepo = vi.fn(() =>
+      Promise.resolve({
+        ...baseDecisionRequest,
+        decidedAt: new Date("2026-07-30T08:00:00.000Z"),
+        decidedByUserId: "admin-1",
+        status: "approved" as const,
+      }),
+    );
+    const promoteToPlatformAdmin = vi.fn(() => Promise.resolve(true));
+    const appendOnce = vi.fn(() => Promise.resolve({ id: "audit-1" }));
+    const transactionRunner = {
+      run: <Result>(
+        operation: (repositories: {
+          access: {
+            findAdminAccessRequestById: typeof findAdminAccessRequestById;
+            decideAdminAccessRequest: typeof decideAdminAccessRequestRepo;
+            promoteToPlatformAdmin: typeof promoteToPlatformAdmin;
+          };
+          auditEvents: { appendOnce: typeof appendOnce };
+        }) => Promise<Result>,
+      ) =>
+        operation({
+          access: {
+            decideAdminAccessRequest: decideAdminAccessRequestRepo,
+            findAdminAccessRequestById,
+            promoteToPlatformAdmin,
+          },
+          auditEvents: { appendOnce },
+        }),
+    };
+
+    const result = await decideAdminAccessRequest(
+      {
+        actorUserId: "admin-1",
+        decision: "approved",
+        now: new Date("2026-07-30T08:00:00.000Z"),
+        requestId: "req-1",
+      },
+      transactionRunner,
+    );
+
+    expect(result).toEqual({ requestId: "req-1", status: "approved" });
+    expect(promoteToPlatformAdmin).toHaveBeenCalledWith("owner-1");
+    expect(appendOnce).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "platform_admin.approved",
+        actorUserId: "admin-1",
+        idempotencyKey: "platform_admin:decide:req-1:approved",
+        resourceId: "req-1",
+        resourceType: "admin_access_request",
+      }),
+    );
+  });
+
+  it("rejects a pending request without promoting and writes the rejected audit row", async () => {
+    const findAdminAccessRequestById = vi.fn(() =>
+      Promise.resolve(baseDecisionRequest),
+    );
+    const decideAdminAccessRequestRepo = vi.fn(() =>
+      Promise.resolve({
+        ...baseDecisionRequest,
+        decidedAt: new Date("2026-07-30T08:00:00.000Z"),
+        decidedByUserId: "admin-1",
+        decisionReason: "Not yet.",
+        status: "rejected" as const,
+      }),
+    );
+    const promoteToPlatformAdmin = vi.fn(() => Promise.resolve(true));
+    const appendOnce = vi.fn(() => Promise.resolve({ id: "audit-2" }));
+    const transactionRunner = {
+      run: <Result>(
+        operation: (repositories: {
+          access: {
+            findAdminAccessRequestById: typeof findAdminAccessRequestById;
+            decideAdminAccessRequest: typeof decideAdminAccessRequestRepo;
+            promoteToPlatformAdmin: typeof promoteToPlatformAdmin;
+          };
+          auditEvents: { appendOnce: typeof appendOnce };
+        }) => Promise<Result>,
+      ) =>
+        operation({
+          access: {
+            decideAdminAccessRequest: decideAdminAccessRequestRepo,
+            findAdminAccessRequestById,
+            promoteToPlatformAdmin,
+          },
+          auditEvents: { appendOnce },
+        }),
+    };
+
+    const result = await decideAdminAccessRequest(
+      {
+        actorUserId: "admin-1",
+        decision: "rejected",
+        now: new Date("2026-07-30T08:00:00.000Z"),
+        reason: "Not yet.",
+        requestId: "req-1",
+      },
+      transactionRunner,
+    );
+
+    expect(result).toEqual({ requestId: "req-1", status: "rejected" });
+    expect(promoteToPlatformAdmin).not.toHaveBeenCalled();
+    expect(appendOnce).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "platform_admin.rejected",
+        idempotencyKey: "platform_admin:decide:req-1:rejected",
+      }),
+    );
+  });
+
+  it("fails with NOT_FOUND when the request does not exist", async () => {
+    const findAdminAccessRequestById = vi.fn(() => Promise.resolve(undefined));
+    const transactionRunner = {
+      run: <Result>(
+        operation: (repositories: {
+          access: {
+            findAdminAccessRequestById: typeof findAdminAccessRequestById;
+            decideAdminAccessRequest: () => Promise<never>;
+            promoteToPlatformAdmin: () => Promise<never>;
+          };
+          auditEvents: { appendOnce: () => Promise<never> };
+        }) => Promise<Result>,
+      ) =>
+        operation({
+          access: {
+            decideAdminAccessRequest: vi.fn(() =>
+              Promise.reject(new Error("decide should not be called")),
+            ),
+            findAdminAccessRequestById,
+            promoteToPlatformAdmin: vi.fn(() =>
+              Promise.reject(new Error("promote should not be called")),
+            ),
+          },
+          auditEvents: {
+            appendOnce: vi.fn(() =>
+              Promise.reject(new Error("audit should not be called")),
+            ),
+          },
+        }),
+    };
+
+    await expect(
+      decideAdminAccessRequest(
+        {
+          actorUserId: "admin-1",
+          decision: "approved",
+          now: new Date("2026-07-30T08:00:00.000Z"),
+          requestId: "missing",
+        },
+        transactionRunner,
+      ),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("fails with CONFLICT when the request is no longer pending", async () => {
+    const findAdminAccessRequestById = vi.fn(() =>
+      Promise.resolve({
+        ...baseDecisionRequest,
+        status: "approved" as const,
+      }),
+    );
+    const transactionRunner = {
+      run: <Result>(
+        operation: (repositories: {
+          access: {
+            findAdminAccessRequestById: typeof findAdminAccessRequestById;
+            decideAdminAccessRequest: () => Promise<never>;
+            promoteToPlatformAdmin: () => Promise<never>;
+          };
+          auditEvents: { appendOnce: () => Promise<never> };
+        }) => Promise<Result>,
+      ) =>
+        operation({
+          access: {
+            decideAdminAccessRequest: vi.fn(() =>
+              Promise.reject(new Error("decide should not be called")),
+            ),
+            findAdminAccessRequestById,
+            promoteToPlatformAdmin: vi.fn(() =>
+              Promise.reject(new Error("promote should not be called")),
+            ),
+          },
+          auditEvents: {
+            appendOnce: vi.fn(() =>
+              Promise.reject(new Error("audit should not be called")),
+            ),
+          },
+        }),
+    };
+
+    await expect(
+      decideAdminAccessRequest(
+        {
+          actorUserId: "admin-1",
+          decision: "approved",
+          now: new Date("2026-07-30T08:00:00.000Z"),
+          requestId: "req-1",
+        },
+        transactionRunner,
+      ),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+
+  it("fails with FORBIDDEN when the admin is the requester", async () => {
+    const findAdminAccessRequestById = vi.fn(() =>
+      Promise.resolve({
+        ...baseDecisionRequest,
+        requesterUserId: "admin-1",
+      }),
+    );
+    const transactionRunner = {
+      run: <Result>(
+        operation: (repositories: {
+          access: {
+            findAdminAccessRequestById: typeof findAdminAccessRequestById;
+            decideAdminAccessRequest: () => Promise<never>;
+            promoteToPlatformAdmin: () => Promise<never>;
+          };
+          auditEvents: { appendOnce: () => Promise<never> };
+        }) => Promise<Result>,
+      ) =>
+        operation({
+          access: {
+            decideAdminAccessRequest: vi.fn(() =>
+              Promise.reject(new Error("decide should not be called")),
+            ),
+            findAdminAccessRequestById,
+            promoteToPlatformAdmin: vi.fn(() =>
+              Promise.reject(new Error("promote should not be called")),
+            ),
+          },
+          auditEvents: {
+            appendOnce: vi.fn(() =>
+              Promise.reject(new Error("audit should not be called")),
+            ),
+          },
+        }),
+    };
+
+    await expect(
+      decideAdminAccessRequest(
+        {
+          actorUserId: "admin-1",
+          decision: "approved",
+          now: new Date("2026-07-30T08:00:00.000Z"),
+          requestId: "req-1",
+        },
+        transactionRunner,
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("listPendingAdminAccessRequests", () => {
+  it("returns the repository rows untouched", async () => {
+    const listPendingAdminAccessRequestsRepo = vi.fn(() =>
+      Promise.resolve([
+        {
+          createdAt: new Date("2026-07-28T08:00:00.000Z"),
+          groupId: "group-1",
+          groupName: "Phoenix",
+          id: "req-1",
+          requesterDisplayName: "Owner Riley",
+          requesterUserId: "owner-1",
+          status: "pending" as const,
+        },
+      ]),
+    );
+    const transactionRunner = {
+      run: <Result>(
+        operation: (repositories: {
+          access: {
+            listPendingAdminAccessRequests: typeof listPendingAdminAccessRequestsRepo;
+          };
+        }) => Promise<Result>,
+      ) =>
+        operation({
+          access: {
+            listPendingAdminAccessRequests: listPendingAdminAccessRequestsRepo,
+          },
+        }),
+    };
+
+    const result = await listPendingAdminAccessRequests(transactionRunner);
+
+    expect(result).toEqual({
+      requests: [
+        {
+          createdAt: "2026-07-28T08:00:00.000Z",
+          groupId: "group-1",
+          groupName: "Phoenix",
+          id: "req-1",
+          requesterDisplayName: "Owner Riley",
+          requesterUserId: "owner-1",
+          status: "pending",
+        },
+      ],
+    });
+  });
+
+  it("returns an empty list when no pending requests exist", async () => {
+    const listPendingAdminAccessRequestsRepo = vi.fn(() => Promise.resolve([]));
+    const transactionRunner = {
+      run: <Result>(
+        operation: (repositories: {
+          access: {
+            listPendingAdminAccessRequests: typeof listPendingAdminAccessRequestsRepo;
+          };
+        }) => Promise<Result>,
+      ) =>
+        operation({
+          access: {
+            listPendingAdminAccessRequests: listPendingAdminAccessRequestsRepo,
+          },
+        }),
+    };
+
+    const result = await listPendingAdminAccessRequests(transactionRunner);
+
+    expect(result).toEqual({ requests: [] });
   });
 });

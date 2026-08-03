@@ -69,8 +69,11 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   ├── project-structure.md
 │   ├── design-structure.md
 │   ├── ui-context.md
-│   ├── services.md
-│   ├── service-limits.md
+│   ├── services/                # Service inventory, setup, limits, and stack glossary
+│   │   ├── services.md          # Simple list of services and their contributions
+│   │   ├── service-setup.md     # Provider setup, variables, and rename/rotation checklists
+│   │   ├── service-limits.md    # Free-tier allowances and warning thresholds
+│   │   └── technology-reference.md # Plain-language explanation of each technology
 │   ├── code-standards.md
 │   ├── ai-workflow-rules.md
 │   └── progress-tracker.md
@@ -94,7 +97,7 @@ Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries
 - Provider packages expose small interfaces so R2, OneSignal, or QStash can be replaced without rewriting the product.
 - API route handlers authenticate, validate, authorize, call one use case, and translate the result into a response.
 - `context/assets/ordah-please-option-1.png` is the approved V1 member-screen visual reference; implementation should reproduce its hierarchy and visual language without treating the bitmap as application UI.
-- `context/services.md` owns provider setup steps, variable names, environment placement, and rename/rotation checklists; it never stores real credential values.
+- `context/services/service-setup.md` owns provider setup steps, variable names, environment placement, and rename/rotation checklists; it never stores real credential values. `services.md`, `service-limits.md`, and `technology-reference.md` sit alongside it under `context/services/`.
 
 ## File Size and Splitting
 

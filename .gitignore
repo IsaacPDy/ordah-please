@@ -39,3 +39,10 @@ GoogleService-Info.plist
 # Logs
 *.log
 npm-debug.log*
+
+# Local worktrees
+.worktrees/
+
+# Agent tooling artifacts
+.superpowers/
+.claude/

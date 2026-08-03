@@ -25,6 +25,7 @@ export interface IdentityAccessRepository {
   listActiveMemberships(
     userId: string,
   ): Promise<readonly (typeof memberships.$inferSelect)[]>;
+  setPlatformAdminFlag(userId: string, value: boolean): Promise<boolean>;
 }
 
 /** Creates identity and access persistence operations without making permission decisions. */
@@ -80,5 +81,13 @@ export function createIdentityAccessRepository(
         .where(
           and(eq(memberships.userId, userId), isNull(memberships.removedAt)),
         ),
+    setPlatformAdminFlag: async (userId, value) => {
+      const [updated] = await database
+        .update(users)
+        .set({ isPlatformAdmin: value })
+        .where(eq(users.id, userId))
+        .returning({ id: users.id });
+      return updated !== undefined;
+    },
   };
 }

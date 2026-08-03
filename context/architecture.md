@@ -124,7 +124,7 @@ Cache only non-secret display data and short-lived session state. The server rem
 
 ## Cost Boundary
 
-Target required infrastructure cost is USD 0 per month using self-hosted Better Auth plus the Neon, R2, OneSignal, QStash, Vercel Hobby, Expo EAS Free, and GitHub Actions free allowances. Better Auth Infrastructure is not used. A custom domain is optional. Follow `context/service-limits.md`; no paid upgrade is authorized by a warning threshold.
+Target required infrastructure cost is USD 0 per month using self-hosted Better Auth plus the Neon, R2, OneSignal, QStash, Vercel Hobby, Expo EAS Free, and GitHub Actions free allowances. Better Auth Infrastructure is not used. A custom domain is optional. Follow `context/services/service-limits.md`; no paid upgrade is authorized by a warning threshold.
 
 ## Invariants
 

@@ -1,5 +1,6 @@
 import { designTokens } from "@ordah-please/ui";
 import type { LucideIcon } from "lucide-react-native";
+import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Surface, Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 type ShellScreenProps = Readonly<{
   description: string;
   emptyTitle: string;
+  header?: ReactNode;
   icon: LucideIcon;
   title: string;
 }>;
@@ -15,6 +17,7 @@ type ShellScreenProps = Readonly<{
 export function ShellScreen({
   description,
   emptyTitle,
+  header,
   icon: Icon,
   title,
 }: ShellScreenProps) {
@@ -45,6 +48,8 @@ export function ShellScreen({
             {title}
           </Text>
         </View>
+
+        {header === undefined || header === null ? null : header}
 
         <Surface elevation={1} style={styles.emptyState}>
           <View accessibilityElementsHidden style={styles.iconSurface}>

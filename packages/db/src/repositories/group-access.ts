@@ -2,12 +2,31 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 
 import {
   adminAccessRequests,
+  groups,
   invitations,
   memberships,
   users,
 } from "../schema/index.js";
 import type { RepositoryDatabase } from "./database.js";
 import { requireWrittenRow } from "./rows.js";
+
+export interface AdminAccessDecisionInput {
+  readonly requestId: string;
+  readonly decision: "approved" | "rejected";
+  readonly decidedByUserId: string;
+  readonly decidedAt: Date;
+  readonly reason?: string;
+}
+
+export interface PendingAdminAccessRequestRow {
+  readonly id: string;
+  readonly requesterUserId: string;
+  readonly requesterDisplayName: string;
+  readonly groupId: string;
+  readonly groupName: string;
+  readonly status: "pending" | "approved" | "rejected";
+  readonly createdAt: Date;
+}
 
 export interface GroupAccessRepository {
   acceptInvitation(
@@ -21,6 +40,12 @@ export interface GroupAccessRepository {
   createInvitation(
     input: typeof invitations.$inferInsert,
   ): Promise<typeof invitations.$inferSelect>;
+  decideAdminAccessRequest(
+    input: AdminAccessDecisionInput,
+  ): Promise<typeof adminAccessRequests.$inferSelect>;
+  findAdminAccessRequestById(
+    requestId: string,
+  ): Promise<typeof adminAccessRequests.$inferSelect | undefined>;
   findInvitationByTokenHash(
     tokenHash: string,
   ): Promise<typeof invitations.$inferSelect | undefined>;
@@ -34,6 +59,10 @@ export interface GroupAccessRepository {
       readonly userId: string;
     }[]
   >;
+  listPendingAdminAccessRequests(): Promise<
+    readonly PendingAdminAccessRequestRow[]
+  >;
+  promoteToPlatformAdmin(userId: string): Promise<boolean>;
   removeMembership(
     groupId: string,
     userId: string,
@@ -70,6 +99,35 @@ export function createGroupAccessRepository(
       requireWrittenRow(
         await database.insert(adminAccessRequests).values(input).returning(),
       ),
+    decideAdminAccessRequest: async (input) => {
+      const [updated] = await database
+        .update(adminAccessRequests)
+        .set({
+          status: input.decision,
+          decidedAt: input.decidedAt,
+          decidedByUserId: input.decidedByUserId,
+          decisionReason: input.reason ?? null,
+        })
+        .where(
+          and(
+            eq(adminAccessRequests.id, input.requestId),
+            eq(adminAccessRequests.status, "pending"),
+          ),
+        )
+        .returning();
+      if (updated === undefined) {
+        throw new Error("Admin access request is no longer pending.");
+      }
+      return updated;
+    },
+    findAdminAccessRequestById: async (requestId) => {
+      const [row] = await database
+        .select()
+        .from(adminAccessRequests)
+        .where(eq(adminAccessRequests.id, requestId))
+        .limit(1);
+      return row;
+    },
     findInvitationByTokenHash: async (tokenHash) => {
       const [invitation] = await database
         .select()
@@ -104,6 +162,30 @@ export function createGroupAccessRepository(
           and(eq(memberships.groupId, groupId), isNull(memberships.removedAt)),
         )
         .orderBy(asc(users.displayName)),
+    listPendingAdminAccessRequests: () =>
+      database
+        .select({
+          createdAt: adminAccessRequests.createdAt,
+          groupId: adminAccessRequests.groupId,
+          groupName: groups.name,
+          id: adminAccessRequests.id,
+          requesterDisplayName: users.displayName,
+          requesterUserId: adminAccessRequests.requesterUserId,
+          status: adminAccessRequests.status,
+        })
+        .from(adminAccessRequests)
+        .innerJoin(users, eq(users.id, adminAccessRequests.requesterUserId))
+        .innerJoin(groups, eq(groups.id, adminAccessRequests.groupId))
+        .where(eq(adminAccessRequests.status, "pending"))
+        .orderBy(asc(adminAccessRequests.createdAt)),
+    promoteToPlatformAdmin: async (userId) => {
+      const [updated] = await database
+        .update(users)
+        .set({ isPlatformAdmin: true })
+        .where(eq(users.id, userId))
+        .returning({ id: users.id });
+      return updated !== undefined;
+    },
     removeMembership: async (groupId, userId, removedAt) => {
       const [removed] = await database
         .update(memberships)
