@@ -73,19 +73,20 @@ Cache only non-secret display data and short-lived session state. The server rem
 - Web uses same-origin HTTP-only cookies. Android uses the Better Auth Expo plugin with SecureStore-backed cookies and sends that cookie to the trusted API.
 - Every API request verifies the Better Auth session, ensures or loads the application identity, loads application roles from Neon, and checks resource-level permission.
 - Group owners issue expiring invitation tokens whose public values are deployment-bound; Neon stores only their hashes so a database read cannot reveal a usable invitation.
-- Invitation acceptance consumes the token and creates or reactivates a member role in one transaction. A partial unique index permits at most one active group per user, while acceptance never enrolls the member in an order.
+- Invitation acceptance consumes the token and creates or reactivates one group membership in a transaction. A user may hold multiple active memberships with a different role in each group, while acceptance never enrolls the member in an order.
 - Browser product mutations reject cross-site origins before session work; Android may send its SecureStore cookie without a browser Origin header.
-- Group owners can list active members, promote members to organizers, demote organizers, remove non-owner members, and submit one pending platform-admin request. Compare-and-set updates and single-flight controls prevent duplicate role audits; every mutation is audited, while approval and rejection remain V1-06 behavior.
+- Group Owners and Managers act only through their effective action permissions. Role changes, removal, assignment, suspension, and account-wide Platform Admin overrides are audited; compare-and-set updates prevent duplicate role events.
 - Authentication deletion or session revocation never erases product history.
 - Platform admins manage catalog and admin requests.
-- Group owners manage membership and organizer promotion.
-- Organizers manage only orders they are authorized to organize.
+- Group Owners and Managers manage membership actions allowed by their effective permissions.
+- Managers manage only orders they are authorized to manage.
 - Members mutate only their own favorites and their own active-order responses.
 - Order data is visible only to the organizer and selected participants, except platform admins performing support or audit duties.
 
 ## Core Data Rules
 
-- A user belongs to at most one group.
+- A user may belong to multiple groups and has one role per group membership.
+- Each group has exactly one Group Owner and may have multiple Managers.
 - An order contains an explicit participant list; group membership alone never enrolls a user in an order.
 - Favorites belong to one user and one restaurant branch and have unique ranks 1 through 3.
 - A fourth favorite cannot be saved until an existing rank is replaced.

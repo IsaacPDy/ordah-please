@@ -12,22 +12,22 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   ├── mobile/                 # Expo Router Android shell and fixed application identity
 │   │   ├── __tests__/          # Jest/React Native Testing Library component tests
 │   │   ├── app/
-│   │   │   ├── (member)/       # Home, Orders, Favorites, and Team tab shells
+│   │   │   ├── (member)/       # Native Home, Orders, Favorites, and Groups tab views
 │   │   │   └── invite/         # Better Auth Google deep-link onboarding
 │   │   └── src/
 │   │       ├── auth/           # SecureStore cookie client and authenticated request boundary
-│   │       ├── components/     # Dynamic-text-safe native shell composition
+│   │       ├── components/     # Shared native member-page and access-screen composition
 │   │       ├── features/access/# Invitation acceptance and native onboarding UI
 │   │       ├── navigation/     # Shared member-tab labels, icons, and runtime styles
 │   │       └── theme/          # React Native Paper mapping to shared tokens
 │   └── web/                    # Next.js App Router shell for the PWA, admin portal, and API
 │       ├── app/
-│       │   ├── (member)/       # Responsive member Home, Orders, Favorites, and Team shells
-│       │   ├── admin/          # Separate desktop/responsive admin navigation shell
+│       │   ├── (member)/       # Responsive Home, Orders, Favorites, and multi-group views
+│       │   ├── admin/          # Overview, users/permissions, groups, catalog, import, refresh, access, and audit views
 │       │   ├── api/access/     # Authenticated invitation, membership, and admin-request routes
 │       │   ├── api/auth/       # Better Auth handler and Google OAuth callback
 │       │   ├── api/webhooks/   # Public signature-verified callbacks for non-auth providers
-│       │   ├── components/     # Web-only shell navigation and honest empty states
+│       │   ├── components/     # Web member/admin shells and reusable Groups/admin-page views
 │       │   ├── invite/         # PWA invitation sign-in and acceptance route
 │       │   ├── shell-colors.ts # Accessible semantic color pairings for approved tokens
 │       │   └── shell-navigation.ts # Separate member and admin destination definitions
@@ -87,7 +87,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 └── vitest.config.ts            # Node test projects and clean-clone workspace source resolution
 ```
 
-Tasks 0.1 through 0.3 create the framework, quality, and visual-shell boundaries. Task 0.3 adds only accessible empty navigation surfaces and shared visual tokens. Task 1.1 adds shared primitives and API envelopes; Task 1.2 adds provider-neutral catalog, favorite, order, and history shapes plus strict runtime parsers. Task 2.1 realizes those rules as focused Drizzle schema modules and a generated PostgreSQL migration while keeping provider access out of clients and domain code. Task 2.2 adds pooled server composition, transaction-scoped repository composition, and persistence-only interfaces without moving authorization or workflow rules into the database package. Task 2.3 adds development-only deterministic fixtures whose guarded transactional reruns restore the same fictional group and reviewed menu without duplicates. Task 3.1 originally added the trusted API boundary with Clerk. V1-04A replaces that provider-specific layer with Better Auth tables, server/client composition, session verification, first-request product identity provisioning, and no external identity webhook while preserving the ordered authorization executor and immutable product history. Task 3.2 adds hashed expiring invitations, one-group acceptance, audited owner membership actions, request-only platform-admin escalation, and equivalent PWA/Android onboarding on that Better Auth boundary. Old generated migrations remain unchanged as historical evidence.
+The current UI baseline replaces the original empty member shells with Home, Orders, Favorites, and Groups mock-data views on web/PWA and native mobile. The web admin shell now contains the approved eight desktop destinations and limits mobile navigation to Groups, Catalog, Access Requests, and Audit Log. These screens establish presentation and navigation only; upcoming journey bundles connect them to persistent multi-group, catalog, permission, order, receipt, and notification behavior.
 
 ## Ownership Rules
 

@@ -18,7 +18,7 @@ export function AdminNavigation() {
         return (
           <Link
             aria-current={isCurrent ? "page" : undefined}
-            className="admin-navigation__link"
+            className={`admin-navigation__link${item.mobileVisible ? "" : " admin-navigation__link--desktop-only"}`}
             href={item.href}
             key={item.href}
           >

@@ -2,6 +2,9 @@ import { render } from "@testing-library/react-native";
 import { designTokens } from "@ordah-please/ui";
 
 import HomeScreen from "../app/(member)/index";
+import FavoritesScreen from "../app/(member)/favorites";
+import OrdersScreen from "../app/(member)/orders";
+import TeamScreen from "../app/(member)/team";
 import {
   memberTabActiveColor,
   memberTabBarStyle,
@@ -49,9 +52,9 @@ describe("member navigation", () => {
         label: "Favorites",
       }),
       expect.objectContaining({
-        accessibilityLabel: "Team tab",
-        href: "/team",
-        label: "Team",
+        accessibilityLabel: "Groups tab",
+        href: "/groups",
+        label: "Groups",
       }),
     ]);
   });
@@ -66,14 +69,41 @@ describe("member navigation", () => {
     expect(memberTabBarStyle).not.toHaveProperty("paddingBottom");
   });
 
-  it("renders an honest empty home state without fake order data", async () => {
+  it("renders the approved active-order and restaurant Home sections", async () => {
     const screen = await render(<HomeScreen />);
 
     expect(screen.getByText("ordah please")).toBeTruthy();
-    expect(screen.getByRole("header", { name: "Your home" })).toBeTruthy();
-    expect(screen.getByText("Nothing needs your attention yet")).toBeTruthy();
+    expect(screen.getByText("Active group order")).toBeTruthy();
+    expect(screen.getByRole("header", { name: "Friday lunch" })).toBeTruthy();
+    expect(screen.getByText("Choose restaurant")).toBeTruthy();
+    expect(screen.getByRole("header", { name: "Restaurants" })).toBeTruthy();
     expect(screen.getByTestId("member-safe-area").props.edges).toEqual(
       expect.objectContaining({ bottom: "off", top: "additive" }),
     );
+  });
+
+  it("renders native Orders sections", async () => {
+    const screen = await render(<OrdersScreen />);
+
+    expect(screen.getByRole("header", { name: "Active orders" })).toBeTruthy();
+    expect(screen.getByRole("header", { name: "Order history" })).toBeTruthy();
+    expect(screen.getByText("Friday lunch")).toBeTruthy();
+  });
+
+  it("renders ranked native Favorites", async () => {
+    const screen = await render(<FavoritesScreen />);
+
+    expect(screen.getByText("Green Table · BGC")).toBeTruthy();
+    expect(screen.getByText("Rank 1")).toBeTruthy();
+    expect(screen.getByText("Remove restaurant favorites")).toBeTruthy();
+  });
+
+  it("renders multiple native groups and their roles", async () => {
+    const screen = await render(<TeamScreen />);
+
+    expect(screen.getByRole("header", { name: "Your groups" })).toBeTruthy();
+    expect(screen.getByText("Friends")).toBeTruthy();
+    expect(screen.getByText("Design team")).toBeTruthy();
+    expect(screen.getByText("Group Owner")).toBeTruthy();
   });
 });

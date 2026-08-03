@@ -3,8 +3,15 @@ import { describe, expect, it, vi } from "vitest";
 
 import AdminHomePage from "./admin/page";
 import AdminLayout from "./admin/layout";
+import AuditPage from "./admin/audit/page";
+import CatalogPage from "./admin/catalog/page";
+import ImportsPage from "./admin/imports/page";
+import RefreshPage from "./admin/refresh/page";
 import MemberLayout from "./(member)/layout";
+import FavoritesPage from "./(member)/favorites/page";
 import MemberHomePage from "./(member)/page";
+import OrdersPage from "./(member)/orders/page";
+import TeamPage from "./(member)/team/page";
 import { adminNavigation, memberNavigation } from "./shell-navigation";
 
 vi.mock("next/navigation", () => ({
@@ -17,10 +24,13 @@ describe("web navigation shells", () => {
       "Home",
       "Orders",
       "Favorites",
-      "Team",
+      "Groups",
     ]);
+    expect(memberNavigation.at(-1)?.href).toBe("/groups");
     expect(adminNavigation.map((item) => item.label)).toEqual([
       "Overview",
+      "Users & permissions",
+      "Groups",
       "Catalog",
       "Imports",
       "Refresh queue",
@@ -28,9 +38,14 @@ describe("web navigation shells", () => {
       "Audit log",
     ]);
     expect(memberNavigation).not.toBe(adminNavigation);
+    expect(
+      adminNavigation
+        .filter((item) => item.mobileVisible)
+        .map((item) => item.label),
+    ).toEqual(["Groups", "Catalog", "Access requests", "Audit log"]);
   });
 
-  it("renders an honest member empty state", () => {
+  it("renders the active-order and restaurant sections from the approved Home design", () => {
     const html = renderToStaticMarkup(
       <MemberLayout>
         <MemberHomePage />
@@ -38,11 +53,44 @@ describe("web navigation shells", () => {
     );
 
     expect(html).toContain("ordah please");
-    expect(html).toContain("Nothing needs your attention yet");
-    expect(html).not.toContain("Friday lunch");
+    expect(html).toContain("Active group order");
+    expect(html).toContain("Friday lunch");
+    expect(html).toContain("Choose restaurant");
+    expect(html).toContain("Restaurants");
+    expect(html).toContain("Green Table");
   });
 
-  it("renders a distinct admin shell entry state", () => {
+  it("renders active and historical orders with the approved filters", () => {
+    const html = renderToStaticMarkup(<OrdersPage />);
+
+    expect(html).toContain("Active orders");
+    expect(html).toContain("Order history");
+    expect(html).toContain("Group");
+    expect(html).toContain("Restaurant");
+    expect(html).toContain("Status");
+    expect(html).toContain("Date");
+  });
+
+  it("groups ranked Favorites under their exact restaurant branch", () => {
+    const html = renderToStaticMarkup(<FavoritesPage />);
+
+    expect(html).toContain("Green Table · BGC");
+    expect(html).toContain("Rank 1");
+    expect(html).toContain("Edit combination");
+    expect(html).toContain("Remove restaurant favorites");
+  });
+
+  it("shows multiple groups and role-aware member details", () => {
+    const html = renderToStaticMarkup(<TeamPage />);
+
+    expect(html).toContain("Your groups");
+    expect(html).toContain("Friends");
+    expect(html).toContain("Design team");
+    expect(html).toContain("Group Owner");
+    expect(html).toContain("Manager");
+  });
+
+  it("renders a distinct admin operations overview", () => {
     const html = renderToStaticMarkup(
       <AdminLayout>
         <AdminHomePage />
@@ -50,9 +98,27 @@ describe("web navigation shells", () => {
     );
 
     expect(html).toContain("Admin overview");
-    expect(html).toContain("No admin work is waiting");
+    expect(html).toContain("Pending decisions");
+    expect(html).toContain("Catalog coverage");
+    expect(html).toContain("Refresh failures");
     expect(html).not.toContain("Nothing needs your attention yet");
     expect(html).toContain('aria-label="Admin navigation"');
     expect(html.match(/<h1/g)).toHaveLength(1);
+  });
+
+  it("renders the catalog, imports, refresh queue, and audit workspaces", () => {
+    const html = [
+      <CatalogPage key="catalog" />,
+      <ImportsPage key="imports" />,
+      <RefreshPage key="refresh" />,
+      <AuditPage key="audit" />,
+    ]
+      .map((page) => renderToStaticMarkup(page))
+      .join("\n");
+
+    expect(html).toContain("Published restaurants");
+    expect(html).toContain("Import drafts");
+    expect(html).toContain("Weekly refresh queue");
+    expect(html).toContain("Permission override changed");
   });
 });

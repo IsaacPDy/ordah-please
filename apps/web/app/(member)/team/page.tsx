@@ -1,6 +1,6 @@
-import { TeamAccessPanel } from "../../../src/features/access/team-access-panel";
+import { GroupsOverview } from "../../components/groups-overview";
 
-/** Shows owner member management or an honest permission state for other roles. */
+/** Preserves the former Team URL while presenting the approved multi-group experience. */
 export default function TeamPage() {
-  return <TeamAccessPanel />;
+  return <GroupsOverview />;
 }

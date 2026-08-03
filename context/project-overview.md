@@ -9,51 +9,52 @@
 
 ## Overview
 
-ordah please is a private, invitation-only food-order planning app for fewer than 30 friends. It keeps a reviewed restaurant catalog, lets each member save up to three ranked order combinations per restaurant branch, coordinates restaurant voting and food confirmation, and compiles the final selections for an organizer to enter manually in Grab. It does not place or pay for orders automatically.
+ordah please is a private food-order planning app for fewer than 30 friends. Any Google account may enter the restaurant-and-Favorites area, while group invitations or admin assignment unlock group ordering. The app keeps a reviewed restaurant catalog, lets each member save up to three ranked order combinations per restaurant branch by default, coordinates restaurant voting and food confirmation, and compiles final selections for a Manager or Group Owner to enter manually in Grab. It does not place or pay for orders automatically.
 
 ## Goals
 
-1. Let invited users sign in with Google and participate in one private group.
+1. Let any Google account sign in, browse restaurants, manage Favorites, and join multiple private groups.
 2. Let admins maintain a trusted global catalog inside the private deployment.
 3. Let members save and rank three complete food combinations per restaurant branch.
-4. Let organizers run a two-stage restaurant-selection and food-confirmation process with deadlines.
+4. Let Managers and Group Owners run a two-stage restaurant-selection and food-confirmation process with deadlines.
 5. Produce a consolidated, copyable Grab handoff with a per-member breakdown and food subtotal.
 6. Preserve complete order history and optional receipt evidence.
 7. Keep prototype infrastructure at approximately USD 0 per month within free-tier limits.
 
 ## Roles
 
-- **Platform admin:** Maintains the global catalog, reviews imports and refreshes, handles admin-access requests, and performs limited mobile admin actions.
-- **Group owner:** Manages group membership and promotes or removes organizers.
-- **Organizer:** Creates and manages group orders and completes the Grab handoff.
+- **Platform Admin:** Maintains the global catalog, users, account-wide permission overrides, groups, imports, refreshes, access requests, and audit history. Mobile admin is limited to Groups, Catalog, Access Requests, and Audit Log.
+- **Group Owner:** Owns one or more groups, manages each owned group's settings and membership, and inherits Manager and Member permissions there. Each group still has exactly one owner.
+- **Manager:** Creates and manages orders, handles permitted membership actions, and completes the Grab handoff for groups where the role applies.
 - **Member:** Manages personal favorites, votes, confirms food, and views orders in which they participate.
 
 The first platform admin is assigned manually. A group owner may request platform-admin access; one existing platform admin can approve or reject the request.
 
 ## Core User Flow
 
-1. A user opens an invitation link and signs in with Google.
-2. The user joins the single private group but is not automatically included in any order.
+1. A user signs in with Google and may immediately browse restaurants and manage Favorites.
+2. A Group Owner invitation or Platform Admin assignment adds the user to one or more groups, but group membership never includes the user in an order automatically.
 3. Platform admins populate the global catalog using reviewed JSON or CSV collected externally with Codex Computer Use.
 4. A member browses a restaurant and saves up to three ranked, fully configured order combinations.
-5. A group owner or organizer starts an order, selects the participating members, and confirms the group's default delivery address or overrides it for this order.
-6. The organizer chooses an initial fallback restaurant, sets both deadlines, and either disables voting, provides a shortlist, or permits choices from the global catalog.
-7. Selected participants vote. A restaurant wins with at least 50% of selected participants; the organizer and organizer's initial vote count. The initial restaurant wins if no alternative reaches the threshold or if the result is tied.
+5. A Group Owner or Manager starts an order, selects the participating members, and confirms the group's default delivery address or overrides it for this order.
+6. The creator chooses an initial fallback restaurant, sets both deadlines, decides whether members may post their own receipts, and either disables voting, provides a shortlist, or permits choices from the global catalog.
+7. Selected participants vote. A restaurant wins with at least 50% of selected participants. The initial restaurant wins if no alternative reaches the threshold or if the result is tied.
 8. After restaurant resolution, selected members confirm food. Rank 1 is included automatically unless changed or declined.
-9. Members without a valid saved combination select a new one. If they miss the deadline, the organizer chooses for them.
+9. Members without a valid saved combination select a new one. If they miss the deadline, a Manager or Group Owner resolves it for them.
 10. The app consolidates the selections, shows the food subtotal and member breakdown, produces copyable text, and opens the restaurant branch in Grab.
-11. The organizer manually enters and purchases the order in Grab.
-12. The organizer returns and marks the order Ordered or Cancelled, optionally attaching a receipt screenshot.
-13. The completed order is retained in history. Organizer-chosen food is offered to the affected member as a possible favorite after the order.
+11. A Manager or Group Owner manually enters and purchases the order in Grab.
+12. They return and mark the order Ordered or Cancelled, optionally attaching the full-order receipt. Members may add their own receipts only when enabled for that order.
+13. The completed order is retained in history. Manager-selected food is offered to the affected member as a possible favorite after the order.
 
 ## Features
 
 ### Identity and Access
 
 - Google sign-in through self-hosted Better Auth.
-- Private invitation links.
-- One group per user.
-- Group owner, organizer, member, and platform-admin permissions stored in Neon.
+- Restaurant and Favorites access immediately after Google sign-in.
+- Private group invitations and Platform Admin membership assignment.
+- Multiple groups per user with Group Owner, Manager, or Member role per group.
+- Platform Admin account-wide grant or block overrides stored and audited in Neon.
 - Admin-access request and approval workflow.
 
 ### Restaurant Catalog
@@ -75,10 +76,10 @@ The first platform admin is assigned manually. A group owner may request platfor
 
 ### Group Ordering
 
-- Organizer-selected participants per order.
-- One saved group delivery address with an organizer override on each order.
+- Manager-selected participants per order.
+- One saved group delivery address with a Manager or Group Owner override on each order.
 - Optional restaurant voting with shortlist or global-catalog choices.
-- Organizer-defined voting and food deadlines.
+- Manager-defined voting and food deadlines.
 - Push notifications and in-app notification history.
 - Automatic Rank 1 inclusion with member opt-out or change.
 - Consolidated item totals and per-member detail.
@@ -87,16 +88,16 @@ The first platform admin is assigned manually. A group owner may request platfor
 
 - Manual Ordered or Cancelled confirmation.
 - Optional receipt screenshot.
-- Permanent history containing branch, participants, selections, captured prices, subtotal, organizer, status, and timestamps.
+- Permanent history containing branch, participants, selections, captured prices, subtotal, order manager, status, receipts, and timestamps.
 
 ## Scope
 
 ### V1 In Scope
 
-- Private deployment for fewer than 30 invited friends.
+- Private deployment for fewer than 30 friends using Google accounts.
 - Native Android app distributed privately as an APK.
 - Installable iPhone PWA and responsive web admin portal.
-- One private group per user.
+- Multiple private groups per user with a different role in each group.
 - One global catalog visible to accepted users of this deployment.
 - External Codex Computer Use collection followed by admin-reviewed import.
 - Google sign-in, push notifications, deadlines, voting, favorites, handoff, receipts, and history.
@@ -109,7 +110,6 @@ The first platform admin is assigned manually. A group owner may request platfor
 - Payment is made by the organizer in Grab and any repayment happens outside ordah please.
 - Public or commercial redistribution of Grab data.
 - Unattended backend scraping or bypassing Grab access controls.
-- Multiple groups per user.
 - Restaurant recommendations based on dietary profiles or AI.
 - Group chat, delivery tracking, promotions, service fees, and delivery-fee estimation.
 
@@ -122,12 +122,12 @@ The first platform admin is assigned manually. A group owner may request platfor
 ## Success Criteria
 
 1. An admin can import and publish at least one reviewed restaurant and menu.
-2. Invited friends can sign in, join the group, and maintain three ranked combinations.
-3. An organizer can select participants and complete both ordering stages.
+2. Google users can browse restaurants, maintain ranked combinations, and join multiple groups through assignment or invitation.
+3. A Manager or Group Owner can select participants and complete both ordering stages.
 4. Voting resolves according to the approved threshold, fallback, and tie rules.
-5. Non-responders with valid favorites receive Rank 1; other unresolved members can be handled by the organizer.
+5. Non-responders with valid favorites receive Rank 1; other unresolved members can be handled by a Manager or Group Owner.
 6. The app compiles a correct order, food subtotal, member breakdown, and Grab handoff.
-7. The organizer can record Ordered or Cancelled and optionally attach a receipt.
+7. A Manager or Group Owner can record Ordered or Cancelled and attach a receipt; enabled members can add their own receipts.
 8. The completed order is visible in permanent history.
 9. Android push and iPhone PWA web push work for invited users.
 10. The system remains inside the defined security boundaries and targeted free tiers during prototype use.

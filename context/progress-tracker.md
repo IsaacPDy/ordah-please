@@ -1,20 +1,18 @@
 # Progress Tracker
 
-Current state and pending work only. Historical completion evidence, session notes, and per-task verification logs live in [`context/history/`](history/) — one file per task (`v1-XX.md`). Append to the matching file when a task is squash-merged to `main`.
-
-Update this file when implementation changes the current goal or moves a pending task to done.
+Current product state and remaining journey bundles only. Completed numbered-task evidence stays in [`context/history/`](history/).
 
 ## Current Phase
 
-- V1-06 platform-admin approval complete and squash-merged to `main`.
-- V1-05 invitation-only access, roles, and admin-request submission complete and squash-merged to `main`.
-- Next task: V1-07 R2 private storage, direct signed uploads, and file metadata. No task branch yet.
+- V1-01 through V1-06 remain complete and squash-merged to `main`.
+- The approved member and admin UI baseline is now coded with realistic mock data on web/PWA and native mobile.
+- The UI baseline is presentation only. Multiple-group persistence, effective permission enforcement, restaurant data, order actions, uploads, notifications, and background work are not connected yet.
 
 ## Current Goal
 
-Pick up V1-07 from the reviewed V1-06 `main` boundary: private Cloudflare R2 storage, direct signed uploads, and file metadata. V1-06B (mobile `/team` parity with the web owner surface) is a deferred follow-up and may be slotted before V1-22 verification at the user's discretion.
+Start with **Multi-group foundation**. It changes the old one-group data and authorization boundary that every later group, order, and permission journey depends on.
 
-## V1 Implementation Tasks
+## Completed Product History
 
 - [x] V1-01 Initialize the TypeScript monorepo, shared tooling, Expo Android app, and Next.js web app
 - [x] V1-02 Define shared API contracts and provider-neutral domain types
@@ -23,49 +21,52 @@ Pick up V1-07 from the reviewed V1-06 `main` boundary: private Cloudflare R2 sto
 - [x] V1-04A Replace Clerk authentication with Better Auth on Neon
 - [x] V1-05 Implement invitation-only access, one-group membership, owners, organizers, members, and admin requests
 - [x] V1-06 Implement platform-admin approval and limited mobile-admin permissions
-- [ ] V1-06B Mobile `/team` parity with the web owner surface (deferred from V1-06)
-- [ ] V1-07 Implement R2 private storage, direct signed uploads, and file metadata
-- [ ] V1-08 Build JSON/CSV catalog import, validation, draft review, publication, and audit history
-- [ ] V1-09 Build weekly supervised refresh for every imported restaurant, admin pause, comparisons, stale fallback, and risk-based publication
-- [ ] V1-10 Build global restaurant browsing, branch detail, menu display, and stale-data warnings
-- [ ] V1-11 Build three ranked favorite combinations, replacement, modifiers, quantities, and availability checks
-- [ ] V1-12 Build group default delivery address, per-order override, order creation, participant selection, fallback restaurant, choice mode, and deadlines
-- [ ] V1-13 Build restaurant voting, 50% threshold, organizer vote, fallback, tie handling, and deadline transition
-- [ ] V1-14 Build food confirmation, Rank 1 automatic inclusion, opt-out, new combinations, and organizer resolution
-- [ ] V1-15 Integrate QStash delayed jobs, reminders, signed callbacks, retries, and idempotency
-- [ ] V1-16 Integrate OneSignal Android push, iPhone web push, and in-app notification history
-- [ ] V1-17 Build consolidated item totals, per-member breakdown, food subtotal, copyable text, and Grab handoff
-- [ ] V1-18 Build manual Ordered or Cancelled completion, optional receipt, and immutable order history
-- [ ] V1-19 Build post-order favorite approval for organizer-chosen food
-- [ ] V1-20 Complete iPhone PWA installation guidance and notification onboarding
-- [ ] V1-21 Complete Android private APK build and installation workflow
-- [ ] V1-22 Complete security, accessibility, failure-state, cross-platform, and end-to-end verification
-- [ ] V1-23 Confirm free-tier monitoring and document upgrade triggers without enabling paid plans
 
-## Architecture Decisions
+## Journey Bundles
 
-- Use split clients: Expo Android and Next.js iPhone PWA/admin.
-- Use Vercel as the trusted API boundary.
-- Use Neon PostgreSQL for relational product data and roles.
-- Use Google OAuth for identity proof and self-hosted Better Auth for sessions; do not use Better Auth Infrastructure.
-- Keep Better Auth records separate from product users and keep all product roles in Neon product tables.
-- Use `context/services/service-limits.md` for current allowances and warning thresholds; no threshold authorizes paid usage.
-- Use private Cloudflare R2 for images, receipts, and imports.
-- Use OneSignal for Android and web-push delivery.
-- Use QStash for deadline work and recurring reminders.
-- Keep Computer Use external, supervised, and import-based.
-- Keep Grab checkout manual and preserve an immutable history snapshot.
-- Target USD 0 required monthly infrastructure cost during V1 prototype use.
+The dependency label states whether a bundle is sequential or may run separately after its prerequisite is complete.
 
-## Open V1 Decisions
+### Foundation sequence
+
+- [ ] **Multi-group foundation** — First and sequential. Migrate one-group membership to multiple memberships, rename Organizer to Manager, preserve existing users/invitations/audit history, and enforce one Group Owner per group.
+- [ ] **Effective permissions and account overrides** — Sequential after Multi-group foundation. Define every action permission, calculate role defaults plus account-wide grants/blocks atomically, protect the Platform Admin account, and audit every change.
+- [ ] **Group membership journey** — Sequential after Effective permissions. Connect invitations, direct admin assignment, Manager acceptance, leave/remove/rejoin, suspension, archive, group detail, and member management.
+
+### Can proceed separately after Multi-group foundation
+
+- [ ] **Restaurant catalog and Favorites journey** — Separate. Connect global browsing before membership, filters, exact branch menus, three ranked combinations, edit/removal confirmation, and admin-configurable rank limit.
+- [ ] **Private files and import journey** — Separate. Add private R2 signed uploads and metadata, then connect JSON/CSV validation, draft comparison, publication, receipts, and audit history.
+- [ ] **Platform Admin operations journey** — Separate after Effective permissions. Connect Overview, Users and Permissions, Groups, Catalog, Imports, Refresh Queue, Access Requests, and Audit Log; keep mobile admin limited to Groups, Catalog, Access Requests, and Audit Log.
+
+### Order sequence
+
+- [ ] **Order setup and participant journey** — Sequential after Group membership and Restaurant catalog. Connect group address/default override, participant selection, initial restaurant, choice mode, deadlines, fallback, and member-receipt setting.
+- [ ] **Restaurant voting journey** — Sequential after Order setup. Connect selected-participant voting, 50% threshold, initial-restaurant fallback, ties, deadline state, and manual missed-deadline resolution.
+- [ ] **Food confirmation journey** — Sequential after Restaurant voting. Connect Rank 1 automatic inclusion, opt-out/change, new combinations, unavailable food, and Manager resolution.
+- [ ] **Handoff and completion journey** — Sequential after Food confirmation. Connect consolidated lines, member breakdown, food subtotal, copyable text, Grab handoff, and Ordered or Cancelled completion.
+- [ ] **Receipts, history, and post-order Favorites journey** — Sequential after Handoff. Connect full-order receipts, optional member receipts, immutable order snapshots, filters, and approval of Manager-selected food as a Favorite.
+
+### Operational sequence
+
+- [ ] **Catalog refresh journey** — Sequential after Private files and import journey. Connect weekly supervised refresh, pause, comparisons, stale fallback, risk review, and failure recovery.
+- [ ] **Deadlines and notifications journey** — May run separately after Order setup contracts stabilize. Connect QStash callbacks/retries/idempotency, OneSignal Android and web push, and in-app notification history.
+- [ ] **Client delivery journey** — Sequential after the full member order loop. Complete iPhone PWA installation/notification guidance and private Android APK workflow.
+- [ ] **Release verification journey** — Final and sequential. Verify security, discoverable admin authorization, accessibility, loading/empty/error/denied/suspended states, browser/PWA behavior, Android emulator behavior, production behavior, and free-tier monitoring.
+
+## Completion Evidence
+
+- Web/PWA bundles require focused automated tests, lint, type checking, production build, and browser verification.
+- Native-mobile bundles require focused automated tests, lint, type checking, and Android emulator verification.
+- Persistence or provider bundles additionally require migration/provider integration tests without exposing secrets.
+- A UI screen using mock data does not count as connected journey completion.
+
+## Open Product Decisions
 
 - Choose whether to purchase a custom domain or use the free Vercel domain.
-- Confirm the exact Grab branch-link behavior available during implementation; the copyable handoff remains the required fallback.
+- Confirm the exact Grab branch-link behavior available during implementation; copyable handoff remains required.
 
-## V2 / Out of Scope
+## Out of Scope
 
-- Public release or public registration
-- Multiple groups per user
 - Automatic Grab cart, checkout, payment, or order placement
 - In-app payment collection or repayment tracking
 - Unattended menu scraping

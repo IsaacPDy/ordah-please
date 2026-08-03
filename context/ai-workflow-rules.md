@@ -2,13 +2,13 @@
 
 ## Approach
 
-Build V1 in numbered tasks from `progress-tracker.md`. Read the context files first. Implement one verifiable unit at a time. Stay within V1.
+Build the journey bundles from `progress-tracker.md`. Read the context files first. Implement one verifiable unit at a time and respect each bundle's dependency label.
 
 ## Scoping Rules
 
-- One V1 task at a time.
+- One journey bundle at a time unless the tracker explicitly marks independent work as safe to run separately.
 - Do not combine client UI, schema changes, provider integration, and background work unless the spec requires the full slice.
-- Do not implement public, commercial, multi-group, payment, automatic Grab ordering, or unattended scraping behavior.
+- Do not implement public, commercial, payment, automatic Grab ordering, or unattended scraping behavior. Multiple private groups per user are approved and required.
 - Do not replace an approved provider without updating `architecture.md`, its migration design, and the service registry after approval.
 - Stay within free tiers unless the user explicitly authorizes a paid change.
 

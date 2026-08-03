@@ -9,11 +9,11 @@ import {
 
 export type MemberTab = Readonly<{
   accessibilityLabel: string;
-  href: "/" | "/orders" | "/favorites" | "/team";
+  href: "/" | "/orders" | "/favorites" | "/groups";
   icon: LucideIcon;
   label: string;
   minimumTouchTarget: number;
-  routeName: "index" | "orders" | "favorites" | "team";
+  routeName: "index" | "orders" | "favorites" | "groups";
 }>;
 
 /** Uses the approved high-emphasis green where active tab text must remain readable on white. */
@@ -60,11 +60,11 @@ export const memberTabs: readonly MemberTab[] = [
     routeName: "favorites",
   },
   {
-    accessibilityLabel: "Team tab",
-    href: "/team",
+    accessibilityLabel: "Groups tab",
+    href: "/groups",
     icon: Users,
-    label: "Team",
+    label: "Groups",
     minimumTouchTarget: designTokens.touchTarget.minimum,
-    routeName: "team",
+    routeName: "groups",
   },
 ];

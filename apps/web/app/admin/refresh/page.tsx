@@ -1,15 +1,55 @@
-import { RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
-import { EmptyPage } from "../../components/empty-page";
+import { AdminPage } from "../../components/admin-page";
 
-/** Shows the refresh destination before supervised catalog work exists. */
+/** Prioritizes weekly supervised refresh work while preserving the last approved menu on failure. */
 export default function RefreshPage() {
   return (
-    <EmptyPage
-      description="Weekly refresh work and failures will appear here."
-      emptyTitle="No refresh work yet"
-      icon={RefreshCw}
-      title="Refresh queue"
-    />
+    <AdminPage
+      description="Refreshes are supervised. A failure never erases the last published menu."
+      eyebrow="Catalog freshness"
+      title="Weekly refresh queue"
+    >
+      <section className="admin-panel">
+        <div className="admin-work-list">
+          <article>
+            <span className="admin-work-icon admin-work-icon--warning">
+              <AlertTriangle aria-hidden="true" />
+            </span>
+            <div>
+              <strong>Green Table · BGC</strong>
+              <p>Failed today · last approved menu is still live</p>
+            </div>
+            <button className="secondary-action" type="button">
+              Review failure
+            </button>
+          </article>
+          <article>
+            <span className="admin-work-icon">
+              <RefreshCw aria-hidden="true" />
+            </span>
+            <div>
+              <strong>Crispy Chicken · BGC</strong>
+              <p>Due tomorrow · 29 published items</p>
+            </div>
+            <button className="secondary-action" type="button">
+              Start review
+            </button>
+          </article>
+          <article>
+            <span className="admin-work-icon">
+              <RefreshCw aria-hidden="true" />
+            </span>
+            <div>
+              <strong>Fresh Bowls · Makati</strong>
+              <p>Due in 5 days · last reviewed yesterday</p>
+            </div>
+            <button className="secondary-action" type="button">
+              Open
+            </button>
+          </article>
+        </div>
+      </section>
+    </AdminPage>
   );
 }

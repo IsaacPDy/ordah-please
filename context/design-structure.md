@@ -9,13 +9,13 @@
 - Restaurant detail and menu
 - Favorite combination editor and ranking
 - Active order voting and confirmation
-- Consolidated handoff for organizers
+- Consolidated handoff for Managers and Group Owners
 - Order history
 - Limited mobile admin actions
 
 ### iPhone PWA
 
-- Mirrors member and organizer capabilities required for the full order loop.
+- Mirrors Member, Manager, and Group Owner capabilities required for the full order loop.
 - Provides installation and notification-permission guidance.
 - Uses browser-safe file, share, and outgoing-link behavior.
 
@@ -31,13 +31,13 @@
 ## Core Components
 
 - **Invitation Onboarding:** Preserves one private invitation through Better Auth Google sign-in, explains that group membership is separate from order participation, and accepts only after authentication.
-- **Team Access:** Shows exact Owner, Organizer, and Member labels; lets only the owner issue invitation links or change non-owner membership; and requires confirmation before removal.
+- **Groups Access:** Lists multiple memberships, shows exact Group Owner, Manager, and Member labels, and reveals actions from the user's effective role permissions and account-wide overrides.
 - **Catalog Browser:** Finds published restaurants and exact branches.
 - **Menu Viewer:** Shows versioned items, modifiers, availability, and captured prices.
 - **Favorite Builder:** Saves complete combinations and enforces three ranks.
 - **Order Creator:** Selects participants, restaurant-choice mode, fallback, and deadlines.
-- **Restaurant Vote:** Applies the 50% threshold and organizer fallback/tie rules.
-- **Food Confirmation:** Applies default Rank 1, member changes, opt-out, and organizer resolution.
+- **Restaurant Vote:** Applies the 50% threshold and initial-restaurant fallback/tie rules.
+- **Food Confirmation:** Applies default Rank 1, member changes, opt-out, and Manager resolution.
 - **Handoff Summary:** Consolidates identical lines while preserving member ownership.
 - **History Viewer:** Shows immutable captured order details and optional receipt.
 - **Import Reviewer:** Compares collected data with the published menu and classifies risk.
@@ -49,7 +49,7 @@
 - Show the current order stage, deadline, and consequence of no response on every active-order screen.
 - Distinguish preselection from confirmed change, while clearly stating that Rank 1 is automatically included at deadline.
 - Never present the food subtotal as Grab's final checkout price.
-- Keep the organizer's unresolved-action list visible before handoff.
+- Keep the Manager's unresolved-action list visible before handoff.
 - Show stale-menu and failed-refresh warnings without erasing usable historical data.
 - Make destructive catalog publication and role approval explicit and auditable.
 - Use English for all application-authored labels, messages, notifications, placeholders, documentation, and mock data.
@@ -78,7 +78,7 @@ The selected Option 1 direction is the V1 visual source of truth. The corrected 
 
 ## Responsive Structure
 
-- Member mobile uses bottom navigation for Home, Orders, Favorites, and Team.
-- Organizer actions remain inside the active order rather than a separate global dashboard.
+- Member mobile uses bottom navigation for Home, Orders, Favorites, and Groups.
+- Manager actions remain inside the active order rather than a separate global dashboard.
 - Desktop admin uses persistent navigation and table/detail split views.
-- Mobile admin exposes only approvals, refresh failures, and restaurant pause actions.
+- Mobile admin exposes Groups, Catalog, Access Requests, and Audit Log.
