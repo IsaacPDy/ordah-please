@@ -29,6 +29,13 @@
       "when": 1785749517858,
       "tag": "0003_multi_group_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785806424460,
+      "tag": "0004_secret_nextwave",
+      "breakpoints": true
     }
   ]
 }

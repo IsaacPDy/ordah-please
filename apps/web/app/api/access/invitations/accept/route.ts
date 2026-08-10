@@ -1,14 +1,12 @@
-import { createAcceptInvitationHandler } from "../../../../../src/features/access/access-route-handlers";
-import {
-  accessRuntime,
-  readDeploymentId,
-} from "../../../../../src/features/access/access-runtime";
+import { createAcceptInviteLinkHandler } from "../../../../../src/features/groups/group-route-handlers";
+import { groupRuntime } from "../../../../../src/features/groups/group-runtime";
 
-/** Resolves deployment-bound invitation configuration only when a runtime request arrives. */
+/** Accepts one persistent invite link into group membership; old single-use tokens return safe CONFLICT. */
 export function POST(request: Request): Promise<Response> {
-  return createAcceptInvitationHandler({
-    ...accessRuntime,
-    deploymentId: readDeploymentId(),
-    now: () => new Date(),
+  return createAcceptInviteLinkHandler({
+    acceptInviteLink: groupRuntime.acceptInviteLink,
+    loadIdentity: groupRuntime.loadIdentity,
+    now: groupRuntime.now,
+    verifySession: groupRuntime.verifySession,
   })(request);
 }

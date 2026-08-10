@@ -25,6 +25,9 @@ export interface IdentityAccessRepository {
   listActiveMemberships(
     userId: string,
   ): Promise<readonly (typeof memberships.$inferSelect)[]>;
+  listUsers(): Promise<
+    readonly { readonly id: string; readonly displayName: string }[]
+  >;
   setPlatformAdminFlag(userId: string, value: boolean): Promise<boolean>;
 }
 
@@ -83,6 +86,11 @@ export function createIdentityAccessRepository(
           and(eq(memberships.userId, userId), isNull(memberships.removedAt)),
         )
         .orderBy(asc(memberships.groupId)),
+    listUsers: () =>
+      database
+        .select({ id: users.id, displayName: users.displayName })
+        .from(users)
+        .orderBy(asc(users.displayName)),
     setPlatformAdminFlag: async (userId, value) => {
       const [updated] = await database
         .update(users)

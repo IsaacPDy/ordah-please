@@ -87,7 +87,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 └── vitest.config.ts            # Node test projects and clean-clone workspace source resolution
 ```
 
-The current UI baseline replaces the original empty member shells with Home, Orders, Favorites, and Groups views on web/PWA and native mobile. Groups now renders the signed-in account's real membership IDs and exact roles from the protected identity boundary; group names, member rosters, and order details remain deferred instead of being invented. The web admin shell contains the approved eight desktop destinations and limits mobile navigation to Groups, Catalog, Access Requests, and Audit Log. Upcoming journey bundles connect the remaining catalog, permission, order, receipt, and notification behavior.
+The current UI baseline replaces the original empty member shells with Home, Orders, Favorites, and Groups views on web/PWA and native mobile. Groups now renders the signed-in account's real group names and exact roles from the protected identity boundary, and tapping a group opens a Group details screen with the owner and member roster. The web admin shell contains the approved eight desktop destinations, lets Platform Admins create groups from the admin Groups view, and limits mobile navigation to Groups, Catalog, Access Requests, and Audit Log. Upcoming journey bundles connect the remaining catalog, permission, order, receipt, and notification behavior.
 
 ## Ownership Rules
 

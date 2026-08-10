@@ -1,6 +1,7 @@
 export * from "./catalog/menu.js";
 export * from "./favorites/favorite.js";
 export * from "./favorites/ranking-policy.js";
+export * from "./groups/group-details.js";
 export * from "./orders/food-deadline-policy.js";
 export * from "./orders/handoff.js";
 export * from "./orders/order.js";

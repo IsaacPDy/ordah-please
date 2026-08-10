@@ -18,6 +18,10 @@ type GroupAuthorizationModule = Readonly<{
     identity: AppIdentity,
     groupId: GroupId,
   ) => AppIdentity["memberships"][number] | undefined;
+  requireGroupMembership?: (
+    identity: AppIdentity,
+    groupId: GroupId,
+  ) => AppIdentity["memberships"][number];
   requireGroupRole?: (
     identity: AppIdentity,
     groupId: GroupId,
@@ -72,5 +76,28 @@ describe("group authorization", () => {
     expect(() =>
       requireGroupRole?.(identity, parseId<GroupId>("group-c"), ["manager"]),
     ).toThrowError(expect.objectContaining({ code: "FORBIDDEN" }));
+  });
+
+  it("returns the membership when the viewer belongs to the requested group", async () => {
+    const { requireGroupMembership } = await loadAuthorization();
+    expect(requireGroupMembership).toBeTypeOf("function");
+
+    expect(
+      requireGroupMembership?.(identity, parseId<GroupId>("group-a")),
+    ).toEqual({ groupId: "group-a", role: "manager" });
+  });
+
+  it("rejects when the viewer has no membership in the requested group", async () => {
+    const { requireGroupMembership } = await loadAuthorization();
+    expect(requireGroupMembership).toBeTypeOf("function");
+
+    expect(() =>
+      requireGroupMembership?.(identity, parseId<GroupId>("group-c")),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "FORBIDDEN",
+        message: "You do not have access to this action.",
+      }),
+    );
   });
 });

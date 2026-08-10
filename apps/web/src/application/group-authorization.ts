@@ -18,6 +18,18 @@ export function findGroupMembership(
   );
 }
 
+/** Returns the requested-group membership for any role, or throws FORBIDDEN if the viewer is not in the group. */
+export function requireGroupMembership(
+  identity: AppIdentity,
+  groupId: GroupId,
+): GroupMembershipIdentity {
+  const membership = findGroupMembership(identity, groupId);
+  if (membership === undefined) {
+    throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
+  }
+  return membership;
+}
+
 /** Returns the requested-group membership only when its role is explicitly allowed. */
 export function requireGroupRole(
   identity: AppIdentity,

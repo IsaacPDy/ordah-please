@@ -2,6 +2,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 
 import {
   adminAccessRequests,
+  groupInviteLinks,
   groups,
   invitations,
   memberships,
@@ -28,6 +29,12 @@ export interface PendingAdminAccessRequestRow {
   readonly createdAt: Date;
 }
 
+export interface GroupSummaryRow {
+  readonly id: string;
+  readonly name: string;
+  readonly ownerUserId: string | null;
+}
+
 export interface GroupAccessRepository {
   acceptInvitation(
     invitationId: string,
@@ -40,12 +47,25 @@ export interface GroupAccessRepository {
   createInvitation(
     input: typeof invitations.$inferInsert,
   ): Promise<typeof invitations.$inferSelect>;
+  createGroup(
+    input: { name: string; createdByUserId: string },
+  ): Promise<typeof groups.$inferSelect>;
+  createInviteLink(
+    input: typeof groupInviteLinks.$inferInsert,
+  ): Promise<typeof groupInviteLinks.$inferSelect>;
   decideAdminAccessRequest(
     input: AdminAccessDecisionInput,
   ): Promise<typeof adminAccessRequests.$inferSelect>;
+  findActiveInviteLinkByHash(
+    tokenHash: string,
+  ): Promise<typeof groupInviteLinks.$inferSelect | undefined>;
+  findActiveInviteLinkForGroup(
+    groupId: string,
+  ): Promise<typeof groupInviteLinks.$inferSelect | undefined>;
   findAdminAccessRequestById(
     requestId: string,
   ): Promise<typeof adminAccessRequests.$inferSelect | undefined>;
+  findGroupSummary(groupId: string): Promise<GroupSummaryRow | undefined>;
   findInvitationByTokenHash(
     tokenHash: string,
   ): Promise<typeof invitations.$inferSelect | undefined>;
@@ -62,12 +82,17 @@ export interface GroupAccessRepository {
   listPendingAdminAccessRequests(): Promise<
     readonly PendingAdminAccessRequestRow[]
   >;
+  markInviteLinkRotated(linkId: string, rotatedAt: Date): Promise<boolean>;
   promoteToPlatformAdmin(userId: string): Promise<boolean>;
   removeMembership(
     groupId: string,
     userId: string,
     removedAt: Date,
   ): Promise<boolean>;
+  renameGroup(input: {
+    readonly groupId: string;
+    readonly name: string;
+  }): Promise<{ readonly id: string }>;
   setMembershipRole(
     groupId: string,
     userId: string,
@@ -94,6 +119,20 @@ export function createGroupAccessRepository(
     createInvitation: async (input) =>
       requireWrittenRow(
         await database.insert(invitations).values(input).returning(),
+      ),
+    createGroup: async (input) =>
+      requireWrittenRow(
+        await database
+          .insert(groups)
+          .values({
+            name: input.name,
+            createdByUserId: input.createdByUserId,
+          })
+          .returning(),
+      ),
+    createInviteLink: async (input) =>
+      requireWrittenRow(
+        await database.insert(groupInviteLinks).values(input).returning(),
       ),
     createAdminAccessRequest: async (input) =>
       requireWrittenRow(
@@ -135,6 +174,52 @@ export function createGroupAccessRepository(
         .where(eq(invitations.tokenHash, tokenHash))
         .limit(1);
       return invitation;
+    },
+    findActiveInviteLinkByHash: async (tokenHash) => {
+      const [link] = await database
+        .select()
+        .from(groupInviteLinks)
+        .where(
+          and(
+            eq(groupInviteLinks.tokenHash, tokenHash),
+            eq(groupInviteLinks.status, "active"),
+          ),
+        )
+        .limit(1);
+      return link;
+    },
+    findActiveInviteLinkForGroup: async (groupId) => {
+      const [link] = await database
+        .select()
+        .from(groupInviteLinks)
+        .where(
+          and(
+            eq(groupInviteLinks.groupId, groupId),
+            eq(groupInviteLinks.status, "active"),
+          ),
+        )
+        .limit(1);
+      return link;
+    },
+    findGroupSummary: async (groupId) => {
+      const [row] = await database
+        .select({
+          id: groups.id,
+          name: groups.name,
+          ownerUserId: memberships.userId,
+        })
+        .from(groups)
+        .leftJoin(
+          memberships,
+          and(
+            eq(memberships.groupId, groups.id),
+            eq(memberships.role, "owner"),
+            isNull(memberships.removedAt),
+          ),
+        )
+        .where(eq(groups.id, groupId))
+        .limit(1);
+      return row === undefined ? undefined : row;
     },
     findPendingAdminAccessRequest: async (requesterUserId) => {
       const [request] = await database
@@ -178,6 +263,19 @@ export function createGroupAccessRepository(
         .innerJoin(groups, eq(groups.id, adminAccessRequests.groupId))
         .where(eq(adminAccessRequests.status, "pending"))
         .orderBy(asc(adminAccessRequests.createdAt)),
+    markInviteLinkRotated: async (linkId, rotatedAt) => {
+      const [updated] = await database
+        .update(groupInviteLinks)
+        .set({ status: "rotated", rotatedAt })
+        .where(
+          and(
+            eq(groupInviteLinks.id, linkId),
+            eq(groupInviteLinks.status, "active"),
+          ),
+        )
+        .returning({ id: groupInviteLinks.id });
+      return updated !== undefined;
+    },
     promoteToPlatformAdmin: async (userId) => {
       const [updated] = await database
         .update(users)
@@ -200,6 +298,16 @@ export function createGroupAccessRepository(
         .returning({ userId: memberships.userId });
       return removed !== undefined;
     },
+    renameGroup: async (input) =>
+      requireWrittenRow(
+        await database
+          .update(groups)
+          .set({ name: input.name, updatedAt: new Date() })
+          .where(
+            and(eq(groups.id, input.groupId), isNull(groups.archivedAt)),
+          )
+          .returning({ id: groups.id }),
+      ),
     setMembershipRole: async (groupId, userId, expectedRole, role) => {
       const [updated] = await database
         .update(memberships)

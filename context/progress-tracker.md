@@ -17,6 +17,7 @@ Current state and remaining work. Completed bundle evidence lives in [`context/h
 - V1-05 Invitation-only access, one-group membership, roles, admin requests
 - V1-06 Platform-admin approval and limited mobile-admin permissions
 - Multi-group foundation — multi-membership, Manager rename, one active Owner per group, group-scoped authorization
+- V1-07 Group details, creation, and persistent invites — Group details read path on web and mobile, web admin Create group, Owner rename and rotate-link actions, persistent multi-use per-group invite links replacing single-use tokens for new acceptances. The simple role checks introduced here will be refactored by the Effective permissions foundation bundle.
 
 ## Journey Bundles
 
@@ -48,11 +49,6 @@ Current state and remaining work. Completed bundle evidence lives in [`context/h
 - Native mobile: focused tests, lint, typecheck, Android emulator verification.
 - Persistence/provider: migration and provider integration tests without exposing secrets.
 - Mock-data UI does not count as connected journey completion.
-
-## Open Decisions
-
-- Custom domain vs free Vercel domain.
-- Exact Grab branch-link behavior; copyable handoff remains required.
 
 ## Out of Scope
 

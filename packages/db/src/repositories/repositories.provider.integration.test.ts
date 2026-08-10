@@ -513,6 +513,59 @@ describe("focused repositories", () => {
       repositories.groupAccess.findPendingAdminAccessRequest(owner.id),
     ).resolves.toMatchObject({ id: request.id, status: "pending" });
   });
+
+  it("persists and rotates persistent group invite links", async () => {
+    const repositories = createRepositories(database);
+    const owner = await repositories.identityAccess.createUser({
+      displayName: "Invite Link Owner",
+    });
+    const [group] = await database
+      .insert(groups)
+      .values({ createdByUserId: owner.id, name: "Invite Link Group" })
+      .returning();
+    if (group === undefined) {
+      throw new Error("Expected the invite-link group to be created.");
+    }
+    await repositories.identityAccess.addMembership({
+      groupId: group.id,
+      role: "owner",
+      userId: owner.id,
+    });
+
+    const created = await repositories.groupAccess.createInviteLink({
+      groupId: group.id,
+      tokenHash: `hash-${randomUUID()}`,
+      tokenPrefix: "prefix-a",
+      createdByUserId: owner.id,
+      status: "active",
+    });
+    expect(created.status).toBe("active");
+
+    await expect(
+      repositories.groupAccess.findActiveInviteLinkForGroup(group.id),
+    ).resolves.toMatchObject({ id: created.id, status: "active" });
+    await expect(
+      repositories.groupAccess.findActiveInviteLinkByHash(created.tokenHash),
+    ).resolves.toMatchObject({ id: created.id });
+
+    const rotatedAt = new Date("2026-08-04T12:00:00.000Z");
+    await expect(
+      repositories.groupAccess.markInviteLinkRotated(created.id, rotatedAt),
+    ).resolves.toBe(true);
+    await expect(
+      repositories.groupAccess.findActiveInviteLinkForGroup(group.id),
+    ).resolves.toBeUndefined();
+    await expect(
+      repositories.groupAccess.findActiveInviteLinkByHash(created.tokenHash),
+    ).resolves.toBeUndefined();
+
+    const summary = await repositories.groupAccess.findGroupSummary(group.id);
+    expect(summary).toMatchObject({
+      id: group.id,
+      name: "Invite Link Group",
+      ownerUserId: owner.id,
+    });
+  });
 });
 
 /**

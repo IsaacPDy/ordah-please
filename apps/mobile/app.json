@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "scheme": "ordahplease",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "android": {
       "package": "ordahplease.app"
     },

@@ -1,6 +1,8 @@
+import Link from "next/link";
+
 import { getCurrentServerPageIdentity } from "../../../src/auth/load-server-page-identity";
+import { groupRuntime } from "../../../src/features/groups/group-runtime";
 import { MemberAccessState } from "../../components/member-access-state";
-import { GroupsOverview } from "../../components/groups-overview";
 
 /** Exposes the approved multiple-groups destination at its final member URL. */
 export default async function GroupsPage() {
@@ -12,10 +14,45 @@ export default async function GroupsPage() {
     identityResult.status === "authenticated"
       ? identityResult.identity.memberships
       : [];
+  const groupSummaries = hasMemberships
+    ? await groupRuntime.listViewerGroupSummaries(memberships)
+    : [];
 
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="groups">
-      <GroupsOverview memberships={memberships} />
+      <section className="member-page">
+        <header className="page-intro">
+          <p className="eyebrow">Memberships</p>
+          <h1>Your groups</h1>
+          <p>
+            You can belong to multiple groups and hold a different role in each.
+          </p>
+        </header>
+        <ul className="group-list">
+          {groupSummaries.map((group) => (
+            <li key={group.groupId}>
+              <Link
+                className="group-card group-card--link"
+                href={`/groups/${group.groupId}`}
+              >
+                <span className="group-card__name">{group.name}</span>
+                <span className="role-pill">{roleLabel(group.role)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
     </MemberAccessState>
   );
+}
+
+/** Converts the stored role key into the exact role wording shown to people. */
+function roleLabel(role: string): string {
+  if (role === "group-owner") {
+    return "Group Owner";
+  }
+  if (role === "manager") {
+    return "Manager";
+  }
+  return "Member";
 }

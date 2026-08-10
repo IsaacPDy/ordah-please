@@ -13,6 +13,7 @@ type MobileMemberAccessStateProps = Readonly<{
   children: ReactNode;
   identity: AppIdentitySummary;
   surface: MobileMemberSurface;
+  onSelectGroup?: (groupId: string) => void;
 }>;
 
 const ROLE_LABELS = {
@@ -26,6 +27,7 @@ export function MobileMemberAccessState({
   children,
   identity,
   surface,
+  onSelectGroup,
 }: MobileMemberAccessStateProps) {
   if (surface === "home" || surface === "favorites") {
     return children;
@@ -36,19 +38,41 @@ export function MobileMemberAccessState({
         <Text style={styles.description}>
           You can belong to multiple groups and hold a different role in each.
         </Text>
-        {identity.memberships.map((membership) => (
-          <Surface
-            elevation={0}
-            key={membership.groupId}
-            style={styles.membershipCard}
-          >
-            <View style={styles.membershipBody}>
-              <Text style={styles.groupId}>{membership.groupId}</Text>
-              <Text style={styles.description}>Private group membership</Text>
-            </View>
-            <Text style={styles.role}>{ROLE_LABELS[membership.role]}</Text>
-          </Surface>
-        ))}
+        {identity.memberships.map((membership) => {
+          const card = (
+            <Surface
+              elevation={0}
+              key={membership.groupId}
+              style={[
+                styles.membershipCard,
+                onSelectGroup !== undefined
+                  ? styles.membershipCardTappable
+                  : null,
+              ]}
+            >
+              <View style={styles.membershipBody}>
+                <Text style={styles.groupId}>{membership.groupId}</Text>
+                <Text style={styles.description}>
+                  Private group membership
+                </Text>
+              </View>
+              <Text style={styles.role}>{ROLE_LABELS[membership.role]}</Text>
+            </Surface>
+          );
+          if (onSelectGroup === undefined) {
+            return card;
+          }
+          return (
+            <Text
+              accessibilityRole="button"
+              key={membership.groupId}
+              onPress={() => onSelectGroup(membership.groupId)}
+              style={styles.membershipCardWrapper}
+            >
+              {card}
+            </Text>
+          );
+        })}
       </MemberPage>
     );
   }
@@ -109,6 +133,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: designTokens.spacing.sm,
     padding: designTokens.spacing.md,
+  },
+  membershipCardTappable: {
+    borderColor: designTokens.colors.primaryStrong,
+  },
+  membershipCardWrapper: {
+    color: "transparent",
+    textDecorationLine: "none",
   },
   role: {
     backgroundColor: designTokens.colors.supportSurface,

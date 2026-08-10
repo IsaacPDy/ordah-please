@@ -20,6 +20,7 @@ const expectedTables = [
   "file_records",
   "food_selections",
   "group_addresses",
+  "group_invite_links",
   "groups",
   "invitations",
   "jobs",
@@ -231,6 +232,32 @@ describe("initial Neon schema", () => {
         "INSERT INTO memberships (group_id, user_id, role) VALUES ($1, $2, 'owner')",
         [groupOne, userTwo],
         "memberships_one_active_owner_per_group",
+      );
+      await client.query(
+        "INSERT INTO group_invite_links (group_id, token_hash, token_prefix, created_by_user_id, status) VALUES ($1, $2, 'prefix-a', $3, 'active')",
+        [groupOne, `active-${randomUUID()}`, userOne],
+      );
+      await expectConstraintFailure(
+        client,
+        "INSERT INTO group_invite_links (group_id, token_hash, token_prefix, created_by_user_id, status) VALUES ($1, $2, 'prefix-b', $3, 'active')",
+        [groupOne, `duplicate-${randomUUID()}`, userOne],
+        "group_invite_links_one_active_per_group",
+      );
+      await client.query(
+        "INSERT INTO group_invite_links (group_id, token_hash, token_prefix, created_by_user_id, status, rotated_at) VALUES ($1, $2, 'prefix-c', $3, 'rotated', now())",
+        [groupOne, `rotated-${randomUUID()}`, userOne],
+      );
+      await expectConstraintFailure(
+        client,
+        "INSERT INTO group_invite_links (group_id, token_hash, token_prefix, created_by_user_id, status) VALUES ($1, $2, 'prefix-d', $3, 'revoked')",
+        [groupOne, `bad-status-${randomUUID()}`, userOne],
+        "group_invite_links_status_values",
+      );
+      await expectConstraintFailure(
+        client,
+        "INSERT INTO group_invite_links (group_id, token_hash, token_prefix, created_by_user_id, status, rotated_at) VALUES ($1, $2, 'prefix-e', $3, 'active', now())",
+        [groupTwo, `mismatch-${randomUUID()}`, userOne],
+        "group_invite_links_rotated_fields_match",
       );
       await expectConstraintFailure(
         client,
