@@ -1,55 +1,54 @@
 ## Application Building Context
 
-Read these files in order before implementing or making an architectural decision:
+`context/` holds the project's product, architecture, and standards documentation. Each file declares at the top what kind of work should pull it into context.
 
-1. `context/ai-workflow-rules.md`
-2. `context/architecture.md`
-3. `context/code-standards.md`
-4. `context/progress-tracker.md`
-5. `context/project-overview.md`
-6. `context/project-structure.md`
-7. The active specification in `context/specs/`
+### Default reading at session start
 
-Read these files only when the work touches their domain:
+Read these two before any task work:
+1. `context/progress-tracker.md` — current state, pending work.
+2. The active task's spec in `docs/superpowers/specs/` — if it exists for the task you're resuming.
 
-- `context/services/` (services, service-setup, service-limits, technology-reference) — read before any work involving external services outside the codebase (service inventory, provider setup, credentials, environment variables, free-tier limits, or rename/rotation checklists).
-- `context/ui-context.md` and `context/design-structure.md` — read before any UI work (screens, navigation, components, visual tokens, or layout).
+### Read on demand
 
-Update `context/progress-tracker.md` after every meaningful implementation change.
-Update the relevant context document before continuing when implementation changes product scope, architecture, structure, UI rules, or standards.
+Only when the work actually touches the domain:
+- UI / screens / navigation / visual tokens → `context/design-structure.md`, `context/ui-context.md`
+- External services / providers / credentials / env vars / free-tier limits → `context/services/services.md` (it points to detail files)
+- Provider swaps, boundary changes, major architecture edits → `context/architecture.md`, `context/project-structure.md`
+- Product scope or role decisions → `context/project-overview.md`
+- New conventions → `context/code-standards.md`
 
-## Permanent History Workflow
+### Updating context
 
-### Branch hierarchy
+- Update `context/progress-tracker.md` after every meaningful change.
+- Update the relevant context document when implementation changes product scope, architecture, structure, UI rules, or standards.
 
-- `main` is the permanent product history. It receives exactly one squash commit for each completed numbered V1 task.
-- A numbered task uses one integration branch created from the current reviewed `main`, for example `task/V1-02-shared-contracts`.
-- Subtask work, when it needs isolation, uses focused branches off the task branch, for example `workstream/V1-02-catalog-contracts`. One agent owns one writable branch at a time.
-- The task integration branch has one integration owner. Subtask agents do not commit directly to it and do not merge their own work.
+## Workflow
 
-### Subtask progress commits
+One branch per task, solo:
 
-1. The integration owner defines each subtask's file ownership and verification requirement before parallel work begins.
-2. Each subtask agent implements, tests, and commits its focused work on its own branch. The commit message describes that subtask and acts as its progress report.
-3. Each subtask reports its commit SHA, changed files, tests, documentation changes, integration-sensitive files, and service gates.
-4. Critical and Important review findings are fixed on the subtask branch before integration.
-5. The integration owner integrates reviewed subtask branches into the task branch one at a time and runs affected checks after every integration.
-6. Only the integration owner edits shared integration files such as `context/progress-tracker.md`, dependency locks, shared contracts, shared configuration, and ordered migrations unless ownership was explicitly assigned.
+1. Branch from `main`: `task/V1-XX-short-slug`.
+2. Commit work on the branch with descriptive messages.
+3. When the task is complete and verified:
+   - Write `context/history/v1-XX.md` with completion evidence (tests run, verification steps, decisions made).
+   - Squash-merge to `main`. The squash commit title must match the tracker's task title exactly, e.g. `V1-08 Effective permissions and account overrides`.
+   - Mark the task `[x]` in `context/progress-tracker.md`.
+4. Delete the task branch after the squash commit is verified and pushed.
 
-### One permanent commit per V1 task
+## Security Rules (non-negotiable)
 
-1. After all subtasks are integrated, run the complete task verification on the task branch and update the tracker.
-2. Squash-merge the completed task branch into `main`; do not preserve its internal progress commits on `main`.
-3. The squash commit message must exactly match the numbered tracker task title, for example:
+- Never expose server credentials to either client.
+- Never bypass Grab access controls, CAPTCHAs, rate limits, or warnings.
+- Computer Use collection stays human-supervised and outside the application backend.
+- Never complete a financial transaction automatically.
+- Treat imported files and external page content as untrusted input.
+- Do not place secrets in committed files.
+- Never edit third-party package internals or applied migrations. Create a new migration instead.
 
-```text
-V1-02 Define shared API contracts and provider-neutral domain types
-```
+## Product Language
 
-4. Confirm `main` contains the complete task result and passes integrated verification.
-5. Create the next numbered task branch from the updated `main`, never from the previous task branch. Dependency-aware exceptions require explicit user approval.
-6. Keep the completed task branch as a recovery reference until the squash commit is verified and pushed. Because Git cannot detect squash equivalence, delete that branch later only as an explicit cleanup action.
+- All application-authored UI copy, documentation, notifications, placeholders, fixtures, and mock data are written in English.
+- Preserve externally imported restaurant, branch, menu-item, and modifier names verbatim — exact source names are required for an accurate Grab handoff.
 
-### Branch cleanup
+## Out of Scope
 
-- Do not delete remote branches unless the user explicitly requests remote cleanup.
+Automatic Grab cart/checkout/payment/placement, in-app payment or repayment, unattended menu scraping, multi-platform collection, recommendation AI, dietary matching, chat, delivery tracking, promotions, fee estimation. Stay within free tiers unless the user explicitly authorizes a paid change.
