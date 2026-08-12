@@ -1141,9 +1141,85 @@ button:focus-visible {
   opacity: 0.7;
 }
 
+.admin-dialog-backdrop {
+  align-items: center;
+  background: rgb(23 32 25 / 48%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: var(--space-4);
+  position: fixed;
+  z-index: 50;
+}
+
+.admin-dialog {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-major-card);
+  box-shadow: var(--shadow-raised);
+  max-width: 32rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.admin-dialog form,
+.admin-dialog-confirmation {
+  display: grid;
+  gap: var(--space-6);
+  padding: var(--space-6);
+}
+
+.admin-dialog-header {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+}
+
+.admin-dialog-header > div,
+.admin-dialog-confirmation > div:first-child {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.admin-dialog h2,
+.admin-dialog p {
+  margin: 0;
+}
+
+.admin-dialog-header p,
+.admin-dialog-confirmation p {
+  color: var(--color-text-secondary);
+}
+
+.admin-dialog-close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-compact);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 var(--touch-target);
+  height: var(--touch-target);
+  justify-content: center;
+  margin: calc(var(--space-2) * -1);
+  width: var(--touch-target);
+}
+
+.admin-dialog-close:hover {
+  background: var(--color-support);
+  color: var(--color-text);
+}
+
+.admin-dialog-fields,
 .admin-field {
   display: grid;
   gap: var(--space-2);
+}
+
+.admin-dialog-fields {
+  gap: var(--space-4);
 }
 
 .admin-field > span {
@@ -1481,6 +1557,55 @@ button:focus-visible {
 .restaurant-detail__price {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
+}
+
+.admin-dialog-actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.admin-secondary-button,
+.admin-danger-button {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-field);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-4);
+}
+
+.admin-danger-button {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: var(--color-on-primary);
+}
+
+.admin-dialog--wobble {
+  animation: admin-dialog-wobble 240ms ease-in-out;
+}
+
+@keyframes admin-dialog-wobble {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-8px);
+  }
+  75% {
+    transform: translateX(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-dialog--wobble {
+    animation: none;
+  }
 }
 
 .metric-grid {

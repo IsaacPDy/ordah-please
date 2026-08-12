@@ -19,6 +19,7 @@ Current state and remaining work. Completed bundle evidence lives in [`context/h
 - Multi-group foundation — multi-membership, Manager rename, one active Owner per group, group-scoped authorization
 - V1-07 Group details, creation, and persistent invites — Group details read path on web and mobile, web admin Create group, Owner rename and rotate-link actions, persistent multi-use per-group invite links replacing single-use tokens for new acceptances. The simple role checks introduced here will be refactored by the Effective permissions foundation bundle.
 - Profile menu and sign out — Real avatar, name, and email in the web member header, web admin header, and mobile member header. Working Sign out on all three surfaces. Removes the hardcoded `profile-mia.jpg` mock and threads the Better Auth session profile fields through `AppIdentity`, `AppIdentitySummary`, and `/api/identity/me`.
+- Admin Create group modal — Centered modal styling, dirty-form wobble on backdrop clicks, and explicit discard confirmation from the X close control.
 
 ## Journey Bundles
 

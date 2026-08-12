@@ -53,6 +53,7 @@
 - Keep the Manager's unresolved-action list visible before handoff.
 - Show stale-menu and failed-refresh warnings without erasing usable historical data.
 - Make destructive catalog publication and role approval explicit and auditable.
+- Keep admin creation forms in centered modals. If a form has changed, backdrop clicks keep it open with a short wobble, while the X asks before discarding the entered values.
 - Use English for all application-authored labels, messages, notifications, placeholders, documentation, and mock data.
 - Preserve imported proper names exactly as supplied by the reviewed catalog.
 
