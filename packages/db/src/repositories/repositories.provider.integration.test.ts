@@ -123,6 +123,8 @@ describe("focused repositories", () => {
     const user = await repositories.identityAccess.ensureUserForAuthIdentity({
       authUserId,
       displayName: "Repository User",
+      email: "repository-user@example.test",
+      imageUrl: null,
     });
     expect(
       await repositories.identityAccess.findUserByAuthUserId(authUserId),
@@ -366,6 +368,8 @@ describe("focused repositories", () => {
         repositories.identityAccess.ensureUserForAuthIdentity({
           authUserId,
           displayName: "Concurrent member",
+          email: "concurrent-member@example.test",
+          imageUrl: null,
         }),
       ),
     );
@@ -388,6 +392,8 @@ describe("focused repositories", () => {
     const user = await repositories.identityAccess.ensureUserForAuthIdentity({
       authUserId,
       displayName: "Active member",
+      email: "active-member@example.test",
+      imageUrl: null,
     });
     const archivedAt = new Date("2026-07-29T04:00:00.000Z");
     await database
@@ -399,6 +405,8 @@ describe("focused repositories", () => {
       repositories.identityAccess.ensureUserForAuthIdentity({
         authUserId,
         displayName: "Renamed archived member",
+        email: "renamed-archived-member@example.test",
+        imageUrl: null,
       }),
     ).resolves.toMatchObject({ archivedAt, id: user.id });
   });
@@ -629,6 +637,8 @@ async function seedPendingRequestFixture(
     {
       authUserId: requesterAuthId,
       displayName: "Owner Riley",
+      email: "owner-riley@example.test",
+      imageUrl: null,
     },
   );
   const decidingAdminAuthId = randomUUID();
@@ -637,6 +647,8 @@ async function seedPendingRequestFixture(
     await repositories.identityAccess.ensureUserForAuthIdentity({
       authUserId: decidingAdminAuthId,
       displayName: "Admin Quinn",
+      email: "admin-quinn@example.test",
+      imageUrl: null,
     });
   await repositories.identityAccess.setPlatformAdminFlag(
     decidingAdmin.id,
@@ -675,6 +687,8 @@ describe("group access V1-06 decide flow", () => {
         await repositories.identityAccess.ensureUserForAuthIdentity({
           authUserId: requesterAuthId,
           displayName: "Owner Riley",
+          email: "owner-riley@example.test",
+          imageUrl: null,
         });
       const [group] = await tx
         .insert(groups)

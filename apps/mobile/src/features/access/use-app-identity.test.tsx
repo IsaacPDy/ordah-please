@@ -27,6 +27,9 @@ describe("useAppIdentity", () => {
     );
     const response = jsonResponse({
       data: {
+        displayName: "Mia Tan",
+        email: "mia@example.com",
+        imageUrl: null,
         isPlatformAdmin: false,
         memberships: [
           { groupId: "group-a", role: "group-owner" },
@@ -73,6 +76,9 @@ describe("useAppIdentity", () => {
           Promise.resolve(
             jsonResponse({
               data: {
+                displayName: "Mia Tan",
+                email: "mia@example.com",
+                imageUrl: null,
                 isPlatformAdmin: false,
                 memberships: [],
                 pendingAdminRequestCount: 0,
@@ -114,6 +120,9 @@ describe("useAppIdentity", () => {
               ? jsonResponse({}, 500)
               : jsonResponse({
                   data: {
+                    displayName: "Mia Tan",
+                    email: "mia@example.com",
+                    imageUrl: null,
                     isPlatformAdmin: false,
                     memberships: [],
                     pendingAdminRequestCount: 0,

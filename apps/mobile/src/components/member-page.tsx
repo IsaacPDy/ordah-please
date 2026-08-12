@@ -1,11 +1,12 @@
 import { designTokens } from "@ordah-please/ui";
 import { Bell } from "lucide-react-native";
 import type { ReactNode } from "react";
-import { Image, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { IconButton, Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import profileMia from "../../assets/images/profile-mia.jpg";
+import { useMobileAppIdentity } from "../features/access/mobile-member-gate";
+import { ProfileMenu } from "./profile-menu";
 
 type MemberPageProps = Readonly<{
   children: ReactNode;
@@ -14,6 +15,8 @@ type MemberPageProps = Readonly<{
 
 /** Provides the shared native member canvas, product header, profile action, and scroll behavior. */
 export function MemberPage({ children, title }: MemberPageProps) {
+  const identity = useMobileAppIdentity();
+
   return (
     <SafeAreaView
       edges={["top"]}
@@ -37,10 +40,10 @@ export function MemberPage({ children, title }: MemberPageProps) {
               )}
               size={24}
             />
-            <Image
-              accessibilityLabel="Mia's profile"
-              source={profileMia}
-              style={styles.profile}
+            <ProfileMenu
+              displayName={identity.displayName}
+              email={identity.email}
+              imageUrl={identity.imageUrl}
             />
           </View>
         </View>
@@ -82,11 +85,6 @@ const styles = StyleSheet.create({
   headerActions: {
     alignItems: "center",
     flexDirection: "row",
-  },
-  profile: {
-    borderRadius: designTokens.radii.pill,
-    height: designTokens.touchTarget.minimum,
-    width: designTokens.touchTarget.minimum,
   },
   safeArea: {
     backgroundColor: designTokens.colors.canvas,

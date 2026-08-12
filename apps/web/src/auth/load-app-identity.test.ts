@@ -23,11 +23,19 @@ describe("loadAppIdentity", () => {
 
     await expect(
       loadAppIdentity(
-        { authUserId: AUTH_USER_ID, displayName: "Avery" },
+        {
+          authUserId: AUTH_USER_ID,
+          displayName: "Avery",
+          email: "avery@example.com",
+          imageUrl: null,
+        },
         repository,
       ),
     ).resolves.toEqual({
       authUserId: AUTH_USER_ID,
+      displayName: "Avery",
+      email: "avery@example.com",
+      imageUrl: null,
       isPlatformAdmin: false,
       memberships: [],
       userId: "internal-user-1",
@@ -52,7 +60,12 @@ describe("loadAppIdentity", () => {
 
     await expect(
       loadAppIdentity(
-        { authUserId: AUTH_USER_ID, displayName: "Archived member" },
+        {
+          authUserId: AUTH_USER_ID,
+          displayName: "Archived member",
+          email: "archived@example.com",
+          imageUrl: null,
+        },
         repository,
       ),
     ).rejects.toMatchObject({
@@ -67,6 +80,8 @@ describe("loadAppIdentity", () => {
       ensureUserForAuthIdentity: (input: {
         readonly authUserId: string;
         readonly displayName: string;
+        readonly email: string;
+        readonly imageUrl: string | null;
       }) =>
         Promise.resolve({
           archivedAt: null,
@@ -98,17 +113,57 @@ describe("loadAppIdentity", () => {
 
     await expect(
       loadAppIdentity(
-        { authUserId: AUTH_USER_ID, displayName: "Avery" },
+        {
+          authUserId: AUTH_USER_ID,
+          displayName: "Avery",
+          email: "avery@example.com",
+          imageUrl: null,
+        },
         repository,
       ),
     ).resolves.toEqual({
       authUserId: AUTH_USER_ID,
+      displayName: "Avery",
+      email: "avery@example.com",
+      imageUrl: null,
       isPlatformAdmin: true,
       memberships: [
         { groupId: "group-1", role: "manager" },
         { groupId: "group-2", role: "member" },
       ],
       userId: "internal-user-1",
+    });
+  });
+
+  it("surfaces the auth user's profile fields on the loaded identity", async () => {
+    const repository = {
+      ensureUserForAuthIdentity: () =>
+        Promise.resolve({
+          archivedAt: null,
+          authUserId: "auth-1",
+          createdAt: new Date("2026-07-29T04:00:00.000Z"),
+          displayName: "Stored Name",
+          id: "00000000-0000-0000-0000-000000000001",
+          isPlatformAdmin: false,
+          updatedAt: new Date("2026-07-29T04:00:00.000Z"),
+        }),
+      listActiveMemberships: () => Promise.resolve([]),
+    };
+
+    const identity = await loadAppIdentity(
+      {
+        authUserId: "auth-1",
+        displayName: "Mia Tan",
+        email: "mia@example.com",
+        imageUrl: "https://lh3.googleusercontent.com/mia.jpg",
+      },
+      repository,
+    );
+
+    expect(identity).toMatchObject({
+      displayName: "Mia Tan",
+      email: "mia@example.com",
+      imageUrl: "https://lh3.googleusercontent.com/mia.jpg",
     });
   });
 });

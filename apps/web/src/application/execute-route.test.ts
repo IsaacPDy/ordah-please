@@ -7,6 +7,9 @@ import { executeRoute } from "./execute-route";
 
 const memberIdentity = {
   authUserId: "10000000-0000-4000-8000-000000000001",
+  displayName: "Avery",
+  email: "avery@example.com",
+  imageUrl: null,
   isPlatformAdmin: false,
   memberships: [],
   userId: parseId<UserId>("internal-user-1"),
@@ -42,6 +45,8 @@ describe("executeRoute", () => {
           expect(session).toEqual({
             authUserId: "10000000-0000-4000-8000-000000000001",
             displayName: "Avery",
+            email: "avery@example.com",
+            imageUrl: null,
           });
           return identity;
         },
@@ -50,6 +55,8 @@ describe("executeRoute", () => {
           return {
             authUserId: "10000000-0000-4000-8000-000000000001",
             displayName: "Avery",
+            email: "avery@example.com",
+            imageUrl: null,
           };
         },
       },
@@ -114,6 +121,8 @@ describe("executeRoute", () => {
         verifySession: () => ({
           authUserId: "10000000-0000-4000-8000-000000000001",
           displayName: "Avery",
+          email: "avery@example.com",
+          imageUrl: null,
         }),
       },
     );
@@ -144,6 +153,8 @@ describe("executeRoute", () => {
         verifySession: () => ({
           authUserId: "10000000-0000-4000-8000-000000000001",
           displayName: "Avery",
+          email: "avery@example.com",
+          imageUrl: null,
         }),
       },
     );
@@ -183,6 +194,8 @@ describe("executeRoute", () => {
         verifySession: () => ({
           authUserId: "10000000-0000-4000-8000-000000000001",
           displayName: "Avery",
+          email: "avery@example.com",
+          imageUrl: null,
         }),
       },
     );

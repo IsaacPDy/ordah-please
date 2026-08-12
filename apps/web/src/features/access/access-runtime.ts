@@ -56,11 +56,15 @@ function runAccessTransaction<Result>(
 export function loadRuntimeIdentity(session: {
   readonly authUserId: string;
   readonly displayName: string;
+  readonly email: string;
+  readonly imageUrl: string | null;
 }) {
   return loadAppIdentity(
     {
       authUserId: session.authUserId,
       displayName: session.displayName,
+      email: session.email,
+      imageUrl: session.imageUrl,
     },
     createRepositories(getRuntimeDatabase()).identityAccess,
   );

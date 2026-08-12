@@ -5,7 +5,9 @@ import {
   parseBoolean,
   parseEnum,
   parseNonNegativeInteger,
+  parseNullableString,
   parseRecordId,
+  parseString,
   parseStrictObject,
   rejectUnknownFields,
 } from "../common/strict-boundary.js";
@@ -13,6 +15,9 @@ import {
 const GROUP_MEMBERSHIP_ROLES = ["group-owner", "manager", "member"] as const;
 
 export type AppIdentitySummary = Readonly<{
+  displayName: string;
+  email: string;
+  imageUrl: string | null;
   isPlatformAdmin: boolean;
   memberships: readonly Readonly<{
     groupId: GroupId;
@@ -43,7 +48,14 @@ export function parseAppIdentitySummary(value: unknown): AppIdentitySummary {
   const object = parseStrictObject(value, "App identity summary");
   rejectUnknownFields(
     object,
-    ["isPlatformAdmin", "memberships", "pendingAdminRequestCount"],
+    [
+      "displayName",
+      "email",
+      "imageUrl",
+      "isPlatformAdmin",
+      "memberships",
+      "pendingAdminRequestCount",
+    ],
     "App identity summary",
   );
   const memberships = parseArray(
@@ -57,6 +69,9 @@ export function parseAppIdentitySummary(value: unknown): AppIdentitySummary {
   }
 
   return {
+    displayName: parseString(object.displayName, "Display name"),
+    email: parseString(object.email, "Email"),
+    imageUrl: parseNullableString(object.imageUrl, "Profile image url"),
     isPlatformAdmin: parseBoolean(
       object.isPlatformAdmin,
       "Platform Admin state",

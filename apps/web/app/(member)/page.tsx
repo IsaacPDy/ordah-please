@@ -82,12 +82,7 @@ export default async function MemberHomePage() {
                   aria-label="Four of seven members shown"
                   className="avatar-stack"
                 >
-                  <Image
-                    alt="Mia"
-                    height={42}
-                    src="/images/profile-mia.jpg"
-                    width={42}
-                  />
+                  <span aria-hidden="true">M</span>
                   <span aria-hidden="true">JD</span>
                   <span aria-hidden="true">AK</span>
                   <span aria-hidden="true" className="avatar-more">

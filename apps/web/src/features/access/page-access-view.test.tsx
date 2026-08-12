@@ -7,6 +7,9 @@ import { AdminPageAccessView, MemberPageAccessView } from "./page-access-view";
 
 const baseIdentity = {
   authUserId: "auth-user-1",
+  displayName: "Mia Tan",
+  email: "mia@example.com",
+  imageUrl: null,
   isPlatformAdmin: false,
   memberships: [],
   userId: parseId<UserId>("user-1"),

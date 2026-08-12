@@ -10,6 +10,7 @@ export interface BetterAuthSessionState {
   readonly user: {
     readonly email: string;
     readonly id: string;
+    readonly image?: string | null | undefined;
     readonly name: string;
   };
 }
@@ -21,6 +22,8 @@ export type ReadBetterAuthSession = (input: {
 export interface VerifiedSession {
   readonly authUserId: string;
   readonly displayName: string;
+  readonly email: string;
+  readonly imageUrl: string | null;
 }
 
 /** Rejects requests without a live Better Auth session and returns trusted identity fields only. */
@@ -41,5 +44,7 @@ export async function verifySession(
   return {
     authUserId: sessionState.user.id,
     displayName: sessionState.user.name,
+    email: sessionState.user.email,
+    imageUrl: sessionState.user.image ?? null,
   };
 }

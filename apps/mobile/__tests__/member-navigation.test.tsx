@@ -107,6 +107,9 @@ describe("member navigation", () => {
     const screen = await render(
       <MobileAppIdentityProvider
         identity={{
+          displayName: "",
+          email: "",
+          imageUrl: null,
           isPlatformAdmin: false,
           memberships: [
             { groupId: "group-a" as never, role: "group-owner" },

@@ -3,7 +3,20 @@ import { Text } from "react-native-paper";
 
 import { MobileMemberAccessState } from "../src/features/access/member-access-state";
 
+jest.mock("../src/auth/auth-client", () => ({
+  getMobileAuthClient: () => {
+    throw new Error("auth client not needed in this test");
+  },
+  readMobileApiUrl: () => "https://preview.ordah-please.test",
+  readMobileSessionCookie: () => {
+    throw new Error("auth client not needed in this test");
+  },
+}));
+
 const grouplessIdentity = {
+  displayName: "",
+  email: "",
+  imageUrl: null,
   isPlatformAdmin: false,
   memberships: [],
   pendingAdminRequestCount: 0,

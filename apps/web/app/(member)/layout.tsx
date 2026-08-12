@@ -1,10 +1,10 @@
-import Image from "next/image";
 import { Bell } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { getCurrentServerPageIdentity } from "../../src/auth/load-server-page-identity";
 import { MemberPageAccessView } from "../../src/features/access/page-access-view";
 import { MemberNavigation } from "../components/member-navigation";
+import { ProfileMenu } from "../components/profile-menu";
 
 /** Provides the focused member/PWA shell without exposing admin-only information architecture. */
 export default async function MemberLayout({
@@ -29,14 +29,13 @@ export default async function MemberLayout({
               <Bell aria-hidden="true" size={24} strokeWidth={2.2} />
               <span aria-hidden="true" className="notification-dot" />
             </button>
-            <Image
-              alt="Mia's profile"
-              className="profile-avatar"
-              height={44}
-              priority
-              src="/images/profile-mia.jpg"
-              width={44}
-            />
+            {identityResult.status === "authenticated" ? (
+              <ProfileMenu
+                displayName={identityResult.identity.displayName}
+                email={identityResult.identity.email}
+                imageUrl={identityResult.identity.imageUrl}
+              />
+            ) : null}
           </div>
         </header>
         <main className="member-content" id="member-content">

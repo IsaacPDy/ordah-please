@@ -17,6 +17,9 @@ export interface GroupMembershipIdentity {
 
 export interface AppIdentity {
   readonly authUserId: string;
+  readonly displayName: string;
+  readonly email: string;
+  readonly imageUrl: string | null;
   readonly isPlatformAdmin: boolean;
   readonly memberships: readonly GroupMembershipIdentity[];
   readonly userId: UserId;
@@ -47,6 +50,9 @@ export async function loadAppIdentity(
 
   return {
     authUserId: authIdentity.authUserId,
+    displayName: authIdentity.displayName,
+    email: authIdentity.email,
+    imageUrl: authIdentity.imageUrl,
     isPlatformAdmin: user.isPlatformAdmin,
     memberships,
     userId: parseId<UserId>(user.id),

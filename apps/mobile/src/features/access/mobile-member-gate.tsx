@@ -9,16 +9,27 @@ import { getMobileAuthClient } from "../../auth/auth-client";
 import { useAppIdentity } from "./use-app-identity";
 
 const EMPTY_IDENTITY: AppIdentitySummary = {
+  displayName: "",
+  email: "",
+  imageUrl: null,
   isPlatformAdmin: false,
   memberships: [],
   pendingAdminRequestCount: 0,
 };
 
 const MobileAppIdentityContext = createContext(EMPTY_IDENTITY);
+const MobileSignOutContext = createContext<
+  () => Promise<void> | void
+>(() => {});
 
 /** Returns the authenticated native identity supplied by the member-tab gate. */
 export function useMobileAppIdentity(): AppIdentitySummary {
   return useContext(MobileAppIdentityContext);
+}
+
+/** Returns the gate-supplied sign-out callback that clears the session and retries identity. */
+export function useMobileSignOut(): () => Promise<void> | void {
+  return useContext(MobileSignOutContext);
 }
 
 /** Supplies a known identity to native screen tests and authenticated child trees. */
@@ -41,9 +52,15 @@ export function MobileMemberGate({
   const [signInFailed, setSignInFailed] = useState(false);
 
   if (identityState.kind === "authenticated") {
+    const handleSignOut = async () => {
+      await getMobileAuthClient().signOut();
+      identityState.retry();
+    };
     return (
       <MobileAppIdentityProvider identity={identityState.identity}>
-        {children}
+        <MobileSignOutContext.Provider value={handleSignOut}>
+          {children}
+        </MobileSignOutContext.Provider>
       </MobileAppIdentityProvider>
     );
   }

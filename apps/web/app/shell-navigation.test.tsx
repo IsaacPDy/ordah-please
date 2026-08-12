@@ -17,6 +17,7 @@ import { adminNavigation, memberNavigation } from "./shell-navigation";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
+  useRouter: () => ({ refresh: vi.fn() }),
 }));
 
 vi.mock("../src/auth/load-server-page-identity", () => ({
@@ -24,6 +25,9 @@ vi.mock("../src/auth/load-server-page-identity", () => ({
     Promise.resolve({
       identity: {
         authUserId: "auth-test-user",
+        displayName: "Mia Tan",
+        email: "mia@example.com",
+        imageUrl: null,
         isPlatformAdmin: true,
         memberships: [
           { groupId: "group-alpha", role: "group-owner" },
@@ -73,6 +77,26 @@ describe("web navigation shells", () => {
     expect(html).toContain("Choose restaurant");
     expect(html).toContain("Restaurants");
     expect(html).toContain("Green Table");
+  });
+
+  it("threads the signed-in profile fields into the member header", async () => {
+    const home = await MemberHomePage();
+    const layout = await MemberLayout({ children: home });
+    const html = renderToStaticMarkup(layout);
+
+    expect(html).toContain(
+      'aria-label="Open profile menu for Mia Tan (mia@example.com)"',
+    );
+  });
+
+  it("threads the signed-in profile fields into the admin header", async () => {
+    const home = AdminHomePage();
+    const layout = await AdminLayout({ children: home });
+    const html = renderToStaticMarkup(layout);
+
+    expect(html).toContain(
+      'aria-label="Open profile menu for Mia Tan (mia@example.com)"',
+    );
   });
 
   it("renders active and historical orders with the approved filters", async () => {

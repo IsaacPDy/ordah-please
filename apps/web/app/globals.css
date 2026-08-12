@@ -225,6 +225,112 @@ button:focus-visible {
   object-fit: cover;
 }
 
+.profile-menu {
+  position: relative;
+}
+
+.profile-menu__avatar-button {
+  background: transparent;
+  border: 2px solid var(--color-support);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  height: var(--touch-target);
+  overflow: hidden;
+  padding: 0;
+  width: var(--touch-target);
+}
+
+.profile-menu__avatar-button .profile-avatar {
+  border: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.profile-menu__initials {
+  align-items: center;
+  background: var(--color-support);
+  color: var(--color-primary-strong);
+  display: inline-flex;
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  height: 100%;
+  justify-content: center;
+  width: 100%;
+}
+
+.profile-menu__panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+  display: grid;
+  gap: var(--space-2);
+  min-width: 240px;
+  padding: var(--space-3);
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  z-index: 20;
+}
+
+.profile-menu__identity {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+}
+
+.profile-menu__name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-menu__email {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-menu__divider {
+  border-top: 1px solid var(--color-border);
+  height: 0;
+}
+
+.profile-menu__sign-out,
+.profile-menu__retry {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-compact);
+  color: var(--color-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: var(--space-2);
+  justify-content: flex-start;
+  min-height: var(--touch-target);
+  padding: var(--space-2);
+}
+
+.profile-menu__sign-out:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.profile-menu__error {
+  align-items: center;
+  color: var(--color-error);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-2);
+}
+
 .sr-only {
   clip: rect(0, 0, 0, 0);
   clip-path: inset(50%);
@@ -945,8 +1051,15 @@ button:focus-visible {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   display: flex;
+  justify-content: space-between;
   min-height: 80px;
   padding: var(--space-4) var(--space-8);
+}
+
+.admin-header__profile {
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .admin-content {

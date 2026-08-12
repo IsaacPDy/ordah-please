@@ -5,6 +5,9 @@ import type { AppIdentity } from "../auth/load-app-identity";
 
 const identity = {
   authUserId: "auth-user-1",
+  displayName: "Avery",
+  email: "avery@example.com",
+  imageUrl: null,
   isPlatformAdmin: true,
   memberships: [
     { groupId: parseId<GroupId>("group-a"), role: "manager" },

@@ -415,12 +415,18 @@ export function createIdentityMeHandler(
           if (identity.isPlatformAdmin) {
             const pending = await dependencies.countPendingAdminRequests();
             return parseAppIdentitySummary({
+              displayName: identity.displayName,
+              email: identity.email,
+              imageUrl: identity.imageUrl,
               isPlatformAdmin: true,
               memberships: identity.memberships,
               pendingAdminRequestCount: pending.length,
             });
           }
           return parseAppIdentitySummary({
+            displayName: identity.displayName,
+            email: identity.email,
+            imageUrl: identity.imageUrl,
             isPlatformAdmin: false,
             memberships: identity.memberships,
             pendingAdminRequestCount: 0,

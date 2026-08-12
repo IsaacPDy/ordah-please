@@ -4,9 +4,12 @@ import { memberships, users } from "../schema/index.js";
 import type { RepositoryDatabase } from "./database.js";
 import { requireWrittenRow } from "./rows.js";
 
+// authUserId/displayName are persisted to users; email/imageUrl pass through to AppIdentity (Better Auth owns them).
 export interface AuthIdentityInput {
   readonly authUserId: string;
   readonly displayName: string;
+  readonly email: string;
+  readonly imageUrl: string | null;
 }
 
 export interface IdentityAccessRepository {

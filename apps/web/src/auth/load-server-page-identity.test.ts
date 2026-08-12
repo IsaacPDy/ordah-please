@@ -7,6 +7,9 @@ import { loadServerPageIdentity } from "./load-server-page-identity";
 
 const identity = {
   authUserId: "auth-user-1",
+  displayName: "Avery",
+  email: "avery@example.com",
+  imageUrl: null,
   isPlatformAdmin: false,
   memberships: [],
   userId: parseId<UserId>("user-1"),
@@ -19,6 +22,8 @@ describe("loadServerPageIdentity", () => {
       return Promise.resolve({
         authUserId: "auth-user-1",
         displayName: "Avery",
+        email: "avery@example.com",
+        imageUrl: null,
       });
     });
     const loadIdentity = vi.fn(() => Promise.resolve(identity));

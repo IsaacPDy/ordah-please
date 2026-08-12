@@ -20,6 +20,9 @@ import {
 function createIdentity(
   input: Readonly<{
     authUserId?: string;
+    displayName?: string;
+    email?: string;
+    imageUrl?: string | null;
     isPlatformAdmin?: boolean;
     memberships?: AppIdentity["memberships"];
     userId?: string;
@@ -27,6 +30,9 @@ function createIdentity(
 ): AppIdentity {
   return {
     authUserId: input.authUserId ?? "auth-user-1",
+    displayName: input.displayName ?? "Avery",
+    email: input.email ?? "avery@example.com",
+    imageUrl: input.imageUrl ?? null,
     isPlatformAdmin: input.isPlatformAdmin ?? false,
     memberships: input.memberships ?? [],
     userId: parseId<UserId>(input.userId ?? "user-1"),
@@ -73,6 +79,8 @@ describe("access route handlers", () => {
     const verifySession = vi.fn(() => ({
       authUserId: "10000000-0000-4000-8000-000000000001",
       displayName: "Invited Member",
+      email: "invited@example.com",
+      imageUrl: null,
     }));
     const handler = createAcceptInvitationHandler({
       acceptInvitation,
@@ -119,6 +127,8 @@ describe("access route handlers", () => {
       verifySession: () => ({
         authUserId: "10000000-0000-4000-8000-000000000001",
         displayName: "Invited Member",
+        email: "invited@example.com",
+        imageUrl: null,
       }),
     });
 
@@ -155,6 +165,8 @@ describe("access route handlers", () => {
       verifySession: () => ({
         authUserId: "10000000-0000-4000-8000-000000000001",
         displayName: "Manager",
+        email: "manager@example.com",
+        imageUrl: null,
       }),
     });
 
@@ -183,6 +195,8 @@ describe("access route handlers", () => {
       verifySession: () => ({
         authUserId: "10000000-0000-4000-8000-000000000001",
         displayName: "Owner",
+        email: "owner@example.com",
+        imageUrl: null,
       }),
     };
     const issueInvitation = vi.fn(() =>
@@ -270,6 +284,8 @@ describe("access route handlers", () => {
       verifySession: () => ({
         authUserId: "10000000-0000-4000-8000-000000000001",
         displayName: "Platform Admin",
+        email: "platform-admin@example.com",
+        imageUrl: null,
       }),
     });
 
@@ -302,7 +318,12 @@ describe("createDecideAdminRequestHandler", () => {
           ],
         }),
       now: () => new Date("2026-07-30T08:00:00.000Z"),
-      verifySession: () => ({ authUserId: "auth-1", displayName: "Owner" }),
+      verifySession: () => ({
+        authUserId: "auth-1",
+        displayName: "Owner",
+        email: "owner@example.com",
+        imageUrl: null,
+      }),
     });
 
     const response = await handler(
@@ -332,7 +353,12 @@ describe("createDecideAdminRequestHandler", () => {
           userId: "admin-1",
         }),
       now: () => new Date("2026-07-30T08:00:00.000Z"),
-      verifySession: () => ({ authUserId: "auth-admin", displayName: "Admin" }),
+      verifySession: () => ({
+        authUserId: "auth-admin",
+        displayName: "Admin",
+        email: "admin@example.com",
+        imageUrl: null,
+      }),
     });
 
     const response = await handler(
@@ -366,7 +392,12 @@ describe("createDecideAdminRequestHandler", () => {
           userId: "admin-1",
         }),
       now: () => new Date("2026-07-30T08:00:00.000Z"),
-      verifySession: () => ({ authUserId: "auth-admin", displayName: "Admin" }),
+      verifySession: () => ({
+        authUserId: "auth-admin",
+        displayName: "Admin",
+        email: "admin@example.com",
+        imageUrl: null,
+      }),
     });
 
     const response = await handler(
@@ -389,7 +420,12 @@ describe("createListPendingAdminRequestsHandler", () => {
     const handler = createListPendingAdminRequestsHandler({
       listPendingAdminRequests: vi.fn(() => Promise.resolve([])),
       loadIdentity: () => createIdentity({ authUserId: "auth-1" }),
-      verifySession: () => ({ authUserId: "auth-1", displayName: "Member" }),
+      verifySession: () => ({
+        authUserId: "auth-1",
+        displayName: "Member",
+        email: "member@example.com",
+        imageUrl: null,
+      }),
     });
 
     const response = await handler(
@@ -420,7 +456,12 @@ describe("createListPendingAdminRequestsHandler", () => {
           isPlatformAdmin: true,
           userId: "admin-1",
         }),
-      verifySession: () => ({ authUserId: "auth-admin", displayName: "Admin" }),
+      verifySession: () => ({
+        authUserId: "auth-admin",
+        displayName: "Admin",
+        email: "admin@example.com",
+        imageUrl: null,
+      }),
     });
 
     const response = await handler(
@@ -460,11 +501,19 @@ describe("createIdentityMeHandler", () => {
       loadIdentity: () =>
         createIdentity({
           authUserId: "auth-1",
+          displayName: "Owner",
+          email: "owner@example.com",
+          imageUrl: null,
           memberships: [
             { groupId: testGroupId("group-1"), role: "group-owner" },
           ],
         }),
-      verifySession: () => ({ authUserId: "auth-1", displayName: "Owner" }),
+      verifySession: () => ({
+        authUserId: "auth-1",
+        displayName: "Owner",
+        email: "owner@example.com",
+        imageUrl: null,
+      }),
     });
 
     const response = await handler(
@@ -474,14 +523,65 @@ describe("createIdentityMeHandler", () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
       data: {
+        displayName: string;
+        email: string;
+        imageUrl: string | null;
         isPlatformAdmin: boolean;
         memberships: AppIdentity["memberships"];
         pendingAdminRequestCount: number;
       };
     };
     expect(body.data).toEqual({
+      displayName: "Owner",
+      email: "owner@example.com",
+      imageUrl: null,
       isPlatformAdmin: false,
       memberships: [{ groupId: "group-1", role: "group-owner" }],
+      pendingAdminRequestCount: 0,
+    });
+  });
+
+  it("threads the auth-user profile picture through the identity summary", async () => {
+    const countPendingAdminRequests = vi.fn(() => Promise.resolve([]));
+    const handler = createIdentityMeHandler({
+      countPendingAdminRequests,
+      loadIdentity: () =>
+        createIdentity({
+          authUserId: "auth-2",
+          displayName: "Mia Tan",
+          email: "mia@example.com",
+          imageUrl: "https://lh3.googleusercontent.com/mia.jpg",
+          memberships: [],
+        }),
+      verifySession: () => ({
+        authUserId: "auth-2",
+        displayName: "Mia Tan",
+        email: "mia@example.com",
+        imageUrl: "https://lh3.googleusercontent.com/mia.jpg",
+      }),
+    });
+
+    const response = await handler(
+      new Request("https://example.test/api/identity/me"),
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      data: {
+        displayName: string;
+        email: string;
+        imageUrl: string | null;
+        isPlatformAdmin: boolean;
+        memberships: AppIdentity["memberships"];
+        pendingAdminRequestCount: number;
+      };
+    };
+    expect(body.data).toEqual({
+      displayName: "Mia Tan",
+      email: "mia@example.com",
+      imageUrl: "https://lh3.googleusercontent.com/mia.jpg",
+      isPlatformAdmin: false,
+      memberships: [],
       pendingAdminRequestCount: 0,
     });
   });
@@ -514,11 +614,19 @@ describe("createIdentityMeHandler", () => {
       loadIdentity: () =>
         createIdentity({
           authUserId: "auth-admin",
+          displayName: "Admin",
+          email: "admin@example.com",
+          imageUrl: null,
           isPlatformAdmin: true,
           memberships: [{ groupId: testGroupId("group-9"), role: "member" }],
           userId: "admin-1",
         }),
-      verifySession: () => ({ authUserId: "auth-admin", displayName: "Admin" }),
+      verifySession: () => ({
+        authUserId: "auth-admin",
+        displayName: "Admin",
+        email: "admin@example.com",
+        imageUrl: null,
+      }),
     });
 
     const response = await handler(
@@ -528,12 +636,18 @@ describe("createIdentityMeHandler", () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
       data: {
+        displayName: string;
+        email: string;
+        imageUrl: string | null;
         isPlatformAdmin: boolean;
         memberships: AppIdentity["memberships"];
         pendingAdminRequestCount: number;
       };
     };
     expect(body.data).toEqual({
+      displayName: "Admin",
+      email: "admin@example.com",
+      imageUrl: null,
       isPlatformAdmin: true,
       memberships: [{ groupId: "group-9", role: "member" }],
       pendingAdminRequestCount: 2,
