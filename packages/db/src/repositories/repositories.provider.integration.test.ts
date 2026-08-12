@@ -273,6 +273,98 @@ describe("focused repositories", () => {
     ).toHaveLength(1);
   });
 
+  it("imports one catalog record per upload and replaces by source id after a rename", async () => {
+    const repositories = createRepositories(database);
+    const user = await repositories.identityAccess.createUser({
+      displayName: "Catalog Import Admin",
+    });
+    const importCountBefore = (await database.select().from(catalogImports))
+      .length;
+    const firstRows = [
+      {
+        branchName: "Main",
+        categoryName: "Meals",
+        collectedAt: "2026-08-12",
+        cuisines: ["Fast Food"],
+        description: null,
+        imageUrl: null,
+        isAvailable: true,
+        itemName: "Meal One",
+        priceCentavos: 10000,
+        restaurantName: "Original Restaurant",
+        sourceRestaurantId: `source-${randomUUID()}`,
+        sourceUrl: "https://food.grab.com/example-one",
+      },
+      {
+        branchName: "Second",
+        categoryName: "Meals",
+        collectedAt: "2026-08-12",
+        cuisines: ["Chicken"],
+        description: "Chicken meal",
+        imageUrl: null,
+        isAvailable: true,
+        itemName: "Meal Two",
+        priceCentavos: 12000,
+        restaurantName: "Second Restaurant",
+        sourceRestaurantId: `source-${randomUUID()}`,
+        sourceUrl: "https://food.grab.com/example-two",
+      },
+    ] as const;
+
+    const first = await repositories.catalog.importCatalog(
+      user.id,
+      "first-catalog.csv",
+      firstRows,
+      [{ reason: "Skipped bad row", row: 4 }],
+    );
+    const renamedRows = [
+      {
+        ...firstRows[0],
+        restaurantName: "Renamed Restaurant",
+      },
+    ];
+    const second = await repositories.catalog.importCatalog(
+      user.id,
+      "renamed-catalog.csv",
+      renamedRows,
+      [],
+    );
+
+    expect(first).toMatchObject({
+      itemsSkipped: 1,
+      restaurantsAdded: 2,
+      restaurantsUpdated: 0,
+    });
+    expect(second).toMatchObject({
+      restaurantsAdded: 0,
+      restaurantsUpdated: 1,
+    });
+    await expect(database.select().from(catalogImports)).resolves.toHaveLength(
+      importCountBefore + 2,
+    );
+    await expect(
+      database
+        .select({ name: restaurants.name })
+        .from(branches)
+        .innerJoin(restaurants, eq(restaurants.id, branches.restaurantId))
+        .where(eq(branches.sourceKey, firstRows[0].sourceRestaurantId)),
+    ).resolves.toEqual([{ name: "Renamed Restaurant" }]);
+    await expect(repositories.catalog.listRecentImports()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          restaurantCount: 1,
+          sourceFileName: "renamed-catalog.csv",
+          status: "published",
+        }),
+        expect.objectContaining({
+          restaurantCount: 2,
+          sourceFileName: "first-catalog.csv",
+          status: "published",
+        }),
+      ]),
+    );
+  });
+
   it("commits an order change and audit together and rolls both back on failure", async () => {
     const repositories = createRepositories(database);
     const user = await repositories.identityAccess.createUser({

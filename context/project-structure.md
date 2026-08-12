@@ -12,20 +12,23 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   ├── mobile/                 # Expo Router Android shell and fixed application identity
 │   │   ├── __tests__/          # Jest/React Native Testing Library component tests
 │   │   ├── app/
-│   │   │   ├── (member)/       # Native Home, Orders, Favorites, and Groups tab views
+│   │   │   ├── (member)/       # Native Home, restaurant detail, Orders, Favorites, and Groups views
 │   │   │   └── invite/         # Better Auth Google deep-link onboarding
 │   │   └── src/
 │   │       ├── auth/           # SecureStore cookie client and authenticated request boundary
 │   │       ├── components/     # Shared native member-page and access-screen composition
+│   │       ├── features/catalog/# Authenticated restaurant list/detail request hooks
 │   │       ├── features/access/# Cookie-authenticated identity gate, multi-membership states, invitations, and admin access UI
 │   │       ├── navigation/     # Shared member-tab labels, icons, and runtime styles
 │   │       └── theme/          # React Native Paper mapping to shared tokens
 │   └── web/                    # Next.js App Router shell for the PWA, admin portal, and API
 │       ├── app/
-│       │   ├── (member)/       # Responsive Home, Orders, Favorites, and multi-group views
-│       │   ├── admin/          # Overview, users/permissions, groups, catalog, import, refresh, access, and audit views
+│       │   ├── (member)/       # Responsive Home, restaurant detail, Orders, Favorites, and multi-group views
+│       │   ├── admin/          # Overview, users/permissions, groups, catalog import/edit, refresh, access, and audit views
 │       │   ├── api/access/     # Authenticated invitation, membership, and admin-request routes
+│       │   ├── api/admin/catalog/# Platform Admin CSV import and restaurant/menu-item editing routes
 │       │   ├── api/auth/       # Better Auth handler and Google OAuth callback
+│       │   ├── api/catalog/    # Signed-in restaurant list and detail routes
 │       │   ├── api/webhooks/   # Public signature-verified callbacks for non-auth providers
 │       │   ├── components/     # Web member/admin shells and reusable Groups/admin-page views
 │       │   ├── invite/         # PWA invitation sign-in and acceptance route
@@ -38,7 +41,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 ├── packages/
 │   ├── contracts/              # Strict API parsers, including the shared multi-membership identity summary
 │   │   └── src/
-│   │       ├── catalog/        # Immutable catalog response validation
+│   │       ├── catalog/        # CSV import and immutable catalog response validation
 │   │       ├── common/         # API envelopes, errors, pagination, and strict JSON helpers
 │   │       ├── favorites/      # Complete favorite-combination validation
 │   │       └── orders/         # Food snapshots, strict mutation requests, handoff, receipt, and history validation
@@ -49,7 +52,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   │       ├── client.ts       # Validated pooled server connection composition
 │   │       ├── dev/            # Deterministic fixtures plus guarded seed and auth-identity-link CLIs
 │   │       ├── transaction.ts  # Atomic multi-record operation boundary
-│   │       ├── repositories/   # Focused persistence-only data access interfaces
+│   │       ├── repositories/   # Catalog import/read/edit and other focused persistence interfaces
 │   │       └── schema/         # Identity, files, catalog, ordering, operations, and provider verification
 │   ├── domain/                 # Provider-neutral catalog, favorite, order, and primitive types
 │   │   └── src/
@@ -87,7 +90,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 └── vitest.config.ts            # Node test projects and clean-clone workspace source resolution
 ```
 
-The current UI baseline replaces the original empty member shells with Home, Orders, Favorites, and Groups views on web/PWA and native mobile. Groups now renders the signed-in account's real group names and exact roles from the protected identity boundary, and tapping a group opens a Group details screen with the owner and member roster. The web admin shell contains the approved eight desktop destinations, lets Platform Admins create groups from the admin Groups view, and limits mobile navigation to Groups, Catalog, Access Requests, and Audit Log. Upcoming journey bundles connect the remaining catalog, permission, order, receipt, and notification behavior.
+The current UI baseline replaces the original empty member shells with Home, Orders, Favorites, and Groups views on web/PWA and native mobile. Groups renders the signed-in account's real group names and exact roles from the protected identity boundary, and tapping a group opens Group details with the owner and member roster. The restaurant catalog now flows from strict Platform Admin CSV import through Neon-backed list/detail/edit APIs into member Home and restaurant detail on web and mobile. Catalog imports replace by globally unique Grab source ID, keep one import record and filename per upload, and feed the admin search, branch editor, and Recent imports table; Favorites remains an honest empty state until its separate bundle. The web admin shell contains the approved eight desktop destinations, lets Platform Admins create groups, and limits mobile navigation to Groups, Catalog, Access Requests, and Audit Log. Upcoming journey bundles connect the remaining Favorites, permission, order, receipt, and notification behavior.
 
 ## Ownership Rules
 

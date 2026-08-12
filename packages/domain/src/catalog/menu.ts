@@ -17,6 +17,7 @@ export type MenuAvailability = (typeof MENU_AVAILABILITY_STATES)[number];
 export type CatalogRestaurant = Readonly<{
   id: RestaurantId;
   name: string;
+  cuisines: readonly string[];
 }>;
 
 export type CatalogBranch = Readonly<{
@@ -53,6 +54,7 @@ export type MenuItem = Readonly<{
   description: string;
   priceCentavos: Centavos;
   availability: MenuAvailability;
+  imageUrl: string | null;
   variants: readonly MenuVariant[];
   modifierGroups: readonly MenuModifierGroup[];
 }>;

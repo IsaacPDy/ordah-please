@@ -75,7 +75,7 @@ export default function AdminHomePage() {
               <AlertTriangle aria-hidden="true" />
             </span>
             <div>
-              <strong>Green Table · BGC refresh failed</strong>
+              <strong>Catalog refresh failed</strong>
               <p>Published menu remains available · failed 2 hours ago</p>
             </div>
             <span className="status-pill">Review</span>
@@ -95,7 +95,7 @@ export default function AdminHomePage() {
               <CheckCircle2 aria-hidden="true" />
             </span>
             <div>
-              <strong>Fresh Bowls import ready</strong>
+              <strong>Catalog import ready</strong>
               <p>142 valid rows · 3 warnings</p>
             </div>
             <span className="status-pill">Publish</span>

@@ -1,47 +1,10 @@
-import {
-  ChevronRight,
-  Clock3,
-  Heart,
-  Sparkles,
-  Star,
-  Users,
-  Utensils,
-} from "lucide-react";
-import Image from "next/image";
+import { ChevronRight, Clock3, Sparkles, Users, Utensils } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
+import { catalogRuntime } from "../../src/features/catalog/catalog-runtime";
 import { getCurrentServerPageIdentity } from "../../src/auth/load-server-page-identity";
 import { MemberAccessState } from "../components/member-access-state";
-
-const restaurants = [
-  {
-    category: "Comfort Food",
-    distance: "1.2 km",
-    eta: "25–35 min",
-    image: "/images/green-table.jpg",
-    name: "Green Table",
-    price: "Affordable",
-    rating: "4.6",
-  },
-  {
-    category: "Rice Bowls · Healthy",
-    distance: "1.6 km",
-    eta: "20–30 min",
-    image: "/images/fresh-bowls.jpg",
-    name: "Fresh Bowls",
-    price: "Moderate",
-    rating: "4.7",
-  },
-  {
-    category: "Fried Chicken · Comfort Food",
-    distance: "1.1 km",
-    eta: "25–40 min",
-    image: "/images/crispy-chicken.jpg",
-    name: "Crispy Chicken",
-    price: "Affordable",
-    rating: "4.5",
-  },
-] as const;
 
 /** Shows the approved member Home experience with urgent order work, group context, and restaurant discovery. */
 export default async function MemberHomePage() {
@@ -49,6 +12,7 @@ export default async function MemberHomePage() {
   const hasMemberships =
     identityResult.status === "authenticated" &&
     identityResult.identity.memberships.length > 0;
+  const restaurants = await catalogRuntime.catalog.listRestaurants();
 
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="home">
@@ -124,40 +88,48 @@ export default async function MemberHomePage() {
         >
           <div className="section-heading-row">
             <h2 id="restaurants-title">Restaurants</h2>
-            <a href="#restaurant-list">See all</a>
           </div>
-          <div className="restaurant-list" id="restaurant-list">
-            {restaurants.map((restaurant) => (
-              <article className="restaurant-card" key={restaurant.name}>
-                <Image
-                  alt={`${restaurant.name} food`}
-                  className="restaurant-card__image"
-                  height={180}
-                  src={restaurant.image}
-                  width={240}
-                />
-                <div className="restaurant-card__body">
-                  <div>
-                    <h3>{restaurant.name}</h3>
-                    <p>{restaurant.category}</p>
+          {restaurants.length === 0 ? (
+            <p className="restaurant-empty">
+              No restaurants published yet. Check back soon.
+            </p>
+          ) : (
+            <div className="restaurant-list" id="restaurant-list">
+              {restaurants.map((restaurant) => (
+                <Link
+                  className="restaurant-card"
+                  href={`/restaurants/${restaurant.restaurantId}`}
+                  key={restaurant.restaurantId}
+                >
+                  {restaurant.heroImageUrl ? (
+                    <Image
+                      alt=""
+                      className="restaurant-card__image"
+                      height={108}
+                      src={restaurant.heroImageUrl}
+                      width={240}
+                    />
+                  ) : (
+                    <div className="restaurant-card__image restaurant-card__image--placeholder">
+                      {restaurant.restaurantName.charAt(0)}
+                    </div>
+                  )}
+                  <div className="restaurant-card__body">
+                    <div>
+                      <h3>{restaurant.restaurantName}</h3>
+                      <p>
+                        {restaurant.cuisines.join(" · ") ||
+                          restaurant.branchName}
+                      </p>
+                    </div>
+                    <span className="restaurant-meta">
+                      {restaurant.branchName}
+                    </span>
                   </div>
-                  <button
-                    aria-label={`Add ${restaurant.name} to Favorites`}
-                    className="favorite-button"
-                    type="button"
-                  >
-                    <Heart aria-hidden="true" size={22} />
-                  </button>
-                  <span className="price-tag">₱ {restaurant.price}</span>
-                  <p className="restaurant-meta">
-                    <Star aria-hidden="true" fill="currentColor" size={16} />{" "}
-                    {restaurant.rating} <span>•</span> {restaurant.eta}{" "}
-                    <span>•</span> {restaurant.distance}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </MemberAccessState>

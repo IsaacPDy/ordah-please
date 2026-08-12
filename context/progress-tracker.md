@@ -5,7 +5,7 @@ Current state and remaining work. Completed bundle evidence lives in [`context/h
 ## Current Phase
 
 - V1-01 through V1-06 and Multi-group foundation are merged to `main`.
-- UI screens use mock data; persistence, permission enforcement, restaurant data, order actions, uploads, notifications, and background work remain deferred.
+- Restaurant catalog import, admin editing, and member browsing are connected to Neon on web. Other persistence, permission enforcement, order actions, file uploads, notifications, and background work remain deferred.
 
 ## Completed
 
@@ -29,7 +29,8 @@ Current state and remaining work. Completed bundle evidence lives in [`context/h
 
 **After Multi-group** (parallel):
 
-- [ ] Restaurant catalog and Favorites
+- [x] Restaurant catalog — implementation, strict public API mapping, source-ID replacement, required-field/upload validation, admin search/branch editing/recent imports, and focused checks pass. Development Neon accepted McDonald's (158 items) and KFC (129 items), admin edit persistence passed, authenticated web Home/detail passed, migrations `0006`/`0007` are present, and the verified `0004`–`0007` journal drift was reconciled; the normal migration runner now completes successfully. Android acceptance remains blocked by an Expo SDK 57 Router/Worklets native crash reproduced in both this app and a fresh official Router control project on the installed Android 16 emulator; a plain Expo control project stays open.
+- [ ] Favorites — honest empty states are in place; saving and ranking favorites remain a separate bundle.
 - [ ] Private files and import
 - [ ] Platform Admin operations — after Effective permissions
 

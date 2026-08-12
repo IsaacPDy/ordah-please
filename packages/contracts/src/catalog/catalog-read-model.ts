@@ -29,6 +29,7 @@ import {
   parseUtcString,
   rejectUnknownFields,
 } from "../common/strict-boundary.js";
+import { parseStringArray } from "../common/parse-string-array.js";
 
 const availabilityStates = ["available", "unavailable"] as const;
 
@@ -125,6 +126,7 @@ function parseMenuItem(value: unknown): MenuItem {
       "description",
       "priceCentavos",
       "availability",
+      "imageUrl",
       "variants",
       "modifierGroups",
     ],
@@ -141,6 +143,7 @@ function parseMenuItem(value: unknown): MenuItem {
       availabilityStates,
       "Menu item availability",
     ),
+    imageUrl: parseNullableString(object.imageUrl, "Menu item image url"),
     variants: parseArray(object.variants, "Menu variants", parseVariant),
     modifierGroups: parseArray(
       object.modifierGroups,
@@ -164,7 +167,7 @@ export function parseCatalogReadModel(value: unknown): CatalogReadModel {
     object.menuVersion,
     "Catalog menu version",
   );
-  rejectUnknownFields(restaurant, ["id", "name"], "Catalog restaurant");
+  rejectUnknownFields(restaurant, ["id", "name", "cuisines"], "Catalog restaurant");
   rejectUnknownFields(
     branch,
     ["id", "restaurantId", "name", "grabUrl"],
@@ -179,6 +182,7 @@ export function parseCatalogReadModel(value: unknown): CatalogReadModel {
   const parsedRestaurant: CatalogRestaurant = {
     id: parseRecordId<RestaurantId>(restaurant.id, "Restaurant id"),
     name: parseString(restaurant.name, "Restaurant name"),
+    cuisines: parseStringArray(restaurant.cuisines, "Restaurant cuisines"),
   };
   const parsedBranch: CatalogBranch = {
     id: parseRecordId<BranchId>(branch.id, "Branch id"),

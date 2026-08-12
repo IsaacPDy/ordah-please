@@ -30,6 +30,10 @@ const utcTimestamp = (name: string) =>
 export const restaurants = pgTable("restaurants", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
+  cuisines: text("cuisines")
+    .array()
+    .notNull()
+    .default(sql`'{}'::text[]`),
   createdAt: utcTimestamp("created_at").defaultNow().notNull(),
   updatedAt: utcTimestamp("updated_at").defaultNow().notNull(),
   pausedAt: utcTimestamp("paused_at"),
@@ -52,13 +56,14 @@ export const branches = pgTable(
     archivedAt: utcTimestamp("archived_at"),
   },
   (table) => [
-    unique().on(table.restaurantId, table.sourceKey),
+    unique("branches_source_key_unique").on(table.sourceKey),
     unique("branches_restaurant_id_id_unique").on(table.restaurantId, table.id),
   ],
 );
 
 export const catalogImports = pgTable("catalog_imports", {
   id: uuid("id").defaultRandom().primaryKey(),
+  sourceFileName: text("source_file_name"),
   sourceFileId: uuid("source_file_id").references(() => fileRecords.id),
   validationReportFileId: uuid("validation_report_file_id").references(
     () => fileRecords.id,
@@ -133,6 +138,7 @@ export const menuItems = pgTable(
       mode: "number",
     }).notNull(),
     isAvailable: boolean("is_available").default(true).notNull(),
+    imageUrl: text("image_url"),
     sortOrder: integer("sort_order").notNull(),
   },
   (table) => [

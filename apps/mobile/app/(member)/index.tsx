@@ -1,49 +1,26 @@
 import { designTokens } from "@ordah-please/ui";
-import {
-  Clock3,
-  Heart,
-  Sparkles,
-  Star,
-  Users,
-  Utensils,
-} from "lucide-react-native";
+import { Clock3, Sparkles, Users, Utensils } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { Image, StyleSheet, View } from "react-native";
-import { Button, ProgressBar, Surface, Text } from "react-native-paper";
+import { Image, Pressable, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Button,
+  ProgressBar,
+  Surface,
+  Text,
+} from "react-native-paper";
 
 import { MemberPage } from "../../src/components/member-page";
 import { HomeAdminCard } from "../../src/features/access/home-admin-card";
 import { MobileMemberAccessState } from "../../src/features/access/member-access-state";
 import { useMobileAppIdentity } from "../../src/features/access/mobile-member-gate";
-import crispyChickenImage from "../../assets/images/crispy-chicken.jpg";
-import freshBowlsImage from "../../assets/images/fresh-bowls.jpg";
-import greenTableImage from "../../assets/images/green-table.jpg";
-
-const restaurants = [
-  {
-    image: greenTableImage,
-    name: "Green Table",
-    category: "Comfort Food",
-    meta: "4.6 · 25–35 min · 1.2 km",
-  },
-  {
-    image: freshBowlsImage,
-    name: "Fresh Bowls",
-    category: "Rice Bowls · Healthy",
-    meta: "4.7 · 20–30 min · 1.6 km",
-  },
-  {
-    image: crispyChickenImage,
-    name: "Crispy Chicken",
-    category: "Fried Chicken · Comfort Food",
-    meta: "4.5 · 25–40 min · 1.1 km",
-  },
-] as const;
+import { useRestaurants } from "../../src/features/catalog/use-restaurants";
 
 /** Shows the approved native Home hierarchy while retaining the platform-admin shortcut. */
 export default function HomeScreen() {
   const router = useRouter();
   const identity = useMobileAppIdentity();
+  const restaurantsState = useRestaurants();
 
   return (
     <MobileMemberAccessState identity={identity} surface="home">
@@ -112,35 +89,71 @@ export default function HomeScreen() {
           >
             Restaurants
           </Text>
-          <Button compact mode="text">
-            See all
-          </Button>
         </View>
-        <View style={styles.restaurantList}>
-          {restaurants.map((restaurant) => (
-            <View key={restaurant.name} style={styles.restaurantCard}>
-              <Image
-                accessibilityLabel={`${restaurant.name} food`}
-                source={restaurant.image}
-                style={styles.restaurantImage}
-              />
-              <View style={styles.restaurantBody}>
-                <Text style={styles.restaurantName}>{restaurant.name}</Text>
-                <Text style={styles.secondary}>{restaurant.category}</Text>
-                <Text style={styles.price}>₱ Affordable</Text>
-                <View style={styles.inline}>
-                  <Star
-                    color={designTokens.colors.warning}
-                    fill={designTokens.colors.warning}
-                    size={15}
+        {restaurantsState.kind === "loading" ? (
+          <ActivityIndicator
+            accessibilityLabel="Loading restaurants"
+            color={designTokens.colors.primary}
+            size="large"
+          />
+        ) : null}
+        {restaurantsState.kind === "error" ? (
+          <View style={styles.catalogState}>
+            <Text accessibilityRole="alert" style={styles.secondary}>
+              Restaurants could not be loaded.
+            </Text>
+            <Button mode="contained" onPress={restaurantsState.retry}>
+              Try again
+            </Button>
+          </View>
+        ) : null}
+        {restaurantsState.kind === "ready" &&
+        restaurantsState.restaurants.length === 0 ? (
+          <View style={styles.catalogState}>
+            <Text style={styles.secondary}>No restaurants available yet.</Text>
+          </View>
+        ) : null}
+        {restaurantsState.kind === "ready" ? (
+          <View style={styles.restaurantList}>
+            {restaurantsState.restaurants.map((restaurant) => (
+              <Pressable
+                accessibilityLabel={`Open ${restaurant.name}`}
+                accessibilityRole="button"
+                key={restaurant.id}
+                onPress={() => {
+                  router.push(`/restaurants/${restaurant.id}`);
+                }}
+                style={styles.restaurantCard}
+              >
+                {restaurant.heroImageUrl === null ? (
+                  <View
+                    accessibilityLabel={`${restaurant.name} image unavailable`}
+                    style={styles.restaurantImageFallback}
+                  >
+                    <Text style={styles.restaurantInitial}>
+                      {restaurant.name.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                ) : (
+                  <Image
+                    accessibilityLabel={`${restaurant.name} food`}
+                    source={{ uri: restaurant.heroImageUrl }}
+                    style={styles.restaurantImage}
                   />
-                  <Text style={styles.meta}>{restaurant.meta}</Text>
+                )}
+                <View style={styles.restaurantBody}>
+                  <Text style={styles.restaurantName}>{restaurant.name}</Text>
+                  <Text style={styles.secondary}>
+                    {restaurant.cuisines.length > 0
+                      ? restaurant.cuisines.join(" · ")
+                      : "Cuisine not listed"}
+                  </Text>
+                  <Text style={styles.branchName}>{restaurant.branchName}</Text>
                 </View>
-              </View>
-              <Heart color={designTokens.colors.textSecondary} size={22} />
-            </View>
-          ))}
-        </View>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
       </MemberPage>
     </MobileMemberAccessState>
   );
@@ -154,6 +167,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: designTokens.spacing.sm,
     padding: designTokens.spacing.md,
+  },
+  branchName: {
+    color: designTokens.colors.textPrimary,
+    fontFamily: "NunitoSans_600SemiBold",
+    fontSize: designTokens.typography.size.caption,
+  },
+  catalogState: {
+    alignItems: "center",
+    backgroundColor: designTokens.colors.surface,
+    borderColor: designTokens.colors.border,
+    borderRadius: designTokens.radii.card,
+    borderWidth: 1,
+    gap: designTokens.spacing.sm,
+    padding: designTokens.spacing.lg,
   },
   deadline: {
     color: designTokens.colors.primaryStrong,
@@ -205,11 +232,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: designTokens.spacing.sm,
     paddingVertical: designTokens.spacing.xs,
   },
-  meta: {
-    color: designTokens.colors.textSecondary,
-    fontFamily: "NunitoSans_400Regular",
-    fontSize: designTokens.typography.size.caption,
-  },
   orderInner: {
     backgroundColor: designTokens.colors.surface,
     borderColor: designTokens.colors.border,
@@ -222,16 +244,6 @@ const styles = StyleSheet.create({
     color: designTokens.colors.textPrimary,
     fontFamily: "NunitoSans_700Bold",
     fontSize: designTokens.typography.size.title,
-  },
-  price: {
-    alignSelf: "flex-start",
-    backgroundColor: designTokens.colors.supportSurface,
-    borderRadius: designTokens.radii.pill,
-    color: designTokens.colors.primaryStrong,
-    fontFamily: "NunitoSans_600SemiBold",
-    fontSize: designTokens.typography.size.caption,
-    paddingHorizontal: designTokens.spacing.xs,
-    paddingVertical: designTokens.spacing.xxs,
   },
   primaryButton: { borderRadius: designTokens.radii.field },
   progress: {
@@ -252,6 +264,18 @@ const styles = StyleSheet.create({
     paddingRight: designTokens.spacing.sm,
   },
   restaurantImage: { height: 116, width: 124 },
+  restaurantImageFallback: {
+    alignItems: "center",
+    backgroundColor: designTokens.colors.supportSurface,
+    height: 116,
+    justifyContent: "center",
+    width: 124,
+  },
+  restaurantInitial: {
+    color: designTokens.colors.primaryStrong,
+    fontFamily: "NunitoSans_700Bold",
+    fontSize: designTokens.typography.size.display,
+  },
   restaurantList: { gap: designTokens.spacing.sm },
   restaurantName: {
     color: designTokens.colors.textPrimary,

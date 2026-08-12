@@ -20,6 +20,25 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
+vi.mock("../src/features/catalog/catalog-runtime", () => ({
+  catalogRuntime: {
+    catalog: {
+      listRecentImports: () => Promise.resolve([]),
+      listRestaurants: () => Promise.resolve([]),
+    },
+  },
+}));
+
+vi.mock("../src/features/groups/group-runtime", () => ({
+  groupRuntime: {
+    listViewerGroupSummaries: () =>
+      Promise.resolve([
+        { groupId: "group-alpha", name: "Alpha group", role: "group-owner" },
+        { groupId: "group-beta", name: "Beta group", role: "manager" },
+      ]),
+  },
+}));
+
 vi.mock("../src/auth/load-server-page-identity", () => ({
   getCurrentServerPageIdentity: () =>
     Promise.resolve({
@@ -76,7 +95,7 @@ describe("web navigation shells", () => {
     expect(html).toContain("Friday lunch");
     expect(html).toContain("Choose restaurant");
     expect(html).toContain("Restaurants");
-    expect(html).toContain("Green Table");
+    expect(html).toContain("No restaurants published yet");
   });
 
   it("threads the signed-in profile fields into the member header", async () => {
@@ -110,13 +129,11 @@ describe("web navigation shells", () => {
     expect(html).toContain("Date");
   });
 
-  it("groups ranked Favorites under their exact restaurant branch", async () => {
+  it("shows an honest Favorites empty state before favorites ship", async () => {
     const html = renderToStaticMarkup(await FavoritesPage());
 
-    expect(html).toContain("Green Table · BGC");
-    expect(html).toContain("Rank 1");
-    expect(html).toContain("Edit combination");
-    expect(html).toContain("Remove restaurant favorites");
+    expect(html).toContain("No favorites yet");
+    expect(html).not.toContain("Rank 1");
   });
 
   it("shows every real membership with its exact role", async () => {
@@ -152,10 +169,10 @@ describe("web navigation shells", () => {
     expect(html.match(/<h1/g)).toHaveLength(1);
   });
 
-  it("renders the catalog, imports, refresh queue, and audit workspaces", () => {
+  it("renders the catalog, imports, refresh queue, and audit workspaces", async () => {
     const html = [
-      <CatalogPage key="catalog" />,
-      <ImportsPage key="imports" />,
+      await CatalogPage(),
+      await ImportsPage(),
       <RefreshPage key="refresh" />,
       <AuditPage key="audit" />,
     ]
@@ -163,7 +180,7 @@ describe("web navigation shells", () => {
       .join("\n");
 
     expect(html).toContain("Published restaurants");
-    expect(html).toContain("Import drafts");
+    expect(html).toContain("Import catalog");
     expect(html).toContain("Weekly refresh queue");
     expect(html).toContain("Permission override changed");
   });

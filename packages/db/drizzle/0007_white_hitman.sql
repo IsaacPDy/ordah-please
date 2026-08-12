@@ -1,0 +1,1 @@
+ALTER TABLE "catalog_imports" ADD COLUMN "source_file_name" text;

@@ -1136,6 +1136,353 @@ button:focus-visible {
   padding: var(--space-2) var(--space-4);
 }
 
+.admin-primary-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.admin-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.admin-field > span {
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+}
+
+.admin-field input,
+.admin-field select {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-field);
+  color: var(--color-text);
+  font: inherit;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+}
+
+.admin-field input:focus-visible,
+.admin-field select:focus-visible {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-support);
+}
+
+.admin-field--inline {
+  align-items: center;
+  display: flex;
+  min-height: var(--touch-target);
+}
+
+.admin-field--inline input {
+  min-height: auto;
+  width: auto;
+}
+
+.admin-empty,
+.admin-error,
+.admin-success {
+  margin: 0;
+}
+
+.admin-error {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.admin-success {
+  background: var(--color-support);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  color: var(--color-primary-strong);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.admin-upload {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+}
+
+.admin-upload__dropzone {
+  align-items: center;
+  background: var(--color-support);
+  border: 2px dashed var(--color-primary);
+  border-radius: var(--radius-major-card);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  justify-content: center;
+  min-height: 14rem;
+  padding: var(--space-6);
+  text-align: center;
+  width: 100%;
+}
+
+.admin-upload__label {
+  color: var(--color-primary-strong);
+  font-size: var(--font-size-title);
+  font-weight: 700;
+}
+
+.admin-upload__dropzone input {
+  max-width: 100%;
+}
+
+.admin-restaurant-grid,
+.admin-cuisine-tags,
+.admin-item-list,
+.restaurant-detail__cuisines,
+.restaurant-detail__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-restaurant-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.admin-restaurant-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-text);
+  display: grid;
+  gap: var(--space-2);
+  height: 100%;
+  overflow: hidden;
+  padding-bottom: var(--space-4);
+}
+
+.admin-restaurant-card__hero,
+.admin-restaurant-card__placeholder {
+  aspect-ratio: 2 / 1;
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+
+.admin-restaurant-card__placeholder {
+  align-items: center;
+  background: var(--color-support);
+  color: var(--color-primary-strong);
+  display: flex;
+  font-size: 3rem;
+  font-weight: 700;
+  justify-content: center;
+}
+
+.admin-restaurant-card__name,
+.admin-restaurant-card__branch,
+.admin-cuisine-tags {
+  margin-inline: var(--space-4);
+}
+
+.admin-restaurant-card__branch {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+.admin-cuisine-tags,
+.restaurant-detail__cuisines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.admin-cuisine-tags li,
+.restaurant-detail__cuisines li {
+  background: var(--color-support);
+  border-radius: 999px;
+  color: var(--color-primary-strong);
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+  padding: var(--space-1) var(--space-2);
+}
+
+.admin-edit-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.admin-edit-form .admin-panel,
+.admin-edit-form details,
+.admin-item-list {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.admin-edit-form h2,
+.admin-edit-form p {
+  margin: 0;
+}
+
+.admin-edit-form summary {
+  cursor: pointer;
+  font-size: var(--font-size-body);
+  font-weight: 700;
+  min-height: var(--touch-target);
+  padding-block: var(--space-2);
+}
+
+.admin-item-row {
+  align-items: start;
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: auto repeat(3, minmax(9rem, 1fr));
+  padding-block: var(--space-4);
+}
+
+.admin-item-row > img {
+  border-radius: var(--radius-field);
+  height: 64px;
+  object-fit: cover;
+  width: 64px;
+}
+
+.admin-item-row .admin-field:last-child {
+  grid-column: 2 / -1;
+}
+
+.admin-edit-actions {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  bottom: var(--space-4);
+  box-shadow: var(--shadow-raised);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  padding: var(--space-3);
+  position: sticky;
+}
+
+.restaurant-detail {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0 auto;
+  max-width: 62rem;
+  padding-bottom: var(--space-8);
+  width: 100%;
+}
+
+.restaurant-detail__back,
+.restaurant-detail__grab {
+  align-items: center;
+  color: var(--color-primary-strong);
+  display: inline-flex;
+  font-weight: 700;
+  min-height: var(--touch-target);
+  width: fit-content;
+}
+
+.restaurant-detail__hero {
+  aspect-ratio: 5 / 2;
+  border-radius: var(--radius-major-card);
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+
+.restaurant-detail__hero--placeholder {
+  align-items: center;
+  background: var(--color-support);
+  color: var(--color-primary-strong);
+  display: flex;
+  font-size: 4rem;
+  font-weight: 700;
+  justify-content: center;
+}
+
+.restaurant-detail__header {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.restaurant-detail__header h1,
+.restaurant-detail__header p,
+.restaurant-detail__category h2,
+.restaurant-detail__item h3,
+.restaurant-detail__item p {
+  margin: 0;
+}
+
+.restaurant-detail__branch,
+.restaurant-detail__item-body > p:not(.restaurant-detail__price) {
+  color: var(--color-text-secondary);
+}
+
+.restaurant-detail__chips {
+  background: var(--color-canvas);
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-block: var(--space-2);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.restaurant-detail__chips a {
+  background: var(--color-support);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-primary-strong);
+  flex: 0 0 auto;
+  font-weight: 700;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+}
+
+.restaurant-detail__category {
+  display: grid;
+  gap: var(--space-3);
+  scroll-margin-top: 5rem;
+}
+
+.restaurant-detail__items {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.restaurant-detail__item {
+  align-items: start;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.restaurant-detail__item > img {
+  border-radius: var(--radius-field);
+  flex: 0 0 auto;
+  height: 112px;
+  object-fit: cover;
+  width: 112px;
+}
+
+.restaurant-detail__item-body {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.restaurant-detail__price {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
 .metric-grid {
   display: grid;
   gap: var(--space-4);
@@ -1256,6 +1603,34 @@ button:focus-visible {
 
 .admin-table {
   display: grid;
+}
+
+.admin-catalog-search {
+  margin-bottom: var(--space-4);
+  max-width: 28rem;
+}
+
+.admin-imports-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-imports-table {
+  border-collapse: collapse;
+  min-width: 620px;
+  width: 100%;
+}
+
+.admin-imports-table th,
+.admin-imports-table td {
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+}
+
+.admin-imports-table th {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  text-transform: uppercase;
 }
 
 .admin-table__row {
@@ -1487,6 +1862,23 @@ button.admin-table__row {
   .permission-table__header,
   .permission-table__row {
     min-width: 680px;
+  }
+
+  .admin-item-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .admin-item-row .admin-field {
+    grid-column: 1 / -1;
+  }
+
+  .restaurant-detail__hero {
+    border-radius: var(--radius-card);
+  }
+
+  .restaurant-detail__item > img {
+    height: 88px;
+    width: 88px;
   }
 }
 

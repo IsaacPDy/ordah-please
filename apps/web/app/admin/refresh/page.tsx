@@ -17,7 +17,7 @@ export default function RefreshPage() {
               <AlertTriangle aria-hidden="true" />
             </span>
             <div>
-              <strong>Green Table · BGC</strong>
+              <strong>Restaurant awaiting review</strong>
               <p>Failed today · last approved menu is still live</p>
             </div>
             <button className="secondary-action" type="button">
@@ -29,7 +29,7 @@ export default function RefreshPage() {
               <RefreshCw aria-hidden="true" />
             </span>
             <div>
-              <strong>Crispy Chicken · BGC</strong>
+              <strong>Restaurant due tomorrow</strong>
               <p>Due tomorrow · 29 published items</p>
             </div>
             <button className="secondary-action" type="button">
@@ -41,7 +41,7 @@ export default function RefreshPage() {
               <RefreshCw aria-hidden="true" />
             </span>
             <div>
-              <strong>Fresh Bowls · Makati</strong>
+              <strong>Restaurant due in 5 days</strong>
               <p>Due in 5 days · last reviewed yesterday</p>
             </div>
             <button className="secondary-action" type="button">

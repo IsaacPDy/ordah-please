@@ -1,4 +1,7 @@
 export * from "./catalog/menu.js";
+export * from "./catalog/restaurant-summary.js";
+export * from "./catalog/restaurant-detail.js";
+export * from "./catalog/import-summary.js";
 export * from "./favorites/favorite.js";
 export * from "./favorites/ranking-policy.js";
 export * from "./groups/group-details.js";

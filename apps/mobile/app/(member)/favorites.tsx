@@ -1,81 +1,27 @@
 import { designTokens } from "@ordah-please/ui";
-import { Edit3, Heart, Trash2 } from "lucide-react-native";
-import { Image, StyleSheet, View } from "react-native";
-import { Button, IconButton, Text } from "react-native-paper";
+import { Heart } from "lucide-react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "react-native-paper";
 
 import { MemberPage } from "../../src/components/member-page";
 import { MobileMemberAccessState } from "../../src/features/access/member-access-state";
 import { useMobileAppIdentity } from "../../src/features/access/mobile-member-gate";
-import greenTableImage from "../../assets/images/green-table.jpg";
 
-const combinations = [
-  [
-    "Rank 1",
-    "Grilled chicken plate",
-    "Garlic rice · Macaroni soup · No onions",
-    "₱245",
-  ],
-  ["Rank 2", "Beef tapa breakfast", "Extra egg · Iced tea", "₱225"],
-  ["Rank 3", "Chicken pesto pasta", "Regular · No drink", "₱210"],
-] as const;
-
-/** Shows the native ranked-combination editor grouped by exact restaurant branch. */
+/** Shows an honest empty state until members can save favorite combinations. */
 export default function FavoritesScreen() {
   const identity = useMobileAppIdentity();
 
   return (
     <MobileMemberAccessState identity={identity} surface="favorites">
       <MemberPage title="Favorites">
-        <Text style={styles.description}>
-          Your top three combinations are ready when a group order starts.
-        </Text>
-        <View style={styles.restaurant}>
-          <View style={styles.restaurantHeader}>
-            <Image
-              accessibilityLabel="Green Table food"
-              source={greenTableImage}
-              style={styles.image}
-            />
-            <View style={styles.headerBody}>
-              <Text style={styles.restaurantName}>Green Table · BGC</Text>
-              <Text style={styles.description}>3 saved combinations</Text>
-            </View>
+        <View style={styles.emptyCard}>
+          <View style={styles.iconWrap}>
+            <Heart color={designTokens.colors.primaryStrong} size={28} />
           </View>
-          {combinations.map(([rank, name, details, price]) => (
-            <View key={rank} style={styles.combination}>
-              <Text style={styles.rank}>{rank}</Text>
-              <View style={styles.body}>
-                <Text style={styles.name}>{name}</Text>
-                <Text style={styles.details}>{details}</Text>
-              </View>
-              <Text style={styles.price}>{price}</Text>
-              <IconButton
-                accessibilityLabel={`Edit ${name}`}
-                icon={() => (
-                  <Edit3 color={designTokens.colors.textPrimary} size={18} />
-                )}
-              />
-            </View>
-          ))}
-          <View style={styles.actions}>
-            <Button
-              icon={() => (
-                <Heart color={designTokens.colors.textPrimary} size={18} />
-              )}
-              mode="outlined"
-            >
-              Add another
-            </Button>
-            <Button
-              icon={() => (
-                <Trash2 color={designTokens.colors.error} size={18} />
-              )}
-              mode="outlined"
-              textColor={designTokens.colors.error}
-            >
-              Remove restaurant favorites
-            </Button>
-          </View>
+          <Text style={styles.title}>No favorites yet</Text>
+          <Text style={styles.description}>
+            No favorites yet — browse restaurants to add your first one.
+          </Text>
         </View>
       </MemberPage>
     </MobileMemberAccessState>
@@ -83,67 +29,32 @@ export default function FavoritesScreen() {
 }
 
 const styles = StyleSheet.create({
-  actions: {
-    alignItems: "flex-start",
-    borderTopColor: designTokens.colors.border,
-    borderTopWidth: 1,
-    gap: designTokens.spacing.xs,
-    padding: designTokens.spacing.md,
-  },
-  body: { flex: 1, gap: designTokens.spacing.xxs },
-  combination: {
-    alignItems: "center",
-    borderTopColor: designTokens.colors.border,
-    borderTopWidth: 1,
-    flexDirection: "row",
-    gap: designTokens.spacing.xs,
-    padding: designTokens.spacing.sm,
-  },
   description: {
     color: designTokens.colors.textSecondary,
     fontFamily: "NunitoSans_400Regular",
     lineHeight: 24,
+    textAlign: "center",
   },
-  details: {
-    color: designTokens.colors.textSecondary,
-    fontFamily: "NunitoSans_400Regular",
-    fontSize: designTokens.typography.size.caption,
-  },
-  headerBody: { flex: 1 },
-  image: { borderRadius: designTokens.radii.field, height: 64, width: 64 },
-  name: {
-    color: designTokens.colors.textPrimary,
-    fontFamily: "NunitoSans_700Bold",
-  },
-  price: {
-    color: designTokens.colors.textPrimary,
-    fontFamily: "NunitoSans_700Bold",
-  },
-  rank: {
-    backgroundColor: designTokens.colors.supportSurface,
-    borderRadius: designTokens.radii.pill,
-    color: designTokens.colors.primaryStrong,
-    fontFamily: "NunitoSans_700Bold",
-    fontSize: 10,
-    paddingHorizontal: designTokens.spacing.xs,
-    paddingVertical: designTokens.spacing.xxs,
-  },
-  restaurant: {
-    backgroundColor: designTokens.colors.surface,
-    borderColor: designTokens.colors.border,
-    borderRadius: designTokens.radii.card,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  restaurantHeader: {
+  emptyCard: {
     alignItems: "center",
-    flexDirection: "row",
+    backgroundColor: designTokens.colors.supportSurface,
+    borderColor: designTokens.colors.border,
+    borderRadius: designTokens.radii.majorCard,
+    borderWidth: 1,
     gap: designTokens.spacing.sm,
-    padding: designTokens.spacing.md,
+    padding: designTokens.spacing.xl,
   },
-  restaurantName: {
+  iconWrap: {
+    alignItems: "center",
+    backgroundColor: designTokens.colors.surface,
+    borderRadius: designTokens.radii.pill,
+    height: 56,
+    justifyContent: "center",
+    width: 56,
+  },
+  title: {
     color: designTokens.colors.textPrimary,
     fontFamily: "NunitoSans_700Bold",
-    fontSize: 20,
+    fontSize: designTokens.typography.size.title,
   },
 });

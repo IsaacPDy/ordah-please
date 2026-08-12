@@ -10,7 +10,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockSignOut, mockRefresh } = vi.hoisted(() => ({
-  mockSignOut: vi.fn<[], Promise<unknown>>(),
+  mockSignOut: vi.fn<() => Promise<unknown>>(),
   mockRefresh: vi.fn(),
 }));
 

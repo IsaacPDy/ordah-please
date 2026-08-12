@@ -17,6 +17,7 @@ const catalogFixture = {
   restaurant: {
     id: "restaurant-1",
     name: "McDonald's",
+    cuisines: ["American", "Burger"],
   },
   branch: {
     id: "branch-1",
@@ -36,6 +37,7 @@ const catalogFixture = {
         description: "Original imported wording",
         priceCentavos: 9900,
         availability: "available",
+        imageUrl: "https://example.test/item.avif",
         variants: [{ id: "variant-1", name: "Spicy", priceDeltaCentavos: 500 }],
         modifierGroups: [
           {

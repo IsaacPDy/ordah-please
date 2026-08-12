@@ -89,12 +89,15 @@ describe("member navigation", () => {
     expect(screen.queryByText("Friday lunch")).toBeNull();
   });
 
-  it("renders ranked native Favorites", async () => {
+  it("renders an honest Favorites empty state until favorites are implemented", async () => {
     const screen = await render(<FavoritesScreen />);
 
-    expect(screen.getByText("Green Table · BGC")).toBeTruthy();
-    expect(screen.getByText("Rank 1")).toBeTruthy();
-    expect(screen.getByText("Remove restaurant favorites")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "No favorites yet — browse restaurants to add your first one.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText("Rank 1")).toBeNull();
   });
 
   it("renders the honest groupless Groups state", async () => {

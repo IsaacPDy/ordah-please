@@ -45,7 +45,7 @@ export default function OrdersScreen() {
           <View style={styles.body}>
             <Text style={styles.pill}>Food confirmation</Text>
             <Text style={styles.title}>Campaign dinner</Text>
-            <Text>Design team · Green Table</Text>
+            <Text>Design team · Restaurant selected</Text>
             <View style={styles.inline}>
               <Clock3 color={designTokens.colors.primaryStrong} size={16} />
               <Text style={styles.deadline}>Due tomorrow at 5:00 PM</Text>
@@ -63,7 +63,9 @@ export default function OrdersScreen() {
           <View style={styles.body}>
             <Text style={styles.pill}>Ordered</Text>
             <Text style={styles.title}>Tuesday lunch</Text>
-            <Text style={styles.description}>Green Table · Friends</Text>
+            <Text style={styles.description}>
+              Restaurant selected · Friends
+            </Text>
           </View>
           <Text style={styles.amount}>₱420.00</Text>
         </Surface>
@@ -71,7 +73,9 @@ export default function OrdersScreen() {
           <View style={styles.body}>
             <Text style={styles.mutedPill}>Cancelled</Text>
             <Text style={styles.title}>Planning snacks</Text>
-            <Text style={styles.description}>Fresh Bowls · Design team</Text>
+            <Text style={styles.description}>
+              Restaurant pending · Design team
+            </Text>
           </View>
           <Text style={styles.amount}>₱0.00</Text>
         </Surface>

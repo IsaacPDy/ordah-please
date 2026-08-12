@@ -61,7 +61,7 @@ export default async function OrdersPage() {
                 Food confirmation
               </span>
               <h3>Campaign dinner</h3>
-              <p>Design team · Green Table</p>
+              <p>Design team · Restaurant selected</p>
               <p className="deadline">
                 <Clock3 aria-hidden="true" size={16} /> Due tomorrow at 5:00 PM
               </p>
@@ -81,7 +81,7 @@ export default async function OrdersPage() {
             <div>
               <span className="status-pill status-pill--complete">Ordered</span>
               <h3>Tuesday lunch</h3>
-              <p>Green Table · Friends</p>
+              <p>Restaurant selected · Friends</p>
             </div>
             <strong>₱420.00</strong>
           </article>
@@ -89,7 +89,7 @@ export default async function OrdersPage() {
             <div>
               <span className="status-pill status-pill--muted">Cancelled</span>
               <h3>Planning snacks</h3>
-              <p>Fresh Bowls · Design team</p>
+              <p>Restaurant pending · Design team</p>
             </div>
             <strong>₱0.00</strong>
           </article>

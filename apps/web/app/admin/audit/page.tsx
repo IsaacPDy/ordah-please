@@ -42,7 +42,7 @@ export default function AuditPage() {
             <time>Today · 2:18 PM</time>
             <div>
               <strong>Import draft validated</strong>
-              <p>Fresh Bowls · Makati · 142 rows · 3 warnings.</p>
+              <p>Catalog import · 142 rows · 3 warnings.</p>
             </div>
             <span className="status-pill">Catalog</span>
           </article>
