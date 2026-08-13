@@ -1,6 +1,6 @@
 import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
 
-import { memberships, users } from "../schema/index.js";
+import { authUsers, memberships, users } from "../schema/index.js";
 import type { RepositoryDatabase } from "./database.js";
 import { requireWrittenRow } from "./rows.js";
 
@@ -10,6 +10,21 @@ export interface AuthIdentityInput {
   readonly displayName: string;
   readonly email: string;
   readonly imageUrl: string | null;
+}
+
+export interface UserMembershipSummaryRow {
+  readonly groupId: string;
+  readonly role: "owner" | "manager" | "member";
+}
+
+export interface UserSummaryRow {
+  readonly id: string;
+  readonly displayName: string;
+  readonly email: string | null;
+  readonly imageUrl: string | null;
+  readonly isPlatformAdmin: boolean;
+  readonly archivedAt: Date | null;
+  readonly memberships: readonly UserMembershipSummaryRow[];
 }
 
 export interface IdentityAccessRepository {
@@ -32,6 +47,7 @@ export interface IdentityAccessRepository {
     readonly { readonly id: string; readonly displayName: string }[]
   >;
   setPlatformAdminFlag(userId: string, value: boolean): Promise<boolean>;
+  listUsersWithSummary(): Promise<readonly UserSummaryRow[]>;
 }
 
 /** Creates identity and access persistence operations without making permission decisions. */
@@ -101,6 +117,58 @@ export function createIdentityAccessRepository(
         .where(eq(users.id, userId))
         .returning({ id: users.id });
       return updated !== undefined;
+    },
+    listUsersWithSummary: async () => {
+      const userRows = await database
+        .select({
+          archivedAt: users.archivedAt,
+          displayName: users.displayName,
+          email: authUsers.email,
+          id: users.id,
+          imageUrl: authUsers.image,
+          isPlatformAdmin: users.isPlatformAdmin,
+        })
+        .from(users)
+        .leftJoin(authUsers, eq(users.authUserId, authUsers.id))
+        .where(isNull(users.archivedAt))
+        .orderBy(asc(users.displayName));
+
+      const membershipRows = await database
+        .select({
+          groupId: memberships.groupId,
+          role: memberships.role,
+          userId: memberships.userId,
+        })
+        .from(memberships)
+        .where(isNull(memberships.removedAt));
+
+      const membershipsByUser = new Map<
+        string,
+        { groupId: string; role: "owner" | "manager" | "member" }[]
+      >();
+      for (const membership of membershipRows) {
+        const list = membershipsByUser.get(membership.userId);
+        if (list === undefined) {
+          membershipsByUser.set(membership.userId, [
+            {
+              groupId: membership.groupId,
+              role: membership.role,
+            },
+          ]);
+        } else {
+          list.push({ groupId: membership.groupId, role: membership.role });
+        }
+      }
+
+      return userRows.map((row) => ({
+        archivedAt: row.archivedAt,
+        displayName: row.displayName,
+        email: row.email,
+        id: row.id,
+        imageUrl: row.imageUrl,
+        isPlatformAdmin: row.isPlatformAdmin,
+        memberships: membershipsByUser.get(row.id) ?? [],
+      }));
     },
   };
 }

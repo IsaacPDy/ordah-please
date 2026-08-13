@@ -33,8 +33,20 @@ vi.mock("../src/features/groups/group-runtime", () => ({
   groupRuntime: {
     listViewerGroupSummaries: () =>
       Promise.resolve([
-        { groupId: "group-alpha", name: "Alpha group", role: "group-owner" },
-        { groupId: "group-beta", name: "Beta group", role: "manager" },
+        {
+          groupId: "group-alpha",
+          name: "Alpha group",
+          role: "group-owner",
+          memberCount: 3,
+          memberPreviews: [],
+        },
+        {
+          groupId: "group-beta",
+          name: "Beta group",
+          role: "manager",
+          memberCount: 5,
+          memberPreviews: [],
+        },
       ]),
   },
 }));

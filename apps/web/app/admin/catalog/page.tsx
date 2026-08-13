@@ -12,15 +12,13 @@ export default async function CatalogPage() {
       eyebrow="Restaurant data"
       title="Published restaurants"
     >
-      <section className="admin-panel">
-        {restaurants.length === 0 ? (
-          <p className="admin-empty">
-            No restaurants yet. Import a CSV to get started.
-          </p>
-        ) : (
-          <CatalogGrid restaurants={restaurants} />
-        )}
-      </section>
+      {restaurants.length === 0 ? (
+        <p className="admin-empty admin-catalog-empty">
+          No restaurants yet. Import a CSV to get started.
+        </p>
+      ) : (
+        <CatalogGrid restaurants={restaurants} />
+      )}
     </AdminPage>
   );
 }

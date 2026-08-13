@@ -666,6 +666,159 @@ describe("focused repositories", () => {
       ownerUserId: owner.id,
     });
   });
+
+  it("lists users with profile, admin flag, and active memberships", async () => {
+    const repositories = createRepositories(database);
+
+    const ownerAuthId = randomUUID();
+    const memberAuthId = randomUUID();
+    const noAuthProductId = randomUUID();
+    // Email/image live on auth_users (Better Auth owns them). The values passed
+    // to ensureUserForAuthIdentity are not persisted — they pass through to
+    // AppIdentity at runtime — so the canonical email used in assertions is the
+    // one seeded into auth_users below.
+    const ownerEmail = `summary-owner-${ownerAuthId}@example.test`;
+    const memberEmail = `summary-member-${memberAuthId}@example.test`;
+
+    await database.insert(authUsers).values({
+      email: ownerEmail,
+      emailVerified: true,
+      id: ownerAuthId,
+      name: "Summary Owner",
+    });
+    await database.insert(authUsers).values({
+      email: memberEmail,
+      emailVerified: true,
+      id: memberAuthId,
+      name: "Summary Member",
+      image: "https://example.test/member.png",
+    });
+
+    const owner = await repositories.identityAccess.ensureUserForAuthIdentity({
+      authUserId: ownerAuthId,
+      displayName: "Summary Owner",
+      email: ownerEmail,
+      imageUrl: null,
+    });
+    const member = await repositories.identityAccess.ensureUserForAuthIdentity({
+      authUserId: memberAuthId,
+      displayName: "Summary Member",
+      email: memberEmail,
+      imageUrl: "https://example.test/member.png",
+    });
+    // User with no linked auth_users row (authUserId null) — insert directly.
+    await database.insert(users).values({
+      displayName: "No Auth User",
+      id: noAuthProductId,
+    });
+    // Archived user — should be excluded from the summary.
+    const archivedAuthId = randomUUID();
+    await database.insert(authUsers).values({
+      email: `summary-archived-${archivedAuthId}@example.test`,
+      emailVerified: true,
+      id: archivedAuthId,
+      name: "Archived User",
+    });
+    const archived =
+      await repositories.identityAccess.ensureUserForAuthIdentity({
+        authUserId: archivedAuthId,
+        displayName: "Archived User",
+        email: "summary-archived@example.test",
+        imageUrl: null,
+      });
+    await database
+      .update(users)
+      .set({ archivedAt: new Date("2026-08-13T00:00:00.000Z") })
+      .where(eq(users.id, archived.id));
+
+    const [groupA] = await database
+      .insert(groups)
+      .values({ createdByUserId: owner.id, name: "Summary Group A" })
+      .returning();
+    const [groupB] = await database
+      .insert(groups)
+      .values({ createdByUserId: owner.id, name: "Summary Group B" })
+      .returning();
+    if (groupA === undefined || groupB === undefined) {
+      throw new Error("Expected summary test groups to be created.");
+    }
+    await repositories.identityAccess.addMembership({
+      groupId: groupA.id,
+      role: "owner",
+      userId: owner.id,
+    });
+    await repositories.identityAccess.addMembership({
+      groupId: groupB.id,
+      role: "manager",
+      userId: owner.id,
+    });
+    await repositories.identityAccess.addMembership({
+      groupId: groupA.id,
+      role: "member",
+      userId: member.id,
+    });
+    // A removed membership — should NOT appear in the summary.
+    await repositories.identityAccess.addMembership({
+      groupId: groupB.id,
+      role: "member",
+      userId: member.id,
+    });
+    await repositories.groupAccess.removeMembership(
+      groupB.id,
+      member.id,
+      new Date("2026-08-13T01:00:00.000Z"),
+    );
+
+    await repositories.identityAccess.setPlatformAdminFlag(owner.id, true);
+
+    const summaries =
+      await repositories.identityAccess.listUsersWithSummary();
+
+    // Archived user is excluded.
+    expect(summaries.find((u) => u.id === archived.id)).toBeUndefined();
+
+    const fetchedOwner = summaries.find((u) => u.id === owner.id);
+    expect(fetchedOwner).toBeDefined();
+    expect(fetchedOwner).toMatchObject({
+      displayName: "Summary Owner",
+      email: ownerEmail,
+      imageUrl: null,
+      isPlatformAdmin: true,
+    });
+    expect(fetchedOwner?.memberships).toHaveLength(2);
+    expect(fetchedOwner?.memberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ groupId: groupA.id, role: "owner" }),
+        expect.objectContaining({ groupId: groupB.id, role: "manager" }),
+      ]),
+    );
+
+    const fetchedMember = summaries.find((u) => u.id === member.id);
+    expect(fetchedMember).toMatchObject({
+      displayName: "Summary Member",
+      email: memberEmail,
+      imageUrl: "https://example.test/member.png",
+      isPlatformAdmin: false,
+    });
+    expect(fetchedMember?.memberships).toEqual([
+      { groupId: groupA.id, role: "member" },
+    ]);
+
+    // User without an auth row still appears with nullish profile fields and no memberships.
+    const fetchedNoAuth = summaries.find((u) => u.id === noAuthProductId);
+    expect(fetchedNoAuth).toMatchObject({
+      displayName: "No Auth User",
+      email: null,
+      imageUrl: null,
+      isPlatformAdmin: false,
+      memberships: [],
+    });
+
+    // Ordered alphabetically by displayName.
+    const names = summaries.map((u) => u.displayName);
+    const sortedNames = [...names].sort((a, b) => a.localeCompare(b));
+    expect(names).toEqual(sortedNames);
+  });
 });
 
 /**

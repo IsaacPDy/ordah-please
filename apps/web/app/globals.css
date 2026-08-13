@@ -837,10 +837,46 @@ button:focus-visible {
   padding: var(--space-4);
 }
 
+.group-card--link {
+  align-items: center;
+  display: flex;
+}
+
+.group-card__icon {
+  align-items: center;
+  background: var(--color-primary);
+  border-radius: 999px;
+  color: var(--color-on-primary);
+  display: flex;
+  flex: 0 0 auto;
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+  height: var(--touch-target);
+  justify-content: center;
+  text-transform: uppercase;
+  width: var(--touch-target);
+}
+
 .group-card__body {
   display: grid;
   flex: 1;
   gap: var(--space-1);
+  min-width: 0;
+}
+
+.group-card__name {
+  font-size: var(--font-size-body);
+  font-weight: 700;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-card__meta {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  margin: 0;
 }
 
 .group-card__body > div {
@@ -916,6 +952,129 @@ button:focus-visible {
 
 .role-pill--member {
   color: var(--color-text-secondary);
+}
+
+.group-details-header {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.group-details-header__icon {
+  align-items: center;
+  background: var(--color-primary);
+  border-radius: 999px;
+  color: var(--color-on-primary);
+  display: flex;
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  height: 56px;
+  justify-content: center;
+  text-transform: uppercase;
+  width: 56px;
+}
+
+.group-details-header__title {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+  position: relative;
+}
+
+.group-details-header__title h1 {
+  margin: 0;
+}
+
+.group-details-header__title p {
+  color: var(--color-text-secondary);
+  display: none;
+  margin: 0;
+}
+
+.group-details-header__rename {
+  color: var(--color-text-secondary);
+  height: 32px;
+  min-width: 32px;
+}
+
+.group-roster {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.group-roster__item {
+  align-items: center;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.group-roster__item--owner {
+  border-top: 0;
+}
+
+.group-roster__avatar {
+  align-items: center;
+  background: var(--color-support);
+  border-radius: 999px;
+  color: var(--color-primary-strong);
+  display: flex;
+  flex: 0 0 auto;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.group-roster__name {
+  flex: 1;
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-details-manage {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: stretch;
+}
+
+.add-people-button {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-field);
+  color: var(--color-primary-strong);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 700;
+  gap: var(--space-2);
+  justify-content: center;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-4);
+}
+
+.group-details-manage__hint {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  margin: 0;
+  text-align: center;
+}
+
+.group-details-manage__rotate {
+  justify-self: center;
 }
 
 .member-navigation {
@@ -1280,7 +1439,7 @@ button:focus-visible {
 .admin-upload {
   display: grid;
   gap: var(--space-4);
-  justify-items: start;
+  justify-items: stretch;
 }
 
 .admin-upload__dropzone {
@@ -1288,7 +1447,6 @@ button:focus-visible {
   background: var(--color-support);
   border: 2px dashed var(--color-primary);
   border-radius: var(--radius-major-card);
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -1305,8 +1463,63 @@ button:focus-visible {
   font-weight: 700;
 }
 
-.admin-upload__dropzone input {
+.admin-upload__button {
+  justify-content: center;
+  min-width: 10rem;
+}
+
+.admin-upload__input {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.admin-upload__preview {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.admin-upload__preview-logo {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-primary-strong);
+  display: flex;
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  height: 72px;
+  justify-content: center;
+  text-transform: uppercase;
+  width: 72px;
+}
+
+.admin-upload__preview-name {
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  margin: 0;
   max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.admin-upload__reset {
+  background: transparent;
+  border: 0;
+  color: var(--color-primary-strong);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 .admin-restaurant-grid,
@@ -1331,11 +1544,10 @@ button:focus-visible {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-raised);
   color: var(--color-text);
-  display: grid;
-  gap: var(--space-2);
+  display: flex;
+  flex-direction: column;
   height: 100%;
   overflow: hidden;
-  padding-bottom: var(--space-4);
 }
 
 .admin-restaurant-card__hero,
@@ -1356,15 +1568,24 @@ button:focus-visible {
   justify-content: center;
 }
 
-.admin-restaurant-card__name,
-.admin-restaurant-card__branch,
-.admin-cuisine-tags {
-  margin-inline: var(--space-4);
+.admin-restaurant-card__body {
+  align-content: start;
+  display: grid;
+  flex: 1;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.admin-restaurant-card__name {
+  font-size: var(--font-size-title);
+  line-height: 1.25;
+  margin: 0;
 }
 
 .admin-restaurant-card__branch {
   color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
+  margin: 0;
 }
 
 .admin-cuisine-tags,
@@ -1730,9 +1951,45 @@ button:focus-visible {
   display: grid;
 }
 
-.admin-catalog-search {
-  margin-bottom: var(--space-4);
+.admin-catalog {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.admin-catalog__search {
+  display: grid;
+  gap: var(--space-2);
   max-width: 28rem;
+}
+
+.admin-catalog__search > span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+}
+
+.admin-catalog__search input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-field);
+  color: var(--color-text);
+  font: inherit;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+}
+
+.admin-catalog__search input:focus-visible {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-support);
+}
+
+.admin-catalog-empty {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  margin: 0;
+  padding: var(--space-6);
+  text-align: center;
 }
 
 .admin-imports-table-wrap {

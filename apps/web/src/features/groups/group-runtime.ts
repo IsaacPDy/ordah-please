@@ -85,18 +85,33 @@ export const groupRuntime = {
     renameGroup(command, { run: runGroupTransaction }),
   rotateInviteLink: (command: Parameters<typeof rotateInviteLink>[0]) =>
     rotateInviteLink(command, { run: runGroupTransaction }),
-  /** Loads name + role pairs for each membership in the viewer's identity. */
+  /** Loads name, role, and member preview for each membership in the viewer's identity. */
   listViewerGroupSummaries: async (
     memberships: readonly { readonly groupId: string; readonly role: string }[],
-  ): Promise<readonly { readonly groupId: string; readonly name: string; readonly role: string }[]> => {
+  ): Promise<
+    readonly {
+      readonly groupId: string;
+      readonly name: string;
+      readonly role: string;
+      readonly memberCount: number;
+      readonly memberPreviews: readonly {
+        readonly displayName: string;
+      }[];
+    }[]
+  > => {
     const groupAccess = createRepositories(getRuntimeDatabase()).groupAccess;
     const summaries = await Promise.all(
       memberships.map(async (membership) => {
         const summary = await groupAccess.findGroupSummary(membership.groupId);
+        const members = await groupAccess.listActiveMembers(membership.groupId);
         return {
           groupId: membership.groupId,
           name: summary?.name ?? "Group",
           role: membership.role,
+          memberCount: members.length,
+          memberPreviews: members.map((member) => ({
+            displayName: member.displayName,
+          })),
         };
       }),
     );

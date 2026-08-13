@@ -1,12 +1,18 @@
-import type { AppIdentitySummary } from "@ordah-please/contracts";
-import { Crown, ShieldCheck, Users } from "lucide-react";
+import Link from "next/link";
+
+export interface GroupSummaryForDisplay {
+  readonly groupId: string;
+  readonly name: string;
+  readonly role: string;
+  readonly memberCount: number;
+}
 
 export interface GroupsOverviewProps {
-  readonly memberships: AppIdentitySummary["memberships"];
+  readonly groups: readonly GroupSummaryForDisplay[];
 }
 
 /** Converts the stored role key into the exact role wording shown to people. */
-function roleLabel(role: AppIdentitySummary["memberships"][number]["role"]) {
+function roleLabel(role: string) {
   if (role === "group-owner") {
     return "Group Owner";
   }
@@ -18,8 +24,21 @@ function roleLabel(role: AppIdentitySummary["memberships"][number]["role"]) {
   return "Member";
 }
 
-/** Shows only the signed-in account's real group memberships and roles. */
-export function GroupsOverview({ memberships }: GroupsOverviewProps) {
+/** Returns up to two uppercase initials from a group name for the icon badge. */
+function initialsOf(name: string): string {
+  const cleaned = name.trim();
+  if (cleaned.length === 0) {
+    return "G";
+  }
+  const parts = cleaned.split(/\s+/).filter((part) => part.length > 0);
+  if (parts.length === 1) {
+    return parts[0]!.slice(0, 2).toUpperCase();
+  }
+  return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
+}
+
+/** Shows the signed-in account's real group memberships and roles. */
+export function GroupsOverview({ groups }: GroupsOverviewProps) {
   return (
     <div className="member-page">
       <header className="page-intro">
@@ -29,40 +48,38 @@ export function GroupsOverview({ memberships }: GroupsOverviewProps) {
           You can belong to multiple groups and hold a different role in each.
         </p>
       </header>
-      <div className="group-list">
-        {memberships.map((membership) => (
-          <article className="group-card" key={membership.groupId}>
-            <div className="group-card__icon">
-              <Users aria-hidden="true" />
-            </div>
-            <div className="group-card__body">
-              <div>
-                <h2>{membership.groupId}</h2>
-                <span
-                  className={
-                    membership.role === "group-owner"
-                      ? "role-pill role-pill--owner"
-                      : membership.role === "member"
-                        ? "role-pill role-pill--member"
-                        : "role-pill"
-                  }
-                >
-                  {membership.role === "group-owner" ? (
-                    <Crown aria-hidden="true" size={14} />
-                  ) : membership.role === "manager" ? (
-                    <ShieldCheck aria-hidden="true" size={14} />
-                  ) : null}
-                  {roleLabel(membership.role)}
+      <ul className="group-list">
+        {groups.map((group) => (
+          <li key={group.groupId}>
+            <Link
+              className="group-card group-card--link"
+              href={`/groups/${group.groupId}`}
+            >
+              <span className="group-card__icon" aria-hidden="true">
+                {initialsOf(group.name)}
+              </span>
+              <span className="group-card__body">
+                <span className="group-card__name">{group.name}</span>
+                <span className="group-card__meta">
+                  {group.memberCount}{" "}
+                  {group.memberCount === 1 ? "person" : "people"}
                 </span>
-              </div>
-              <p>
-                Group details will appear after the membership journey is
-                connected.
-              </p>
-            </div>
-          </article>
+              </span>
+              <span
+                className={
+                  group.role === "group-owner"
+                    ? "role-pill role-pill--owner"
+                    : group.role === "member"
+                      ? "role-pill role-pill--member"
+                      : "role-pill"
+                }
+              >
+                {roleLabel(group.role)}
+              </span>
+            </Link>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

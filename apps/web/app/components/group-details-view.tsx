@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Crown, ShieldCheck, User } from "lucide-react";
+import { Crown, ShieldCheck, User, UserPlus } from "lucide-react";
 
 import type { GroupDetails } from "@ordah-please/domain";
 
@@ -10,7 +10,7 @@ export interface GroupDetailsViewProps {
   readonly canManage: boolean;
 }
 
-/** Renders one group's name, owner, roster, and (for owners) the rename and rotate-link controls. */
+/** Renders one group's name, a single roster with the owner pinned first, and management actions. */
 export function GroupDetailsView({ details, canManage }: GroupDetailsViewProps) {
   const [name, setName] = useState(details.name);
   const [editing, setEditing] = useState(false);
@@ -99,10 +99,17 @@ export function GroupDetailsView({ details, canManage }: GroupDetailsViewProps) 
     }
   }
 
+  const nonOwnerMembers = details.members.filter(
+    (member) => member.userId !== details.owner.userId,
+  );
+  const totalPeople = details.members.length;
+
   return (
     <section className="member-page">
-      <header className="page-intro">
-        <p className="eyebrow">{roleLabel(details.viewerRole)} view</p>
+      <header className="page-intro group-details-header">
+        <span className="group-details-header__icon" aria-hidden="true">
+          {initialsOf(details.name)}
+        </span>
         {editing && canManage ? (
           <div className="rename-row">
             <input
@@ -136,19 +143,22 @@ export function GroupDetailsView({ details, canManage }: GroupDetailsViewProps) 
             </button>
           </div>
         ) : (
-          <h1>
-            {details.name}
+          <div className="group-details-header__title">
+            <h1>{details.name}</h1>
+            <p>
+              {totalPeople} {totalPeople === 1 ? "person" : "people"}
+            </p>
             {canManage ? (
               <button
                 aria-label="Rename group"
-                className="icon-button"
+                className="icon-button group-details-header__rename"
                 onClick={() => setEditing(true)}
                 type="button"
               >
                 ✏️
               </button>
             ) : null}
-          </h1>
+          </div>
         )}
         {renameError !== null ? (
           <p role="alert" className="form-error">
@@ -157,61 +167,66 @@ export function GroupDetailsView({ details, canManage }: GroupDetailsViewProps) 
         ) : null}
       </header>
 
-      <div className="details-grid">
-        <article className="details-card">
-          <h2>Owner</h2>
-          <p>
-            <Crown aria-hidden="true" size={16} /> {details.owner.displayName}
+      <ul className="group-roster">
+        <li className="group-roster__item group-roster__item--owner">
+          <span className="group-roster__avatar" aria-hidden="true">
+            <Crown size={16} />
+          </span>
+          <span className="group-roster__name">{details.owner.displayName}</span>
+          <span className="role-pill role-pill--owner">Owner</span>
+        </li>
+        {nonOwnerMembers.map((member) => (
+          <li key={member.userId} className="group-roster__item">
+            <span className="group-roster__avatar" aria-hidden="true">
+              <RoleIcon role={member.role} />
+            </span>
+            <span className="group-roster__name">{member.displayName}</span>
+            <span
+              className={
+                member.role === "manager"
+                  ? "role-pill"
+                  : "role-pill role-pill--member"
+              }
+            >
+              {roleLabel(member.role)}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {canManage && inviteLink !== undefined ? (
+        <div className="group-details-manage">
+          <button
+            className="add-people-button"
+            onClick={() => {
+              void copyLink();
+            }}
+            type="button"
+          >
+            <UserPlus aria-hidden="true" size={16} />
+            {copied ? "Link copied" : "Add people"}
+          </button>
+          <p className="group-details-manage__hint">
+            Anyone with the link can join. Link ends in{" "}
+            <code>{inviteLink.tokenPrefix}…</code>
           </p>
-        </article>
-        <article className="details-card">
-          <h2>Members</h2>
-          <ul className="member-roster">
-            {details.members.map((member) => (
-              <li key={member.userId}>
-                <RoleIcon role={member.role} />
-                <span>{member.displayName}</span>
-                <span className="role-pill">{roleLabel(member.role)}</span>
-              </li>
-            ))}
-          </ul>
-        </article>
-        {canManage && inviteLink !== undefined ? (
-          <article className="details-card">
-            <h2>Invite link</h2>
-            <p className="invite-prefix">
-              Anyone with this link can join the group. Link ends in{" "}
-              <code>{inviteLink.tokenPrefix}…</code>
+          <button
+            className="secondary-button group-details-manage__rotate"
+            disabled={rotating}
+            onClick={() => {
+              void rotateLink();
+            }}
+            type="button"
+          >
+            {rotating ? "Rotating…" : "Rotate link"}
+          </button>
+          {rotateError !== null ? (
+            <p role="alert" className="form-error">
+              {rotateError}
             </p>
-            <div className="invite-actions">
-              <button
-                className="primary-button"
-                onClick={() => {
-                  void copyLink();
-                }}
-                type="button"
-              >
-                {copied ? "Copied" : "Copy link"}
-              </button>
-              <button
-                className="secondary-button"
-                disabled={rotating}
-                onClick={() => {
-                  void rotateLink();
-                }}
-                type="button"
-              >
-                {rotating ? "Rotating…" : "Rotate link"}
-              </button>
-            </div>
-            {rotateError !== null ? (
-              <p role="alert" className="form-error">
-                {rotateError}
-              </p>
-            ) : null}
-          </article>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -234,4 +249,17 @@ function RoleIcon({ role }: { readonly role: string }) {
     return <ShieldCheck aria-hidden="true" size={14} />;
   }
   return <User aria-hidden="true" size={14} />;
+}
+
+/** Returns up to two uppercase initials from a group name for the icon badge. */
+function initialsOf(name: string): string {
+  const cleaned = name.trim();
+  if (cleaned.length === 0) {
+    return "G";
+  }
+  const parts = cleaned.split(/\s+/).filter((part) => part.length > 0);
+  if (parts.length === 1) {
+    return parts[0]!.slice(0, 2).toUpperCase();
+  }
+  return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
 }

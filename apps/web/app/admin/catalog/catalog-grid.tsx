@@ -29,8 +29,8 @@ export function CatalogGrid({
   }, [query, restaurants]);
 
   return (
-    <>
-      <label className="admin-field admin-catalog-search">
+    <div className="admin-catalog">
+      <label className="admin-catalog__search">
         <span>Search restaurants</span>
         <input
           onChange={(event) => setQuery(event.target.value)}
@@ -65,24 +65,26 @@ export function CatalogGrid({
                     {restaurant.restaurantName.charAt(0)}
                   </div>
                 )}
-                <strong className="admin-restaurant-card__name">
-                  {restaurant.restaurantName}
-                </strong>
-                <span className="admin-restaurant-card__branch">
-                  {restaurant.branchName}
-                </span>
-                {restaurant.cuisines.length > 0 ? (
-                  <ul className="admin-cuisine-tags">
-                    {restaurant.cuisines.map((cuisine) => (
-                      <li key={cuisine}>{cuisine}</li>
-                    ))}
-                  </ul>
-                ) : null}
+                <div className="admin-restaurant-card__body">
+                  <strong className="admin-restaurant-card__name">
+                    {restaurant.restaurantName}
+                  </strong>
+                  <span className="admin-restaurant-card__branch">
+                    {restaurant.branchName}
+                  </span>
+                  {restaurant.cuisines.length > 0 ? (
+                    <ul className="admin-cuisine-tags">
+                      {restaurant.cuisines.map((cuisine) => (
+                        <li key={cuisine}>{cuisine}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
               </Link>
             </li>
           ))}
         </ul>
       )}
-    </>
+    </div>
   );
 }
