@@ -14,3 +14,4 @@ export * from "./groups/group-requests.js";
 export * from "./orders/food-selection.js";
 export * from "./orders/order-history.js";
 export * from "./orders/order-requests.js";
+export * from "./users/user-requests.js";

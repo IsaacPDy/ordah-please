@@ -8,10 +8,14 @@ import {
   type IdentityAccessRepository,
   withTransaction,
 } from "@ordah-please/db";
-import { asc } from "drizzle-orm";
+import { asc, isNull } from "drizzle-orm";
 
 import { loadAppIdentity } from "../../auth/load-app-identity";
 import { verifySession } from "../../auth/verify-session";
+import {
+  archiveGroupAsAdmin,
+  renameGroupAsAdmin,
+} from "./groups-admin-service";
 import {
   acceptInviteLink,
   createGroup,
@@ -20,11 +24,12 @@ import {
   rotateInviteLink,
 } from "./group-service";
 
-/** Reads every group row in display order. */
+/** Reads every active (non-archived) group row in display order. */
 async function listAllGroupRows(database: Database) {
   return database
     .select({ id: groupsSchema.id, name: groupsSchema.name })
     .from(groupsSchema)
+    .where(isNull(groupsSchema.archivedAt))
     .orderBy(asc(groupsSchema.name));
 }
 
@@ -56,6 +61,26 @@ function runGroupTransaction<Result>(
   });
 }
 
+type GroupsAdminRuntimeRepositories = Readonly<{
+  identityAccess: IdentityAccessRepository;
+  groupAccess: GroupAccessRepository;
+  auditEvents: AuditEventsRepository;
+}>;
+
+/** Runs one groups-admin mutation with full identity, group, and audit repositories in one transaction. */
+function runGroupsAdminTransaction<Result>(
+  operation: (repositories: GroupsAdminRuntimeRepositories) => Promise<Result>,
+): Promise<Result> {
+  return withTransaction(getRuntimeDatabase(), (transaction) => {
+    const repositories = createRepositories(transaction);
+    return operation({
+      identityAccess: repositories.identityAccess,
+      groupAccess: repositories.groupAccess,
+      auditEvents: repositories.auditEvents,
+    });
+  });
+}
+
 /** Provisions and loads the authenticated user's current product identity from Neon. */
 export function loadRuntimeIdentity(session: {
   readonly authUserId: string;
@@ -77,12 +102,18 @@ export function loadRuntimeIdentity(session: {
 export const groupRuntime = {
   acceptInviteLink: (command: Parameters<typeof acceptInviteLink>[0]) =>
     acceptInviteLink(command, { run: runGroupTransaction }),
+  archiveGroupAsAdmin: (
+    command: Parameters<typeof archiveGroupAsAdmin>[0],
+  ) => archiveGroupAsAdmin(command, { run: runGroupsAdminTransaction }),
   createGroup: (command: Parameters<typeof createGroup>[0]) =>
     createGroup(command, { run: runGroupTransaction }),
   loadGroupDetails: (command: Parameters<typeof loadGroupDetails>[0]) =>
     loadGroupDetails(command, { run: runGroupTransaction }),
   renameGroup: (command: Parameters<typeof renameGroup>[0]) =>
     renameGroup(command, { run: runGroupTransaction }),
+  renameGroupAsAdmin: (
+    command: Parameters<typeof renameGroupAsAdmin>[0],
+  ) => renameGroupAsAdmin(command, { run: runGroupsAdminTransaction }),
   rotateInviteLink: (command: Parameters<typeof rotateInviteLink>[0]) =>
     rotateInviteLink(command, { run: runGroupTransaction }),
   /** Loads name, role, and member preview for each membership in the viewer's identity. */

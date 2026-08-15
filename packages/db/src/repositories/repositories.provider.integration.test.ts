@@ -1033,3 +1033,126 @@ describe("group access V1-06 decide flow", () => {
     });
   });
 });
+
+describe("admin archive helpers", () => {
+  it("archiveUser sets archivedAt on an active user and returns true", async () => {
+    await withRolledBackRepositories(async (repositories) => {
+      const user = await repositories.identityAccess.createUser({
+        displayName: "Archive Me",
+      });
+      const archivedAt = new Date("2026-08-13T12:00:00.000Z");
+      const result = await repositories.identityAccess.archiveUser(
+        user.id,
+        archivedAt,
+      );
+      expect(result).toBe(true);
+
+      const refetched = await repositories.identityAccess.findUserById(user.id);
+      expect(refetched?.archivedAt).toEqual(archivedAt);
+    });
+  });
+
+  it("archiveUser on an already-archived user returns false and keeps the original timestamp", async () => {
+    await withRolledBackRepositories(async (repositories) => {
+      const user = await repositories.identityAccess.createUser({
+        displayName: "Archive Twice",
+      });
+      const firstAt = new Date("2026-08-13T12:00:00.000Z");
+      const secondAt = new Date("2026-08-13T13:00:00.000Z");
+      await repositories.identityAccess.archiveUser(user.id, firstAt);
+      const result = await repositories.identityAccess.archiveUser(
+        user.id,
+        secondAt,
+      );
+      expect(result).toBe(false);
+
+      const refetched = await repositories.identityAccess.findUserById(user.id);
+      expect(refetched?.archivedAt).toEqual(firstAt);
+    });
+  });
+
+  it("archiveUser on a non-existent id returns false", async () => {
+    await withRolledBackRepositories(async (repositories) => {
+      const result = await repositories.identityAccess.archiveUser(
+        "00000000-0000-0000-0000-000000000000",
+        new Date("2026-08-13T12:00:00.000Z"),
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  it("archiveGroup sets archivedAt on an active group and returns true", async () => {
+    await withRolledBackRepositories(async (repositories, tx) => {
+      const owner = await repositories.identityAccess.createUser({
+        displayName: "Archive Group Owner",
+      });
+      const [created] = await tx
+        .insert(groups)
+        .values({ createdByUserId: owner.id, name: "Archive Group" })
+        .returning();
+      if (created === undefined) {
+        throw new Error("Expected the archive test group to be created.");
+      }
+      const archivedAt = new Date("2026-08-13T12:00:00.000Z");
+      const result = await repositories.groupAccess.archiveGroup(
+        created.id,
+        archivedAt,
+      );
+      expect(result).toBe(true);
+
+      const summary = await repositories.groupAccess.findGroupSummary(created.id);
+      expect(summary?.archivedAt).toEqual(archivedAt);
+    });
+  });
+
+  it("archiveGroup on an already-archived group returns false", async () => {
+    await withRolledBackRepositories(async (repositories, tx) => {
+      const owner = await repositories.identityAccess.createUser({
+        displayName: "Archive Group Owner 2",
+      });
+      const [created] = await tx
+        .insert(groups)
+        .values({ createdByUserId: owner.id, name: "Archive Group 2" })
+        .returning();
+      if (created === undefined) {
+        throw new Error("Expected the second archive test group to be created.");
+      }
+      const firstAt = new Date("2026-08-13T12:00:00.000Z");
+      const secondAt = new Date("2026-08-13T13:00:00.000Z");
+      await repositories.groupAccess.archiveGroup(created.id, firstAt);
+      const result = await repositories.groupAccess.archiveGroup(
+        created.id,
+        secondAt,
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  it("archived users disappear from listUsersWithSummary", async () => {
+    await withRolledBackRepositories(async (repositories) => {
+      const user = await repositories.identityAccess.createUser({
+        displayName: "Visible Then Hidden",
+      });
+      const before = await repositories.identityAccess.listUsersWithSummary();
+      expect(before.some((row) => row.id === user.id)).toBe(true);
+      await repositories.identityAccess.archiveUser(
+        user.id,
+        new Date("2026-08-13T12:00:00.000Z"),
+      );
+      const after = await repositories.identityAccess.listUsersWithSummary();
+      expect(after.some((row) => row.id === user.id)).toBe(false);
+    });
+  });
+
+  it("findUserById returns the user row including isPlatformAdmin and archivedAt", async () => {
+    await withRolledBackRepositories(async (repositories) => {
+      const user = await repositories.identityAccess.createUser({
+        displayName: "Find Me",
+      });
+      const found = await repositories.identityAccess.findUserById(user.id);
+      expect(found?.id).toBe(user.id);
+      expect(found?.isPlatformAdmin).toBe(false);
+      expect(found?.archivedAt).toBeNull();
+    });
+  });
+});

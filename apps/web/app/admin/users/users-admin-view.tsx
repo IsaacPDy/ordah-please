@@ -3,7 +3,14 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 
-import type { AdminUserSummary } from "../../../src/features/users/users-runtime";
+import type {
+  AdminUserMembership,
+  AdminUserSummary,
+} from "../../../src/features/users/users-runtime";
+
+import { AddUserToGroupDialog, type AdminGroupOption } from "./add-user-to-group-dialog";
+import { ConfirmRemoveMembershipDialog } from "./confirm-remove-membership-dialog";
+import { ConfirmSuspendDialog } from "./confirm-suspend-dialog";
 
 const ROLE_LABELS: Readonly<Record<AdminUserSummary["memberships"][number]["role"], string>> = {
   "group-owner": "Group Owner",
@@ -13,14 +20,19 @@ const ROLE_LABELS: Readonly<Record<AdminUserSummary["memberships"][number]["role
 
 interface UsersAdminViewProps {
   readonly users: readonly AdminUserSummary[];
+  readonly groups: readonly AdminGroupOption[];
 }
 
 /** Renders the admin user list and detail panel with client-side search and row selection. */
-export function UsersAdminView({ users }: UsersAdminViewProps) {
+export function UsersAdminView({ users, groups }: UsersAdminViewProps) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(
     users[0]?.id ?? null,
   );
+  const [removeTarget, setRemoveTarget] = useState<AdminUserMembership | null>(
+    null,
+  );
+  const [suspendOpen, setSuspendOpen] = useState(false);
 
   const visibleUsers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -106,10 +118,14 @@ export function UsersAdminView({ users }: UsersAdminViewProps) {
             {selected.isPlatformAdmin ? (
               <span className="status-pill">Platform Admin</span>
             ) : null}
+            <AddUserToGroupDialog
+              defaultUserId={selected.id}
+              groups={groups}
+              users={users}
+            />
             <button
               className="secondary-action"
-              disabled
-              title="Coming soon"
+              onClick={() => setSuspendOpen(true)}
               type="button"
             >
               Suspend account
@@ -124,10 +140,30 @@ export function UsersAdminView({ users }: UsersAdminViewProps) {
                 <div key={membership.groupId}>
                   <span>{membership.groupName}</span>
                   <strong>{ROLE_LABELS[membership.role]}</strong>
+                  <button
+                    className="secondary-action"
+                    onClick={() => setRemoveTarget(membership)}
+                    type="button"
+                  >
+                    Remove from {membership.groupName}
+                  </button>
                 </div>
               ))
             )}
           </div>
+          {removeTarget !== null ? (
+            <ConfirmRemoveMembershipDialog
+              membership={removeTarget}
+              open
+              onClose={() => setRemoveTarget(null)}
+              user={selected}
+            />
+          ) : null}
+          <ConfirmSuspendDialog
+            open={suspendOpen}
+            onClose={() => setSuspendOpen(false)}
+            user={selected}
+          />
         </section>
       )}
     </>

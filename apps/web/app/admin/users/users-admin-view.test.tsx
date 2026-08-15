@@ -1,10 +1,17 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UsersAdminView } from "./users-admin-view";
 import type { AdminUserSummary } from "../../../src/features/users/users-runtime";
+
+const mockRefresh = vi.fn();
+const mockFetch = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: mockRefresh }),
+}));
 
 afterEach(cleanup);
 
@@ -52,9 +59,20 @@ const users: readonly AdminUserSummary[] = [
   },
 ];
 
+const groups = [
+  { groupId: "group-friends", name: "Friends" },
+  { groupId: "group-work", name: "Work" },
+];
+
+beforeEach(() => {
+  mockRefresh.mockReset();
+  mockFetch.mockReset();
+  globalThis.fetch = mockFetch;
+});
+
 describe("UsersAdminView", () => {
   it("renders all users when search is empty and selects the first by default", () => {
-    render(<UsersAdminView users={users} />);
+    render(<UsersAdminView users={users} groups={groups} />);
 
     // Alice is selected by default, so her name appears in both the list row
     // and the detail header — getAllByText handles that.
@@ -70,7 +88,7 @@ describe("UsersAdminView", () => {
   });
 
   it("filters by name case-insensitively", () => {
-    render(<UsersAdminView users={users} />);
+    render(<UsersAdminView users={users} groups={groups} />);
 
     fireEvent.change(screen.getByLabelText("Search users"), {
       target: { value: "JOR" },
@@ -83,7 +101,7 @@ describe("UsersAdminView", () => {
   });
 
   it("filters by email case-insensitively", () => {
-    render(<UsersAdminView users={users} />);
+    render(<UsersAdminView users={users} groups={groups} />);
 
     fireEvent.change(screen.getByLabelText("Search users"), {
       target: { value: "MIA@" },
@@ -95,7 +113,7 @@ describe("UsersAdminView", () => {
   });
 
   it("shows the empty-result message when search matches nobody and falls back to a 'Select a user' detail state", () => {
-    render(<UsersAdminView users={users} />);
+    render(<UsersAdminView users={users} groups={groups} />);
 
     fireEvent.change(screen.getByLabelText("Search users"), {
       target: { value: "nobody" },
@@ -106,7 +124,7 @@ describe("UsersAdminView", () => {
   });
 
   it("auto-selects the first visible row when the current selection is filtered out", () => {
-    render(<UsersAdminView users={users} />);
+    render(<UsersAdminView users={users} groups={groups} />);
 
     // Alice is selected by default. Filter to Jordan.
     fireEvent.change(screen.getByLabelText("Search users"), {
@@ -121,7 +139,9 @@ describe("UsersAdminView", () => {
   });
 
   it("renders initials fallback when imageUrl is null and an <img> when it is present", () => {
-    const { container } = render(<UsersAdminView users={users} />);
+    const { container } = render(
+      <UsersAdminView users={users} groups={groups} />,
+    );
 
     // Alice (no image) → initials "A" appears in the list row AND the detail header.
     expect(screen.getAllByText("A").length).toBeGreaterThan(0);
@@ -132,7 +152,7 @@ describe("UsersAdminView", () => {
   });
 
   it("shows 'Not in any groups yet.' for a user with zero memberships", () => {
-    render(<UsersAdminView users={users} />);
+    render(<UsersAdminView users={users} groups={groups} />);
 
     // Select Mia (second row).
     fireEvent.click(screen.getByText("Mia Member"));
@@ -140,19 +160,70 @@ describe("UsersAdminView", () => {
     expect(screen.getByText("Not in any groups yet.")).toBeTruthy();
   });
 
-  it("renders the Suspend account button disabled with the Coming soon tooltip", () => {
-    render(<UsersAdminView users={users} />);
+  it("opens the add-user-to-group dialog when the trigger is clicked", () => {
+    render(<UsersAdminView users={users} groups={groups} />);
 
-    const suspendButton = screen.getByRole("button", {
-      name: "Suspend account",
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add user to group" }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Add user to group" }),
+    ).toBeTruthy();
+  });
+
+  it("removes a membership and refreshes on confirm", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
+    render(<UsersAdminView users={users} groups={groups} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Remove from Friends/i }),
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Remove" }));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/admin/users/user-alice/memberships/group-friends/remove",
+        { method: "POST" },
+      );
+      expect(mockRefresh).toHaveBeenCalled();
     });
+  });
 
-    expect(suspendButton.hasAttribute("disabled")).toBe(true);
-    expect(suspendButton.getAttribute("title")).toBe("Coming soon");
+  it("surfaces a 409 error inline in the remove-membership dialog", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: () =>
+        Promise.resolve({ error: { message: "Reassign ownership first." } }),
+    });
+    render(<UsersAdminView users={users} groups={groups} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Remove from Friends/i }),
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Remove" }));
+
+    expect(
+      await screen.findByText("Reassign ownership first."),
+    ).toBeTruthy();
+    expect(mockRefresh).not.toHaveBeenCalled();
+  });
+
+  it("opens the confirm-suspend dialog when Suspend is clicked", () => {
+    render(<UsersAdminView users={users} groups={groups} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Suspend account/i }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /Suspend Alice Admin\?/i }),
+    ).toBeTruthy();
   });
 
   it("renders the empty state when there are zero users", () => {
-    render(<UsersAdminView users={[]} />);
+    render(<UsersAdminView users={[]} groups={groups} />);
 
     expect(screen.getByText("No users yet.")).toBeTruthy();
     expect(screen.getByText("Select a user.")).toBeTruthy();

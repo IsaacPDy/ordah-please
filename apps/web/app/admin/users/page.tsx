@@ -8,17 +8,7 @@ import { UsersAdminData } from "./users-admin-data";
 export default function UsersPermissionsPage() {
   return (
     <AdminPage
-      actions={
-        <button
-          className="admin-primary-button"
-          disabled
-          title="Coming soon"
-          type="button"
-        >
-          Add user to group
-        </button>
-      }
-      description="Role permissions apply by default. Account-wide overrides arrive in a future bundle."
+      description="Add or remove group members, suspend accounts, and review roles."
       eyebrow="Access control"
       title="Users & permissions"
     >

@@ -30,6 +30,7 @@ export interface PendingAdminAccessRequestRow {
 }
 
 export interface GroupSummaryRow {
+  readonly archivedAt: Date | null;
   readonly id: string;
   readonly name: string;
   readonly ownerUserId: string | null;
@@ -41,6 +42,7 @@ export interface GroupAccessRepository {
     userId: string,
     acceptedAt: Date,
   ): Promise<boolean>;
+  archiveGroup(groupId: string, archivedAt: Date): Promise<boolean>;
   createAdminAccessRequest(
     input: typeof adminAccessRequests.$inferInsert,
   ): Promise<typeof adminAccessRequests.$inferSelect>;
@@ -115,6 +117,14 @@ export function createGroupAccessRepository(
         )
         .returning({ id: invitations.id });
       return accepted !== undefined;
+    },
+    archiveGroup: async (groupId, archivedAt) => {
+      const [updated] = await database
+        .update(groups)
+        .set({ archivedAt })
+        .where(and(eq(groups.id, groupId), isNull(groups.archivedAt)))
+        .returning({ id: groups.id });
+      return updated !== undefined;
     },
     createInvitation: async (input) =>
       requireWrittenRow(
@@ -204,6 +214,7 @@ export function createGroupAccessRepository(
     findGroupSummary: async (groupId) => {
       const [row] = await database
         .select({
+          archivedAt: groups.archivedAt,
           id: groups.id,
           name: groups.name,
           ownerUserId: memberships.userId,

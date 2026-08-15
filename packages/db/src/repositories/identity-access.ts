@@ -31,6 +31,7 @@ export interface IdentityAccessRepository {
   addMembership(
     input: typeof memberships.$inferInsert,
   ): Promise<typeof memberships.$inferSelect | undefined>;
+  archiveUser(userId: string, archivedAt: Date): Promise<boolean>;
   createUser(
     input: typeof users.$inferInsert,
   ): Promise<typeof users.$inferSelect>;
@@ -39,6 +40,9 @@ export interface IdentityAccessRepository {
   ): Promise<typeof users.$inferSelect>;
   findUserByAuthUserId(
     authUserId: string,
+  ): Promise<typeof users.$inferSelect | undefined>;
+  findUserById(
+    userId: string,
   ): Promise<typeof users.$inferSelect | undefined>;
   listActiveMemberships(
     userId: string,
@@ -72,6 +76,14 @@ export function createIdentityAccessRepository(
 
       return membership;
     },
+    archiveUser: async (userId, archivedAt) => {
+      const [updated] = await database
+        .update(users)
+        .set({ archivedAt })
+        .where(and(eq(users.id, userId), isNull(users.archivedAt)))
+        .returning({ id: users.id });
+      return updated !== undefined;
+    },
     createUser: async (input) =>
       requireWrittenRow(await database.insert(users).values(input).returning()),
     ensureUserForAuthIdentity: async (input) => {
@@ -96,6 +108,14 @@ export function createIdentityAccessRepository(
         .where(eq(users.authUserId, authUserId))
         .limit(1);
       return user;
+    },
+    findUserById: async (userId) => {
+      const [row] = await database
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      return row;
     },
     listActiveMemberships: (userId) =>
       database
