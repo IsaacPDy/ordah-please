@@ -14,6 +14,8 @@ import {
   catalogImports,
   favorites,
   groups,
+  menuCategories,
+  menuItems,
   menuVersions,
   orders,
   restaurants,
@@ -1154,5 +1156,189 @@ describe("admin archive helpers", () => {
       expect(found?.isPlatformAdmin).toBe(false);
       expect(found?.archivedAt).toBeNull();
     });
+  });
+});
+
+describe("favorites repository writes", () => {
+  /** Seeds one user, restaurant, branch, published menu, category, and two meals. */
+  async function seedFavoritesFixture() {
+    const [user] = await database
+      .insert(users)
+      .values({ displayName: "Favorites User" })
+      .returning();
+    if (user === undefined) {
+      throw new Error("Expected the favorites test user to be created.");
+    }
+
+    const [restaurant] = await database
+      .insert(restaurants)
+      .values({ name: "Favorites Restaurant" })
+      .returning();
+    if (restaurant === undefined) {
+      throw new Error("Expected the favorites test restaurant.");
+    }
+    const [branch] = await database
+      .insert(branches)
+      .values({ name: "Favorites Branch", restaurantId: restaurant.id })
+      .returning();
+    if (branch === undefined) {
+      throw new Error("Expected the favorites test branch.");
+    }
+    const [catalogImport] = await database
+      .insert(catalogImports)
+      .values({ createdByUserId: user.id, status: "published" })
+      .returning();
+    if (catalogImport === undefined) {
+      throw new Error("Expected the favorites test import.");
+    }
+    const [menuVersion] = await database
+      .insert(menuVersions)
+      .values({
+        branchId: branch.id,
+        sourceImportId: catalogImport.id,
+        status: "published",
+        versionNumber: 1,
+      })
+      .returning();
+    if (menuVersion === undefined) {
+      throw new Error("Expected the favorites test menu version.");
+    }
+    const [category] = await database
+      .insert(menuCategories)
+      .values({ menuVersionId: menuVersion.id, name: "Meals", sortOrder: 0 })
+      .returning();
+    if (category === undefined) {
+      throw new Error("Expected the favorites test category.");
+    }
+    const [item] = await database
+      .insert(menuItems)
+      .values({
+        basePriceCentavos: 25000,
+        categoryId: category.id,
+        isAvailable: true,
+        name: "Favorites Meal",
+        sortOrder: 0,
+        sourceKey: "favorites-meal-1",
+      })
+      .returning();
+    if (item === undefined) {
+      throw new Error("Expected the favorites test item.");
+    }
+    const [secondItem] = await database
+      .insert(menuItems)
+      .values({
+        basePriceCentavos: 15000,
+        categoryId: category.id,
+        isAvailable: true,
+        name: "Second Meal",
+        sortOrder: 1,
+        sourceKey: "favorites-meal-2",
+      })
+      .returning();
+    if (secondItem === undefined) {
+      throw new Error("Expected the second favorites test item.");
+    }
+
+    return { branch, category, item, menuVersion, restaurant, secondItem, user };
+  }
+
+  it("resolves a menu item context from the published menu", async () => {
+    const repositories = createRepositories(database);
+    const { branch, item, menuVersion } = await seedFavoritesFixture();
+
+    expect(
+      await repositories.catalog.findMenuItemContext(item.id),
+    ).toStrictEqual({
+      basePriceCentavos: 25000,
+      branchId: branch.id,
+      isAvailable: true,
+      menuItemId: item.id,
+      menuVersionId: menuVersion.id,
+      name: "Favorites Meal",
+    });
+    expect(
+      await repositories.catalog.findMenuItemContext(randomUUID()),
+    ).toBeUndefined();
+  });
+
+  it("saves, lists, deletes, and compacts ranked favorites", async () => {
+    const repositories = createRepositories(database);
+    const { branch, item, menuVersion, restaurant, secondItem, user } =
+      await seedFavoritesFixture();
+
+    const first = await repositories.favorites.insertFavoriteWithItem({
+      availability: "available",
+      branchId: branch.id,
+      menuItemId: item.id,
+      menuVersionId: menuVersion.id,
+      name: item.name,
+      quantity: 1,
+      rank: 1,
+      userId: user.id,
+    });
+    expect(first.id).toBeTruthy();
+
+    const second = await repositories.favorites.insertFavoriteWithItem({
+      availability: "available",
+      branchId: branch.id,
+      menuItemId: secondItem.id,
+      menuVersionId: menuVersion.id,
+      name: secondItem.name,
+      quantity: 1,
+      rank: 2,
+      userId: user.id,
+    });
+
+    expect(
+      await repositories.favorites.listForUserAndBranchWithItems(
+        user.id,
+        branch.id,
+      ),
+    ).toStrictEqual([
+      {
+        id: first.id,
+        branchId: branch.id,
+        name: "Favorites Meal",
+        rank: 1,
+        items: [{ menuItemId: item.id, quantity: 1 }],
+      },
+      {
+        id: second.id,
+        branchId: branch.id,
+        name: "Second Meal",
+        rank: 2,
+        items: [{ menuItemId: secondItem.id, quantity: 1 }],
+      },
+    ]);
+
+    expect(
+      await repositories.favorites.deleteFavoriteForUser(
+        randomUUID(),
+        first.id,
+      ),
+    ).toBeUndefined();
+
+    expect(
+      await repositories.favorites.deleteFavoriteForUser(user.id, first.id),
+    ).toStrictEqual({ branchId: branch.id, rank: 1 });
+
+    await repositories.favorites.updateFavoriteRank(second.id, 1);
+
+    const pageRows = await repositories.favorites.listForUser(user.id);
+    expect(pageRows).toStrictEqual([
+      {
+        favoriteId: second.id,
+        rank: 1,
+        name: "Second Meal",
+        availability: "available",
+        restaurantId: restaurant.id,
+        restaurantName: "Favorites Restaurant",
+        branchId: branch.id,
+        branchName: "Favorites Branch",
+        menuItemId: secondItem.id,
+        currentPriceCentavos: 15000,
+        isCurrentlyAvailable: true,
+      },
+    ]);
   });
 });

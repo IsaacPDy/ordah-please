@@ -3,6 +3,10 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { catalogRuntime } from "../../../../src/features/catalog/catalog-runtime";
+import { favoritesRuntime } from "../../../../src/features/favorites/favorites-runtime";
+import { getCurrentServerPageIdentity } from "../../../../src/auth/load-server-page-identity";
+
+import { FavoriteButton } from "./favorite-button";
 
 /** Member-facing restaurant detail page with a Grab-style menu layout. */
 export default async function RestaurantDetailPage({
@@ -17,6 +21,19 @@ export default async function RestaurantDetailPage({
   }
 
   const heroImage = detail.categories[0]?.items[0]?.imageUrl ?? null;
+
+  const identityResult = await getCurrentServerPageIdentity();
+  const favoriteIdByMenuItemId = new Map<string, string>();
+  if (identityResult.status === "authenticated") {
+    const favoriteRows = await favoritesRuntime.listFavoritesForUser(
+      identityResult.identity.userId,
+    );
+    for (const row of favoriteRows) {
+      if (row.branchId === detail.branchId && row.menuItemId !== null) {
+        favoriteIdByMenuItemId.set(row.menuItemId, row.favoriteId);
+      }
+    }
+  }
 
   return (
     <article className="restaurant-detail">
@@ -90,6 +107,11 @@ export default async function RestaurantDetailPage({
                     ₱{(item.basePriceCentavos / 100).toFixed(2)}
                   </p>
                 </div>
+                <FavoriteButton
+                  favoriteId={favoriteIdByMenuItemId.get(item.id) ?? null}
+                  initiallyFavorited={favoriteIdByMenuItemId.has(item.id)}
+                  menuItemId={item.id}
+                />
               </li>
             ))}
           </ul>

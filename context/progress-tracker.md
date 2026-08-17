@@ -34,7 +34,7 @@ Current state and remaining work. Completed bundle evidence lives in [`context/h
 **After Multi-group** (parallel):
 
 - [x] Restaurant catalog — implementation, strict public API mapping, source-ID replacement, required-field/upload validation, admin search/branch editing/recent imports, and focused checks pass. Development Neon accepted McDonald's (158 items) and KFC (129 items), admin edit persistence passed, authenticated web Home/detail passed, migrations `0006`/`0007` are present, and the verified `0004`–`0007` journal drift was reconciled; the normal migration runner now completes successfully. Android acceptance remains blocked by an Expo SDK 57 Router/Worklets native crash reproduced in both this app and a fresh official Router control project on the installed Android 16 emulator; a plain Expo control project stays open.
-- [ ] Favorites — honest empty states are in place; saving and ranking favorites remain a separate bundle.
+- [x] add Favorites — web save/ranking shipped: members save up to 3 ranked meals per restaurant from meal cards (+/✓), duplicate and fourth saves return friendly messages, removal compacts ranks, and the Favorites page lists ranked groups per restaurant — branch with prices and Remove; unit/lint/typecheck/build pass, provider tests pass (one known pre-existing failure), manual browser verification completed 2026-08-17; auto-order wiring is deferred to the order bundles and mobile is deferred.
 - [ ] Private files and import
 - [ ] Platform Admin operations — after Effective permissions
 

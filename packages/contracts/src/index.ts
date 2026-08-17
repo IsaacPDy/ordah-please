@@ -9,6 +9,7 @@ export * from "./common/api-result.js";
 export * from "./common/errors.js";
 export * from "./common/pagination.js";
 export * from "./favorites/favorite-combination.js";
+export * from "./favorites/favorite-save-request.js";
 export * from "./groups/group-details.js";
 export * from "./groups/group-requests.js";
 export * from "./orders/food-selection.js";

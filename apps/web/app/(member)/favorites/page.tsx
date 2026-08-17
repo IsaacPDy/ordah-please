@@ -1,12 +1,23 @@
 import { getCurrentServerPageIdentity } from "../../../src/auth/load-server-page-identity";
+import { favoritesRuntime } from "../../../src/features/favorites/favorites-runtime";
 import { MemberAccessState } from "../../components/member-access-state";
+import { FavoritesView, groupFavoritesByBranch } from "./favorites-view";
 
-/** Favorites tab. Empty state until the Favorites bundle ships. */
+/** Favorites tab: the member's saved favorite meals, ranked per restaurant. */
 export default async function FavoritesPage() {
   const identityResult = await getCurrentServerPageIdentity();
   const hasMemberships =
     identityResult.status === "authenticated" &&
     identityResult.identity.memberships.length > 0;
+
+  const groups =
+    identityResult.status === "authenticated"
+      ? groupFavoritesByBranch(
+          await favoritesRuntime.listFavoritesForUser(
+            identityResult.identity.userId,
+          ),
+        )
+      : [];
 
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="favorites">
@@ -18,9 +29,7 @@ export default async function FavoritesPage() {
             Your top three combinations will be ready when a group order starts.
           </p>
         </header>
-        <p className="restaurant-empty">
-          No favorites yet — browse restaurants to add your first one.
-        </p>
+        <FavoritesView groups={groups} />
       </div>
     </MemberAccessState>
   );

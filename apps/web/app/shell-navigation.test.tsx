@@ -29,6 +29,12 @@ vi.mock("../src/features/catalog/catalog-runtime", () => ({
   },
 }));
 
+vi.mock("../src/features/favorites/favorites-runtime", () => ({
+  favoritesRuntime: {
+    listFavoritesForUser: () => Promise.resolve([]),
+  },
+}));
+
 vi.mock("../src/features/groups/group-runtime", () => ({
   groupRuntime: {
     listViewerGroupSummaries: () =>
@@ -141,11 +147,11 @@ describe("web navigation shells", () => {
     expect(html).toContain("Date");
   });
 
-  it("shows an honest Favorites empty state before favorites ship", async () => {
+  it("shows the Favorites empty state when the member has none", async () => {
     const html = renderToStaticMarkup(await FavoritesPage());
 
     expect(html).toContain("No favorites yet");
-    expect(html).not.toContain("Rank 1");
+    expect(html).not.toContain("#1");
   });
 
   it("shows every real membership with its exact role", async () => {

@@ -19,6 +19,15 @@ import {
 } from "../schema/index.js";
 import type { DatabaseTransaction } from "../transaction.js";
 
+export interface MenuItemContextRow {
+  readonly menuItemId: string;
+  readonly name: string;
+  readonly basePriceCentavos: number;
+  readonly isAvailable: boolean;
+  readonly branchId: string;
+  readonly menuVersionId: string;
+}
+
 export interface RestaurantSummaryRow {
   readonly restaurantId: string;
   readonly restaurantName: string;
@@ -111,6 +120,9 @@ export interface CatalogRepository {
   findPublishedMenuVersion(
     branchId: string,
   ): Promise<typeof menuVersions.$inferSelect | undefined>;
+  findMenuItemContext(
+    menuItemId: string,
+  ): Promise<MenuItemContextRow | undefined>;
   listRestaurants(): Promise<readonly RestaurantSummaryRow[]>;
   getRestaurantDetail(
     restaurantId: string,
@@ -134,6 +146,31 @@ export function createCatalogRepository(
   database: CatalogDatabase,
 ): CatalogRepository {
   return {
+    findMenuItemContext: async (menuItemId) => {
+      const [row] = await database
+        .select({
+          menuItemId: menuItems.id,
+          name: menuItems.name,
+          basePriceCentavos: menuItems.basePriceCentavos,
+          isAvailable: menuItems.isAvailable,
+          branchId: branches.id,
+          menuVersionId: menuVersions.id,
+        })
+        .from(menuItems)
+        .innerJoin(menuCategories, eq(menuCategories.id, menuItems.categoryId))
+        .innerJoin(
+          menuVersions,
+          and(
+            eq(menuVersions.id, menuCategories.menuVersionId),
+            eq(menuVersions.status, "published"),
+          ),
+        )
+        .innerJoin(branches, eq(branches.id, menuVersions.branchId))
+        .where(eq(menuItems.id, menuItemId))
+        .limit(1);
+      return row;
+    },
+
     findPublishedMenuVersion: async (branchId) => {
       const [menuVersion] = await database
         .select()
