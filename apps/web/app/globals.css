@@ -3219,6 +3219,18 @@ body {
   font-size: 19px;
 }
 
+.member-shell--compact .member-header:has(.member-header__spacer) {
+  grid-template-columns: 1fr auto;
+}
+
+.member-shell--compact .member-header:has(.member-header__spacer) .brand {
+  font-size: 24px;
+}
+
+.member-shell--compact .member-header__spacer {
+  display: none;
+}
+
 .member-shell--compact .member-header__spacer,
 .member-shell--compact .member-back-button,
 .member-shell--compact .member-header .icon-button,
@@ -3588,4 +3600,167 @@ body {
 .member-shell--compact .restaurant-detail__item-favorite {
   height: 44px;
   width: 44px;
+}
+
+.info-banner {
+  background: var(--color-support);
+  border-radius: var(--radius-card);
+  color: var(--color-text);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+}
+
+.food-card {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  color: var(--color-text);
+  display: flex;
+  font: inherit;
+  gap: var(--space-3);
+  justify-content: space-between;
+  min-height: var(--touch-target);
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  width: 100%;
+}
+
+.food-card--selected {
+  background: var(--color-support);
+  border-color: var(--color-primary);
+}
+
+.food-card--unavailable {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.food-card__body {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.food-card__name {
+  font-weight: 700;
+}
+
+.food-card__meta {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+.food-card__price {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pick-actions {
+  align-items: center;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+}
+
+.pick-actions .primary-action {
+  width: 100%;
+}
+
+.pick-progress {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.participant-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.participant-card__head {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.participant-card__id {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+}
+
+.participant-card__name {
+  font-weight: 700;
+  margin: 0;
+}
+
+.participant-card__meta {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  margin: 0;
+}
+
+.participant-status {
+  align-items: center;
+  display: inline-flex;
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.participant-status--ok {
+  color: var(--color-primary-strong);
+}
+
+.participant-status--muted {
+  color: var(--color-text-secondary);
+}
+
+.participant-status--warn {
+  color: var(--color-warning);
+}
+
+.participant-card__lines {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pick-line {
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-compact);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+}
+
+.pick-line__name {
+  font-weight: 700;
+  margin: 0;
+}
+
+.pick-line__meta {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  margin: 0;
+}
+
+.pick-line__price {
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.locked-note {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  margin: 0;
 }

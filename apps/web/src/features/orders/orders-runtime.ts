@@ -9,10 +9,12 @@ import { loadAppIdentity } from "../../auth/load-app-identity";
 import { verifySession } from "../../auth/verify-session";
 import type { OrdersServiceRepositories } from "./orders-service";
 import {
+  advanceFoodDeadline,
   completeOrder,
   createGroupOrder,
   listOrderSummaries,
   loadOrderDetail,
+  submitFoodResponse,
 } from "./orders-service";
 
 let runtimeDatabase: Database | undefined;
@@ -56,15 +58,34 @@ export const ordersRuntime = {
       { userId },
       { orders: createRepositories(getRuntimeDatabase()).orders },
     ),
+  /** Lazily closes food picks past their deadline before reading the order. */
+  advanceFoodDeadline: (command: Parameters<typeof advanceFoodDeadline>[0]) =>
+    advanceFoodDeadline(command, { run: runOrdersTransaction }),
+  /** Saves the participant's favorites-only food pick. */
+  submitFoodResponse: (command: Parameters<typeof submitFoodResponse>[0]) =>
+    submitFoodResponse(command, { run: runOrdersTransaction }),
   /** Loads one order detail view for the living order page. */
-  loadOrderDetailView: (
+  loadOrderDetailView: async (
     identity: Parameters<typeof loadOrderDetail>[0]["identity"],
     orderId: string,
-  ) =>
-    loadOrderDetail(
-      { identity, now: new Date(), orderId },
-      { orders: createRepositories(getRuntimeDatabase()).orders },
-    ),
+  ) => {
+    const now = new Date();
+    const repositories = createRepositories(getRuntimeDatabase());
+    const detail = await repositories.orders.findOrderDetail(orderId);
+    if (
+      detail?.state === "food_confirmation" &&
+      detail.foodDeadline.getTime() <= now.getTime()
+    ) {
+      await advanceFoodDeadline(
+        { identity, now, orderId },
+        { run: runOrdersTransaction },
+      );
+    }
+    return loadOrderDetail(
+      { identity, now, orderId },
+      { favorites: repositories.favorites, orders: repositories.orders },
+    );
+  },
   loadIdentity: loadRuntimeIdentity,
   verifySession,
 } as const;

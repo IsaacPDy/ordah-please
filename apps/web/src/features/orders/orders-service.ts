@@ -1,14 +1,22 @@
 import {
   parseDeliveryAddress,
   PublicApiError,
+  type FoodPickRequest,
   type OrderCreateRequest,
 } from "@ordah-please/contracts";
 import {
+  parseCentavos,
   parseId,
+  resolveFoodDeadline,
   transitionOrderState,
   type DeliveryAddress,
+  type FavoriteId,
+  type FoodDeadlineResponse,
+  type FoodSelectionSnapshot,
+  type MenuItemId,
   type OrderId,
   type OrderState,
+  type UserId,
 } from "@ordah-please/domain";
 
 import { requireGroupRole } from "../../application/group-authorization";
@@ -16,6 +24,16 @@ import type { AppIdentity } from "../../auth/load-app-identity";
 
 const FORBIDDEN_MESSAGE = "You do not have access to this action.";
 const MINIMUM_STAGE_GAP_MS = 60_000;
+
+export interface FoodResponseLineInput {
+  readonly sourceMenuItemId: string;
+  readonly itemNameSnapshot: string;
+  readonly quantity: number;
+  readonly unitPriceCentavos: number;
+  readonly noteSnapshot: string;
+  readonly lineSubtotalCentavos: number;
+  readonly sortOrder: number;
+}
 
 export interface OrdersServiceRepositories {
   readonly auditEvents: {
@@ -28,6 +46,19 @@ export interface OrdersServiceRepositories {
     }) => Promise<unknown>;
   };
   readonly catalog: {
+    readonly findMenuItemContext: (
+      menuItemId: string,
+    ) => Promise<
+      | {
+          readonly menuItemId: string;
+          readonly name: string;
+          readonly basePriceCentavos: number;
+          readonly isAvailable: boolean;
+          readonly branchId: string;
+          readonly menuVersionId: string;
+        }
+      | undefined
+    >;
     readonly findPublishedMenuVersion: (
       branchId: string,
     ) => Promise<{ readonly id: string } | undefined>;
@@ -63,6 +94,38 @@ export interface OrdersServiceRepositories {
       updatedByUserId: string;
       now: Date;
     }) => Promise<unknown>;
+  };
+  readonly favorites: {
+    readonly listForUser: (
+      userId: string,
+    ) => Promise<
+      readonly {
+        readonly favoriteId: string;
+        readonly rank: number;
+        readonly name: string;
+        readonly branchId: string;
+        readonly menuItemId: string | null;
+        readonly currentPriceCentavos: number | null;
+        readonly isCurrentlyAvailable: boolean | null;
+        readonly itemDescription: string | null;
+      }[]
+    >;
+    readonly listForUserAndBranchWithItems: (
+      userId: string,
+      branchId: string,
+    ) => Promise<
+      readonly {
+        readonly id: string;
+        readonly branchId: string;
+        readonly rank: number;
+        readonly name: string;
+        readonly items: readonly {
+          readonly menuItemId: string;
+          readonly quantity: number;
+          readonly note: string;
+        }[];
+      }[]
+    >;
   };
   readonly orders: {
     readonly createOrder: (input: {
@@ -100,6 +163,33 @@ export interface OrdersServiceRepositories {
       | undefined
     >;
     readonly findOrderDetail: (orderId: string) => Promise<unknown>;
+    readonly upsertFoodResponse: (input: {
+      readonly orderId: string;
+      readonly userId: string;
+      readonly status: "confirmed" | "declined";
+      readonly source: "saved_favorite" | "inline" | "declined";
+      readonly favoriteId: string | null;
+      readonly lines: readonly FoodResponseLineInput[];
+      readonly now: Date;
+    }) => Promise<unknown>;
+    readonly clearFoodResponse: (
+      orderId: string,
+      userId: string,
+    ) => Promise<unknown>;
+    readonly listOrderLines: (
+      orderId: string,
+    ) => Promise<
+      readonly {
+        readonly userId: string;
+        readonly sourceMenuItemId: string | null;
+        readonly itemNameSnapshot: string;
+        readonly quantity: number;
+        readonly unitPriceCentavos: number;
+        readonly noteSnapshot: string;
+        readonly lineSubtotalCentavos: number;
+        readonly sortOrder: number;
+      }[]
+    >;
     readonly listVisibleForUser: (userId: string) => Promise<
       readonly {
         readonly orderId: string;
@@ -374,10 +464,366 @@ export async function completeOrder(
   });
 }
 
+type FoodOrderRow = OrderDetailDatabaseRow & {
+  readonly selectedBranchId: string;
+  readonly selectedMenuVersionId: string;
+};
+
+/**
+ * Loads one order for picking: visible to participants and the group Owner,
+ * open in food_confirmation, and before the food deadline.
+ */
+async function loadOpenFoodOrder(
+  identity: AppIdentity,
+  orderId: string,
+  now: Date,
+  repositories: Pick<OrdersServiceRepositories, "orders">,
+): Promise<FoodOrderRow> {
+  const row = (await repositories.orders.findOrderDetail(orderId)) as
+    | OrderDetailDatabaseRow
+    | undefined;
+  if (row === undefined) {
+    throw new PublicApiError("NOT_FOUND", "Order not found.");
+  }
+
+  const membership = identity.memberships.find(
+    (candidate) => candidate.groupId === row.groupId,
+  );
+  const isParticipant = row.participants.some(
+    (participant) => participant.userId === identity.userId,
+  );
+  const isOwner = membership?.role === "group-owner";
+  if (!isParticipant && !isOwner) {
+    throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
+  }
+  if (!isParticipant) {
+    throw new PublicApiError(
+      "FORBIDDEN",
+      "Only participants can pick food for this order.",
+    );
+  }
+  if (
+    row.state !== "food_confirmation" ||
+    row.selectedBranchId === null ||
+    row.selectedMenuVersionId === null
+  ) {
+    throw new PublicApiError(
+      "CONFLICT",
+      "This order is not open for food picks.",
+    );
+  }
+  if (now.getTime() >= row.foodDeadline.getTime()) {
+    throw new PublicApiError(
+      "CONFLICT",
+      "Food picks have closed. Selections are locked in.",
+    );
+  }
+  return row as FoodOrderRow;
+}
+
+/**
+ * Expands one favorite into priced order lines against the pinned menu
+ * version, or returns null when any item is missing, stale, or unavailable.
+ */
+async function expandFavoriteLines(
+  favorite: {
+    readonly items: readonly {
+      readonly menuItemId: string;
+      readonly quantity: number;
+      readonly note: string;
+    }[];
+  },
+  menuVersionId: string,
+  repositories: Pick<OrdersServiceRepositories, "catalog">,
+): Promise<readonly FoodResponseLineInput[] | null> {
+  const lines: FoodResponseLineInput[] = [];
+  for (const [index, item] of favorite.items.entries()) {
+    const context = await repositories.catalog.findMenuItemContext(
+      item.menuItemId,
+    );
+    if (
+      context === undefined ||
+      context.menuVersionId !== menuVersionId ||
+      !context.isAvailable
+    ) {
+      return null;
+    }
+    lines.push({
+      sourceMenuItemId: context.menuItemId,
+      itemNameSnapshot: context.name,
+      quantity: item.quantity,
+      unitPriceCentavos: context.basePriceCentavos,
+      noteSnapshot: item.note,
+      lineSubtotalCentavos: context.basePriceCentavos * item.quantity,
+      sortOrder: index,
+    });
+  }
+  return lines;
+}
+
+/** Persists the participant's favorites-only food pick, decline, or reset. */
+export async function submitFoodResponse(
+  command: Readonly<{
+    identity: AppIdentity;
+    orderId: string;
+    request: FoodPickRequest;
+    now: Date;
+  }>,
+  runner: OrdersTransactionRunner,
+): Promise<Readonly<{ ok: true }>> {
+  return runner.run(async (repositories) => {
+    const row = await loadOpenFoodOrder(
+      command.identity,
+      command.orderId,
+      command.now,
+      repositories,
+    );
+    const { request } = command;
+
+    if (request.kind === "clear") {
+      await repositories.orders.clearFoodResponse(
+        row.orderId,
+        command.identity.userId,
+      );
+      return { ok: true } as const;
+    }
+
+    if (request.kind === "declined") {
+      await repositories.orders.upsertFoodResponse({
+        favoriteId: null,
+        lines: [],
+        now: command.now,
+        orderId: row.orderId,
+        source: "declined",
+        status: "declined",
+        userId: command.identity.userId,
+      });
+      return { ok: true } as const;
+    }
+
+    const favorites = await repositories.favorites.listForUserAndBranchWithItems(
+      command.identity.userId,
+      row.selectedBranchId,
+    );
+    const favorite = favorites.find(
+      (candidate) => candidate.id === request.favoriteId,
+    );
+    if (favorite === undefined) {
+      throw new PublicApiError(
+        "NOT_FOUND",
+        "Pick one of your favorites for this restaurant.",
+      );
+    }
+    const lines = await expandFavoriteLines(
+      favorite,
+      row.selectedMenuVersionId,
+      repositories,
+    );
+    if (lines === null || lines.length === 0) {
+      throw new PublicApiError(
+        "CONFLICT",
+        `${favorite.name} is no longer available at this restaurant. Pick another favorite or tap Not eating.`,
+      );
+    }
+
+    await repositories.orders.upsertFoodResponse({
+      favoriteId: favorite.id,
+      lines,
+      now: command.now,
+      orderId: row.orderId,
+      source: "saved_favorite",
+      status: "confirmed",
+      userId: command.identity.userId,
+    });
+    return { ok: true } as const;
+  });
+}
+
+/**
+ * Lazily closes food picks when the deadline has passed: materializes
+ * rank-1 favorite defaults for still-pending participants and, once every
+ * participant is confirmed / declined / resolved, moves to handoff.
+ * Idempotent — safe to run on every read.
+ */
+export async function advanceFoodDeadline(
+  command: Readonly<{
+    identity: AppIdentity;
+    orderId: string;
+    now: Date;
+  }>,
+  runner: OrdersTransactionRunner,
+): Promise<Readonly<{ advanced: boolean }>> {
+  return runner.run(async (repositories) => {
+    const row = (await repositories.orders.findOrderDetail(
+      command.orderId,
+    )) as OrderDetailDatabaseRow | undefined;
+    if (row === undefined) {
+      throw new PublicApiError("NOT_FOUND", "Order not found.");
+    }
+
+    const membership = command.identity.memberships.find(
+      (candidate) => candidate.groupId === row.groupId,
+    );
+    const isParticipant = row.participants.some(
+      (participant) => participant.userId === command.identity.userId,
+    );
+    const isOwner = membership?.role === "group-owner";
+    if (!isParticipant && !isOwner) {
+      throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
+    }
+
+    if (
+      row.state !== "food_confirmation" ||
+      command.now.getTime() < row.foodDeadline.getTime() ||
+      row.selectedBranchId === null ||
+      row.selectedMenuVersionId === null
+    ) {
+      return { advanced: false } as const;
+    }
+
+    const pendingUserIds = row.participants
+      .filter((participant) => participant.foodResponse === "pending")
+      .map((participant) => participant.userId);
+    const pendingByUser = new Set(pendingUserIds);
+
+    const defaults = new Map<
+      string,
+      { favoriteId: string; lines: readonly FoodResponseLineInput[] }
+    >();
+    for (const userId of pendingUserIds) {
+      const favorites = await repositories.favorites.listForUserAndBranchWithItems(
+        userId,
+        row.selectedBranchId,
+      );
+      const rankOne = favorites[0];
+      if (rankOne === undefined || rankOne.items.length === 0) {
+        continue;
+      }
+      const lines = await expandFavoriteLines(
+        rankOne,
+        row.selectedMenuVersionId,
+        repositories,
+      );
+      if (lines === null || lines.length === 0) {
+        continue;
+      }
+      defaults.set(userId, { favoriteId: rankOne.id, lines });
+    }
+
+    // The policy carries explicit selections opaquely; this engine consumes
+    // only its classification (default / declined / unresolved), so already
+    // persisted responses are represented with an empty inline selection.
+    const emptySelection: FoodSelectionSnapshot = {
+      items: [],
+      source: { kind: "inline" },
+    };
+    const responses: readonly FoodDeadlineResponse[] = row.participants
+      .filter((participant) => participant.foodResponse !== "pending")
+      .map((participant) =>
+        participant.foodResponse === "confirmed"
+          ? {
+              kind: "confirmed" as const,
+              selection: emptySelection,
+              userId: parseId<UserId>(participant.userId),
+            }
+          : {
+              kind: "declined" as const,
+              userId: parseId<UserId>(participant.userId),
+            },
+      );
+
+    const resolution = resolveFoodDeadline({
+      participants: row.participants.map((participant) => ({
+        rankOneAvailable: defaults.has(participant.userId),
+        rankOneSelection:
+          defaults.get(participant.userId) === undefined
+            ? null
+            : {
+                items:
+                  defaults
+                    .get(participant.userId)
+                    ?.lines.map((line) => ({
+                      menuItemId: parseId<MenuItemId>(line.sourceMenuItemId),
+                      name: line.itemNameSnapshot,
+                      quantity: line.quantity,
+                      unitPriceCentavos: parseCentavos(
+                        line.unitPriceCentavos,
+                      ),
+                      variant: null,
+                      modifiers: [],
+                      note: line.noteSnapshot,
+                    })) ?? [],
+                source: {
+                  favoriteId: parseId<FavoriteId>(
+                    defaults.get(participant.userId)?.favoriteId ?? "",
+                  ),
+                  kind: "saved_favorite" as const,
+                },
+              },
+        userId: parseId<UserId>(participant.userId),
+      })),
+      responses,
+    });
+
+    let materialized = 0;
+    for (const selection of resolution.selections) {
+      if (!pendingByUser.has(selection.userId)) {
+        continue;
+      }
+      const fallback = defaults.get(selection.userId);
+      if (fallback === undefined) {
+        continue;
+      }
+      await repositories.orders.upsertFoodResponse({
+        favoriteId: fallback.favoriteId,
+        lines: fallback.lines,
+        now: command.now,
+        orderId: row.orderId,
+        source: "saved_favorite",
+        status: "confirmed",
+        userId: selection.userId,
+      });
+      materialized += 1;
+    }
+
+    if (resolution.unresolvedUserIds.length === 0) {
+      const target = transitionOrderState(row.state, "ready_for_handoff");
+      if (target.changed) {
+        await repositories.orders.setState(row.orderId, {
+          completedAt: null,
+          state: target.state,
+          updatedAt: command.now,
+        });
+        return { advanced: true } as const;
+      }
+    }
+    return { advanced: materialized > 0 } as const;
+  });
+}
+
 export type OrderViewerRole = Readonly<{
   readonly kind: "participant" | "owner";
   readonly canManage: boolean;
 }>;
+
+export interface ViewerFavoriteRow {
+  readonly favoriteId: string;
+  readonly rank: number;
+  readonly name: string;
+  readonly description: string | null;
+  readonly menuItemId: string | null;
+  readonly priceCentavos: number | null;
+  readonly available: boolean;
+}
+
+export interface OrderLineViewRow {
+  readonly userId: string;
+  readonly itemName: string;
+  readonly quantity: number;
+  readonly unitPriceCentavos: number;
+  readonly note: string;
+  readonly lineSubtotalCentavos: number;
+}
 
 export interface OrderDetailView {
   readonly order: {
@@ -387,6 +833,10 @@ export interface OrderDetailView {
     readonly state: OrderState;
     readonly choiceMode: "voting_disabled" | "shortlist" | "global_catalog";
     readonly restaurantName: string | null;
+    readonly selectedRestaurantId: string | null;
+    readonly selectedBranchId: string | null;
+    readonly selectedBranchName: string | null;
+    readonly initialRestaurantId: string;
     readonly initialRestaurantName: string;
     readonly initialBranchName: string;
     readonly deliveryAddress: DeliveryAddress;
@@ -402,6 +852,8 @@ export interface OrderDetailView {
     readonly restaurantResponse: "pending" | "responded";
     readonly foodResponse: "pending" | "confirmed" | "declined" | "resolved";
   }[];
+  readonly viewerFavorites: readonly ViewerFavoriteRow[];
+  readonly lines: readonly OrderLineViewRow[];
   readonly viewer: OrderViewerRole;
 }
 
@@ -415,6 +867,11 @@ interface OrderDetailDatabaseRow {
   readonly initialRestaurantName: string;
   readonly initialBranchName: string;
   readonly selectedRestaurantName: string | null;
+  readonly selectedRestaurantId: string | null;
+  readonly selectedBranchId: string | null;
+  readonly selectedBranchName: string | null;
+  readonly selectedMenuVersionId: string | null;
+  readonly initialRestaurantId: string;
   readonly deliveryAddressSnapshot: unknown;
   readonly restaurantDeadline: Date;
   readonly foodDeadline: Date;
@@ -439,7 +896,7 @@ export async function loadOrderDetail(
     orderId: string;
     now: Date;
   }>,
-  repositories: Pick<OrdersServiceRepositories, "orders">,
+  repositories: Pick<OrdersServiceRepositories, "favorites" | "orders">,
 ): Promise<OrderDetailView> {
   const row = (await repositories.orders.findOrderDetail(
     command.orderId,
@@ -474,7 +931,51 @@ export async function loadOrderDetail(
     );
   }
 
+  const isFoodStage = row.state !== "restaurant_voting";
+
+  let viewerFavorites: readonly ViewerFavoriteRow[] = [];
+  if (
+    row.state === "food_confirmation" &&
+    row.selectedBranchId !== null &&
+    row.participants.some(
+      (participant) => participant.userId === command.identity.userId,
+    )
+  ) {
+    const favoriteRows = await repositories.favorites.listForUser(
+      command.identity.userId,
+    );
+    viewerFavorites = favoriteRows
+      .filter(
+        (favorite) =>
+          favorite.branchId === row.selectedBranchId &&
+          favorite.menuItemId !== null,
+      )
+      .map((favorite) => ({
+        available: favorite.isCurrentlyAvailable === true,
+        description: favorite.itemDescription,
+        favoriteId: favorite.favoriteId,
+        menuItemId: favorite.menuItemId,
+        name: favorite.name,
+        priceCentavos: favorite.currentPriceCentavos,
+        rank: favorite.rank,
+      }))
+      .sort((left, right) => left.rank - right.rank);
+  }
+
+  const lineRows = isFoodStage
+    ? await repositories.orders.listOrderLines(row.orderId)
+    : [];
+  const lines: readonly OrderLineViewRow[] = lineRows.map((line) => ({
+    userId: line.userId,
+    itemName: line.itemNameSnapshot,
+    quantity: line.quantity,
+    unitPriceCentavos: line.unitPriceCentavos,
+    note: line.noteSnapshot,
+    lineSubtotalCentavos: line.lineSubtotalCentavos,
+  }));
+
   return {
+    lines,
     order: {
       orderId: row.orderId,
       groupId: row.groupId,
@@ -482,6 +983,10 @@ export async function loadOrderDetail(
       state: row.state,
       choiceMode: row.choiceMode,
       restaurantName: row.selectedRestaurantName,
+      selectedRestaurantId: row.selectedRestaurantId,
+      selectedBranchId: row.selectedBranchId,
+      selectedBranchName: row.selectedBranchName,
+      initialRestaurantId: row.initialRestaurantId,
       initialRestaurantName: row.initialRestaurantName,
       initialBranchName: row.initialBranchName,
       deliveryAddress,
@@ -495,6 +1000,7 @@ export async function loadOrderDetail(
       kind: isOwner && !isParticipant ? "owner" : "participant",
       canManage: row.managerUserId === command.identity.userId || isOwner,
     },
+    viewerFavorites,
   };
 }
 

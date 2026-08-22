@@ -1,14 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { parseOrderCreateRequest } from "@ordah-please/contracts";
+import {
+  parseFoodPickRequest,
+  parseOrderCreateRequest,
+} from "@ordah-please/contracts";
 import { parseId, type GroupId, type UserId } from "@ordah-please/domain";
 
 import type { AppIdentity } from "../../auth/load-app-identity";
 import {
+  advanceFoodDeadline,
   completeOrder,
   createGroupOrder,
   loadOrderDetail,
   listOrderSummaries,
+  submitFoodResponse,
 } from "./orders-service";
 import type { OrdersServiceRepositories } from "./orders-service";
 
@@ -20,6 +25,8 @@ const groupId = parseId<GroupId>("55555555-5555-4555-8555-555555555555");
 const restaurantId = "66666666-6666-4666-8666-666666666666";
 const branchId = "77777777-7777-4777-8777-777777777777";
 const menuVersionId = "88888888-8888-4888-8888-888888888888";
+const favoriteId = "bbbbbbb1-0000-4000-8000-000000000001";
+const menuItemId = "bbbbbbb1-0000-4000-8000-000000000003";
 const orderId = "99999999-9999-4999-8999-999999999999";
 const votingOrderId = "aaaaaaa1-0000-4000-8000-000000000001";
 const foodOrderId = "aaaaaaa1-0000-4000-8000-000000000002";
@@ -48,6 +55,16 @@ function createRepositories(overrides: Partial<OrdersServiceRepositories> = {}):
   return {
     auditEvents: { append: vi.fn(() => Promise.resolve(({}))) },
     catalog: {
+      findMenuItemContext: vi.fn(() =>
+        Promise.resolve({
+          branchId,
+          basePriceCentavos: 22500,
+          isAvailable: true,
+          menuItemId,
+          menuVersionId,
+          name: "Zinger Combo",
+        }),
+      ),
       findPublishedMenuVersion: vi.fn(() => Promise.resolve(({ id: menuVersionId }))),
       getRestaurantDetail: vi.fn(() => Promise.resolve(({
         branchId,
@@ -69,12 +86,19 @@ function createRepositories(overrides: Partial<OrdersServiceRepositories> = {}):
       ])),
       upsertGroupAddress: vi.fn(() => Promise.resolve(({ id: "address-1" }))),
     },
+    favorites: {
+      listForUser: vi.fn(() => Promise.resolve([])),
+      listForUserAndBranchWithItems: vi.fn(() => Promise.resolve([])),
+    },
     orders: {
       createOrder: vi.fn(() => Promise.resolve(({ id: orderId }))),
       findOrderDetail: vi.fn(),
       findById: vi.fn(),
       listVisibleForUser: vi.fn(() => Promise.resolve([])),
       setState: vi.fn(() => Promise.resolve(({}))),
+      upsertFoodResponse: vi.fn(() => Promise.resolve(undefined)),
+      clearFoodResponse: vi.fn(() => Promise.resolve(undefined)),
+      listOrderLines: vi.fn(() => Promise.resolve([])),
     },
     ...overrides,
   } as OrdersServiceRepositories;
@@ -110,6 +134,59 @@ function votingRequest(overrides: Record<string, unknown> = {}) {
     votingMode: "global_catalog",
     ...overrides,
   });
+}
+
+function foodOrderDetail(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    orderId: foodOrderId,
+    groupId,
+    groupName: "Alpha group",
+    managerUserId: managerId,
+    state: "food_confirmation",
+    choiceMode: "voting_disabled",
+    initialRestaurantId: restaurantId,
+    initialRestaurantName: "Test Restaurant",
+    initialBranchId: branchId,
+    initialBranchName: "Main Branch",
+    initialBranchGrabUrl: null,
+    selectedRestaurantId: restaurantId,
+    selectedRestaurantName: "Test Restaurant",
+    selectedBranchId: branchId,
+    selectedBranchName: "Main Branch",
+    selectedMenuVersionId: menuVersionId,
+    deliveryAddressSnapshot: {
+      city: "Naga",
+      lineOne: "12 Sample Street",
+      lineTwo: null,
+      notes: null,
+      phoneNumber: "+63 900 000 0000",
+      postalCode: null,
+      recipientName: "Mia Tan",
+    },
+    restaurantDeadline: new Date("2026-08-18T08:00:00.000Z"),
+    foodDeadline: new Date("2026-08-18T09:00:00.000Z"),
+    createdAt: now,
+    completedAt: null,
+    participants: [
+      {
+        userId: managerId,
+        displayName: "Order Manager",
+        role: "manager",
+        restaurantResponse: "responded",
+        foodResponse: "pending",
+      },
+      {
+        userId: memberId,
+        displayName: "Order Member",
+        role: "member",
+        restaurantResponse: "pending",
+        foodResponse: "pending",
+      },
+    ],
+    ...overrides,
+  };
 }
 
 describe("createGroupOrder", () => {
@@ -593,6 +670,412 @@ describe("loadOrderDetail visibility", () => {
     ).rejects.toMatchObject({
       code: "INTERNAL_FAILURE",
       message: "This order's saved address could not be read.",
+    });
+  });
+});
+
+describe("submitFoodResponse", () => {
+  function foodRepositories(
+    overrides: Partial<OrdersServiceRepositories> = {},
+  ) {
+    const repositories = createRepositories();
+    vi.mocked(repositories.orders.findOrderDetail).mockResolvedValue(
+      foodOrderDetail(),
+    );
+    vi.mocked(
+      repositories.favorites.listForUserAndBranchWithItems,
+    ).mockResolvedValue(
+      [
+        {
+          branchId,
+          id: favoriteId,
+          items: [{ menuItemId, note: "Extra gravy", quantity: 1 }],
+          name: "Zinger Combo",
+          rank: 1,
+        },
+      ] as never,
+    );
+    return { ...repositories, ...overrides };
+  }
+
+  it("confirms a favorite pick with server-expanded lines", async () => {
+    const repositories = foodRepositories();
+    await submitFoodResponse(
+      {
+        identity: identityFor(memberId, "member"),
+        now,
+        orderId: foodOrderId,
+        request: parseFoodPickRequest({ kind: "favorite", favoriteId }),
+      },
+      runnerFor(repositories),
+    );
+    expect(repositories.orders.upsertFoodResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        favoriteId,
+        lines: [
+          {
+            itemNameSnapshot: "Zinger Combo",
+            lineSubtotalCentavos: 22500,
+            noteSnapshot: "Extra gravy",
+            quantity: 1,
+            sortOrder: 0,
+            sourceMenuItemId: menuItemId,
+            unitPriceCentavos: 22500,
+          },
+        ],
+        source: "saved_favorite",
+        status: "confirmed",
+        userId: memberId,
+      }),
+    );
+  });
+
+  it("rejects a viewer who is not a participant", async () => {
+    const repositories = foodRepositories();
+    // ownerId is the group owner but was not selected into this order.
+    vi.mocked(repositories.orders.findOrderDetail).mockResolvedValue(
+      foodOrderDetail({
+        participants: [
+          {
+            userId: managerId,
+            displayName: "Order Manager",
+            role: "manager",
+            restaurantResponse: "responded",
+            foodResponse: "pending",
+          },
+        ],
+      }),
+    );
+    await expect(
+      submitFoodResponse(
+        {
+          identity: identityFor(ownerId, "group-owner"),
+          now,
+          orderId: foodOrderId,
+          request: parseFoodPickRequest({ kind: "declined" }),
+        },
+        runnerFor(repositories),
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("rejects picks after the food deadline", async () => {
+    const repositories = foodRepositories();
+    await expect(
+      submitFoodResponse(
+        {
+          identity: identityFor(memberId, "member"),
+          now: new Date("2026-08-18T09:00:01.000Z"),
+          orderId: foodOrderId,
+          request: parseFoodPickRequest({ kind: "favorite", favoriteId }),
+        },
+        runnerFor(repositories),
+      ),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+
+  it("rejects a favorite that is not one of the member's favorites for the branch", async () => {
+    const repositories = foodRepositories();
+    vi.mocked(
+      repositories.favorites.listForUserAndBranchWithItems,
+    ).mockResolvedValue([] as never);
+    await expect(
+      submitFoodResponse(
+        {
+          identity: identityFor(memberId, "member"),
+          now,
+          orderId: foodOrderId,
+          request: parseFoodPickRequest({ kind: "favorite", favoriteId }),
+        },
+        runnerFor(repositories),
+      ),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("rejects a favorite whose item left the pinned menu version", async () => {
+    const repositories = foodRepositories();
+    vi.mocked(repositories.catalog.findMenuItemContext).mockResolvedValue({
+      branchId,
+      basePriceCentavos: 22500,
+      isAvailable: true,
+      menuItemId,
+      menuVersionId: "ccccccc1-0000-4000-8000-000000000001",
+      name: "Zinger Combo",
+    });
+    await expect(
+      submitFoodResponse(
+        {
+          identity: identityFor(memberId, "member"),
+          now,
+          orderId: foodOrderId,
+          request: parseFoodPickRequest({ kind: "favorite", favoriteId }),
+        },
+        runnerFor(repositories),
+      ),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+
+  it("rejects a favorite whose item is unavailable", async () => {
+    const repositories = foodRepositories();
+    vi.mocked(repositories.catalog.findMenuItemContext).mockResolvedValue({
+      branchId,
+      basePriceCentavos: 22500,
+      isAvailable: false,
+      menuItemId,
+      menuVersionId,
+      name: "Zinger Combo",
+    });
+    await expect(
+      submitFoodResponse(
+        {
+          identity: identityFor(memberId, "member"),
+          now,
+          orderId: foodOrderId,
+          request: parseFoodPickRequest({ kind: "favorite", favoriteId }),
+        },
+        runnerFor(repositories),
+      ),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+
+  it("records a decline without lines", async () => {
+    const repositories = foodRepositories();
+    await submitFoodResponse(
+      {
+        identity: identityFor(memberId, "member"),
+        now,
+        orderId: foodOrderId,
+        request: parseFoodPickRequest({ kind: "declined" }),
+      },
+      runnerFor(repositories),
+    );
+    expect(repositories.orders.upsertFoodResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        favoriteId: null,
+        lines: [],
+        source: "declined",
+        status: "declined",
+      }),
+    );
+  });
+
+  it("clears a previous pick back to pending", async () => {
+    const repositories = foodRepositories();
+    await submitFoodResponse(
+      {
+        identity: identityFor(memberId, "member"),
+        now,
+        orderId: foodOrderId,
+        request: parseFoodPickRequest({ kind: "clear" }),
+      },
+      runnerFor(repositories),
+    );
+    expect(repositories.orders.clearFoodResponse).toHaveBeenCalledWith(
+      foodOrderId,
+      memberId,
+    );
+  });
+});
+
+describe("advanceFoodDeadline", () => {
+  const afterDeadline = new Date("2026-08-18T09:30:00.000Z");
+
+  function advanceRepositories(detail: Record<string, unknown>) {
+    const repositories = createRepositories();
+    vi.mocked(repositories.orders.findOrderDetail).mockResolvedValue(
+      detail,
+    );
+    vi.mocked(
+      repositories.favorites.listForUserAndBranchWithItems,
+    ).mockImplementation((userId: string) =>
+      Promise.resolve(
+        userId === memberId
+          ? [
+              {
+                branchId,
+                id: favoriteId,
+                items: [{ menuItemId, note: "", quantity: 1 }],
+                name: "Zinger Combo",
+                rank: 1,
+              },
+            ]
+          : [],
+      ),
+    );
+    return repositories;
+  }
+
+  it("does nothing before the food deadline", async () => {
+    const repositories = advanceRepositories(foodOrderDetail());
+    const result = await advanceFoodDeadline(
+      { identity: identityFor(memberId, "member"), now, orderId: foodOrderId },
+      runnerFor(repositories),
+    );
+    expect(result).toEqual({ advanced: false });
+    expect(repositories.orders.upsertFoodResponse).not.toHaveBeenCalled();
+    expect(repositories.orders.setState).not.toHaveBeenCalled();
+  });
+
+  it("materializes the rank-1 default for a pending member after the deadline", async () => {
+    const repositories = advanceRepositories(foodOrderDetail());
+    await advanceFoodDeadline(
+      {
+        identity: identityFor(memberId, "member"),
+        now: afterDeadline,
+        orderId: foodOrderId,
+      },
+      runnerFor(repositories),
+    );
+    expect(repositories.orders.upsertFoodResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        favoriteId,
+        source: "saved_favorite",
+        status: "confirmed",
+        userId: memberId,
+      }),
+    );
+  });
+
+  it("leaves a member without a usable favorite pending", async () => {
+    const repositories = advanceRepositories(foodOrderDetail());
+    vi.mocked(
+      repositories.favorites.listForUserAndBranchWithItems,
+    ).mockResolvedValue([] as never);
+    await advanceFoodDeadline(
+      {
+        identity: identityFor(managerId, "manager"),
+        now: afterDeadline,
+        orderId: foodOrderId,
+      },
+      runnerFor(repositories),
+    );
+    expect(repositories.orders.upsertFoodResponse).not.toHaveBeenCalled();
+    expect(repositories.orders.setState).not.toHaveBeenCalled();
+  });
+
+  it("transitions to ready_for_handoff once everyone is accounted for", async () => {
+    const repositories = advanceRepositories(
+      foodOrderDetail({
+        participants: [
+          {
+            userId: managerId,
+            displayName: "Order Manager",
+            role: "manager",
+            restaurantResponse: "responded",
+            foodResponse: "declined",
+          },
+          {
+            userId: memberId,
+            displayName: "Order Member",
+            role: "member",
+            restaurantResponse: "pending",
+            foodResponse: "pending",
+          },
+        ],
+      }),
+    );
+    await advanceFoodDeadline(
+      {
+        identity: identityFor(managerId, "manager"),
+        now: afterDeadline,
+        orderId: foodOrderId,
+      },
+      runnerFor(repositories),
+    );
+    expect(repositories.orders.setState).toHaveBeenCalledWith(
+      foodOrderId,
+      expect.objectContaining({ state: "ready_for_handoff" }),
+    );
+  });
+
+  it("is idempotent once the order has moved on", async () => {
+    const repositories = advanceRepositories(
+      foodOrderDetail({ state: "ready_for_handoff" }),
+    );
+    const result = await advanceFoodDeadline(
+      {
+        identity: identityFor(memberId, "member"),
+        now: afterDeadline,
+        orderId: foodOrderId,
+      },
+      runnerFor(repositories),
+    );
+    expect(result).toEqual({ advanced: false });
+    expect(repositories.orders.upsertFoodResponse).not.toHaveBeenCalled();
+  });
+
+  it("rejects a viewer who cannot see the order", async () => {
+    const repositories = advanceRepositories(foodOrderDetail());
+    await expect(
+      advanceFoodDeadline(
+        {
+          identity: identityFor(outsiderId, "member"),
+          now: afterDeadline,
+          orderId: foodOrderId,
+        },
+        runnerFor(repositories),
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("loadOrderDetail food view", () => {
+  it("returns the viewer's branch favorites and order lines", async () => {
+    const repositories = createRepositories();
+    vi.mocked(repositories.orders.findOrderDetail).mockResolvedValue(
+      foodOrderDetail(),
+    );
+    vi.mocked(repositories.orders.listOrderLines).mockResolvedValue([
+      {
+        itemNameSnapshot: "Zinger Combo",
+        lineSubtotalCentavos: 22500,
+        noteSnapshot: "Extra gravy",
+        quantity: 1,
+        sortOrder: 0,
+        sourceMenuItemId: menuItemId,
+        unitPriceCentavos: 22500,
+        userId: memberId,
+      },
+    ] as never);
+    vi.mocked(repositories.favorites.listForUser).mockResolvedValue([
+      {
+        branchId,
+        currentPriceCentavos: 22500,
+        favoriteId,
+        isCurrentlyAvailable: true,
+        itemDescription: "Burger, fries, and drink",
+        menuItemId,
+        name: "Zinger Combo",
+        rank: 1,
+      },
+      {
+        branchId: "aaaaaaaa-0000-4000-8000-00000000000b",
+        currentPriceCentavos: 9900,
+        favoriteId: "bbbbbbb1-0000-4000-8000-000000000002",
+        isCurrentlyAvailable: false,
+        itemDescription: null,
+        menuItemId: "bbbbbbb1-0000-4000-8000-000000000004",
+        name: "Other Branch Favorite",
+        rank: 1,
+      },
+    ] as never);
+
+    const view = await loadOrderDetail(
+      { identity: identityFor(memberId, "member"), now, orderId: foodOrderId },
+      repositories,
+    );
+    expect(view.order.selectedBranchName).toBe("Main Branch");
+    expect(view.viewerFavorites).toHaveLength(1);
+    expect(view.viewerFavorites[0]).toMatchObject({
+      available: true,
+      favoriteId,
+      priceCentavos: 22500,
+      rank: 1,
+    });
+    expect(view.lines).toHaveLength(1);
+    expect(view.lines[0]).toMatchObject({
+      itemName: "Zinger Combo",
+      userId: memberId,
     });
   });
 });

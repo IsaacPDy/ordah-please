@@ -1,8 +1,20 @@
-import { and, desc, eq, exists, inArray, isNull, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  inArray,
+  isNull,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   branches,
+  foodSelections,
   groups,
   memberships,
+  orderLines,
   orderParticipants,
   orderShortlistRestaurants,
   orders,
@@ -95,6 +107,37 @@ export interface OrderDetailRow {
   readonly participants: readonly OrderParticipantRow[];
 }
 
+export interface FoodResponseLineInput {
+  readonly sourceMenuItemId: string;
+  readonly itemNameSnapshot: string;
+  readonly quantity: number;
+  readonly unitPriceCentavos: number;
+  readonly noteSnapshot: string;
+  readonly lineSubtotalCentavos: number;
+  readonly sortOrder: number;
+}
+
+export interface UpsertFoodResponseInput {
+  readonly orderId: string;
+  readonly userId: string;
+  readonly status: "confirmed" | "declined";
+  readonly source: "saved_favorite" | "inline" | "declined";
+  readonly favoriteId: string | null;
+  readonly lines: readonly FoodResponseLineInput[];
+  readonly now: Date;
+}
+
+export interface OrderLineRow {
+  readonly userId: string;
+  readonly sourceMenuItemId: string | null;
+  readonly itemNameSnapshot: string;
+  readonly quantity: number;
+  readonly unitPriceCentavos: number;
+  readonly noteSnapshot: string;
+  readonly lineSubtotalCentavos: number;
+  readonly sortOrder: number;
+}
+
 export interface OrdersRepository {
   findById(id: string): Promise<typeof orders.$inferSelect | undefined>;
   setState(
@@ -104,6 +147,9 @@ export interface OrdersRepository {
   createOrder(input: CreateOrderRow): Promise<{ readonly id: string }>;
   listVisibleForUser(userId: string): Promise<readonly OrderListItemRow[]>;
   findOrderDetail(orderId: string): Promise<OrderDetailRow | undefined>;
+  upsertFoodResponse(input: UpsertFoodResponseInput): Promise<void>;
+  clearFoodResponse(orderId: string, userId: string): Promise<void>;
+  listOrderLines(orderId: string): Promise<readonly OrderLineRow[]>;
 }
 
 /** Creates order persistence operations that apply already-authorized domain outcomes. */
@@ -300,5 +346,99 @@ export function createOrdersRepository(
 
       return { ...row, participants };
     },
+    upsertFoodResponse: async (input) => {
+      await database
+        .update(orderParticipants)
+        .set({ foodResponse: input.status })
+        .where(
+          and(
+            eq(orderParticipants.orderId, input.orderId),
+            eq(orderParticipants.userId, input.userId),
+          ),
+        );
+
+      await database
+        .insert(foodSelections)
+        .values({
+          favoriteId: input.favoriteId,
+          orderId: input.orderId,
+          resolvedByUserId: null,
+          source: input.source,
+          submittedAt: input.now,
+          userId: input.userId,
+        })
+        .onConflictDoUpdate({
+          target: [foodSelections.orderId, foodSelections.userId],
+          set: {
+            favoriteId: input.favoriteId,
+            resolvedByUserId: null,
+            source: input.source,
+            submittedAt: input.now,
+          },
+        });
+
+      await database
+        .delete(orderLines)
+        .where(
+          and(
+            eq(orderLines.orderId, input.orderId),
+            eq(orderLines.userId, input.userId),
+          ),
+        );
+      if (input.lines.length > 0) {
+        await database.insert(orderLines).values(
+          input.lines.map((line) => ({
+            lineSubtotalCentavos: line.lineSubtotalCentavos,
+            itemNameSnapshot: line.itemNameSnapshot,
+            noteSnapshot: line.noteSnapshot,
+            orderId: input.orderId,
+            quantity: line.quantity,
+            sortOrder: line.sortOrder,
+            sourceMenuItemId: line.sourceMenuItemId,
+            unitPriceCentavos: line.unitPriceCentavos,
+            userId: input.userId,
+          })),
+        );
+      }
+    },
+    clearFoodResponse: async (orderId, userId) => {
+      await database
+        .delete(foodSelections)
+        .where(
+          and(
+            eq(foodSelections.orderId, orderId),
+            eq(foodSelections.userId, userId),
+          ),
+        );
+      await database
+        .delete(orderLines)
+        .where(
+          and(eq(orderLines.orderId, orderId), eq(orderLines.userId, userId)),
+        );
+      await database
+        .update(orderParticipants)
+        .set({ foodResponse: "pending" })
+        .where(
+          and(
+            eq(orderParticipants.orderId, orderId),
+            eq(orderParticipants.userId, userId),
+          ),
+        );
+    },
+    listOrderLines: async (orderId) =>
+      database
+        .select({
+          itemNameSnapshot: orderLines.itemNameSnapshot,
+          lineSubtotalCentavos: orderLines.lineSubtotalCentavos,
+          noteSnapshot: orderLines.noteSnapshot,
+          quantity: orderLines.quantity,
+          sortOrder: orderLines.sortOrder,
+          sourceMenuItemId: orderLines.sourceMenuItemId,
+          unitPriceCentavos: orderLines.unitPriceCentavos,
+          userId: orderLines.userId,
+        })
+        .from(orderLines)
+        .where(eq(orderLines.orderId, orderId))
+        .orderBy(asc(orderLines.userId), asc(orderLines.sortOrder)),
   };
 }

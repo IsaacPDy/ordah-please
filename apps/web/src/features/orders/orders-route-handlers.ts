@@ -1,7 +1,9 @@
 import {
+  parseFoodPickRequest,
   parseOrderCompleteRequest,
   parseOrderCreateRequest,
   PublicApiError,
+  type FoodPickRequest,
 } from "@ordah-please/contracts";
 import type { OrderId } from "@ordah-please/domain";
 import { parseId } from "@ordah-please/domain";
@@ -34,6 +36,16 @@ export interface CompleteOrderHandlerDependencies
     identity: AppIdentity;
     orderId: string;
     result: "ordered" | "cancelled";
+    now: Date;
+  }) => Promise<Readonly<{ ok: true }>>;
+}
+
+export interface FoodResponseHandlerDependencies
+  extends OrdersHandlerDependencies {
+  readonly submitFoodResponse: (command: {
+    identity: AppIdentity;
+    orderId: string;
+    request: FoodPickRequest;
     now: Date;
   }) => Promise<Readonly<{ ok: true }>>;
 }
@@ -142,6 +154,45 @@ export function createCompleteOrderHandler(
             await parseJsonBody(currentRequest),
           );
           return { orderId, result: parsed.result };
+        } catch (error) {
+          if (error instanceof PublicApiError) {
+            throw error;
+          }
+          throw new PublicApiError("INVALID_INPUT", "Invalid request body.");
+        }
+      },
+    }, {
+      loadIdentity: dependencies.loadIdentity,
+      verifySession: () => dependencies.verifySession(request),
+    });
+}
+
+/** Creates the POST handler that saves the participant's food pick. */
+export function createFoodResponseHandler(
+  dependencies: FoodResponseHandlerDependencies,
+  getOrderId: (request: Request) => string | undefined,
+): (request: Request) => Promise<Response> {
+  return (request) =>
+    executeRoute<
+      Readonly<{ orderId: OrderId; request: FoodPickRequest }>,
+      unknown
+    >(request, {
+      authorize: () => true,
+      execute: async ({ identity, input }) =>
+        dependencies.submitFoodResponse({
+          identity,
+          now: new Date(),
+          orderId: input.orderId,
+          request: input.request,
+        }),
+      validate: async (currentRequest) => {
+        verifyTrustedMutationRequest(currentRequest);
+        const orderId = parseOrderIdParam(getOrderId(currentRequest));
+        try {
+          const parsed = parseFoodPickRequest(
+            await parseJsonBody(currentRequest),
+          );
+          return { orderId, request: parsed };
         } catch (error) {
           if (error instanceof PublicApiError) {
             throw error;

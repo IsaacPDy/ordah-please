@@ -1,4 +1,5 @@
 import type {
+  FavoriteId,
   FoodSelectionSnapshot,
   OrderId,
   RestaurantId,
@@ -30,6 +31,12 @@ export type ManagerResolutionRequest = Readonly<{
   userId: UserId;
   selection: FoodSelectionSnapshot;
 }>;
+
+export type FoodPickRequest = Readonly<
+  | { kind: "favorite"; favoriteId: FavoriteId }
+  | { kind: "declined" }
+  | { kind: "clear" }
+>;
 
 /** Validates the authenticated member's restaurant vote request. */
 export function parseSubmitRestaurantVoteRequest(
@@ -96,5 +103,31 @@ export function parseManagerResolutionRequest(
     orderId: parseRecordId<OrderId>(object.orderId, "Resolution order id"),
     userId: parseRecordId<UserId>(object.userId, "Resolved participant id"),
     selection: parseFoodSelectionSnapshot(object.selection),
+  };
+}
+
+/** Validates the member's favorites-only food pick body sent to the order page. */
+export function parseFoodPickRequest(value: unknown): FoodPickRequest {
+  const object = parseStrictObject(value, "Food pick request");
+  const kind = parseEnum(
+    object.kind,
+    ["favorite", "declined", "clear"] as const,
+    "Food pick request kind",
+  );
+  rejectUnknownFields(
+    object,
+    kind === "favorite" ? ["kind", "favoriteId"] : ["kind"],
+    "Food pick request",
+  );
+
+  if (kind !== "favorite") {
+    return { kind };
+  }
+  return {
+    kind,
+    favoriteId: parseRecordId<FavoriteId>(
+      object.favoriteId,
+      "Food pick favorite id",
+    ),
   };
 }

@@ -12,6 +12,7 @@ import {
   authUsers,
   branches,
   catalogImports,
+  favoriteItems,
   favorites,
   groups,
   memberships,
@@ -1363,14 +1364,14 @@ describe("favorites repository writes", () => {
         branchId: branch.id,
         name: "Favorites Meal",
         rank: 1,
-        items: [{ menuItemId: item.id, quantity: 1 }],
+        items: [{ menuItemId: item.id, note: "", quantity: 1 }],
       },
       {
         id: second.id,
         branchId: branch.id,
         name: "Second Meal",
         rank: 2,
-        items: [{ menuItemId: secondItem.id, quantity: 1 }],
+        items: [{ menuItemId: secondItem.id, note: "", quantity: 1 }],
       },
     ]);
 
@@ -1401,6 +1402,8 @@ describe("favorites repository writes", () => {
         menuItemId: secondItem.id,
         currentPriceCentavos: 15000,
         isCurrentlyAvailable: true,
+        itemDescription: null,
+        imageUrl: null,
       },
     ]);
   });
@@ -1647,5 +1650,346 @@ describe("orders repository writes", () => {
     expect(outsiderView.some((order) => order.orderId === created.id)).toBe(
       false,
     );
+  });
+});
+
+describe("orders food picking", () => {
+  /** Seeds a voting-disabled food_confirmation order with favorites and menu items. */
+  async function seedFoodPickingFixture() {
+    const [manager] = await database
+      .insert(users)
+      .values({ displayName: "Picking Manager" })
+      .returning();
+    if (manager === undefined) {
+      throw new Error("Expected the picking test manager.");
+    }
+    const [member] = await database
+      .insert(users)
+      .values({ displayName: "Picking Member" })
+      .returning();
+    if (member === undefined) {
+      throw new Error("Expected the picking test member.");
+    }
+    const [group] = await database
+      .insert(groups)
+      .values({ createdByUserId: manager.id, name: "Picking Group" })
+      .returning();
+    if (group === undefined) {
+      throw new Error("Expected the picking test group.");
+    }
+    await database
+      .insert(memberships)
+      .values({ groupId: group.id, role: "owner", userId: manager.id });
+    const [restaurant] = await database
+      .insert(restaurants)
+      .values({ name: "Picking Restaurant" })
+      .returning();
+    if (restaurant === undefined) {
+      throw new Error("Expected the picking test restaurant.");
+    }
+    const [branch] = await database
+      .insert(branches)
+      .values({ name: "Picking Branch", restaurantId: restaurant.id })
+      .returning();
+    if (branch === undefined) {
+      throw new Error("Expected the picking test branch.");
+    }
+    const [catalogImport] = await database
+      .insert(catalogImports)
+      .values({ createdByUserId: manager.id, status: "published" })
+      .returning();
+    if (catalogImport === undefined) {
+      throw new Error("Expected the picking test import.");
+    }
+    const [menuVersion] = await database
+      .insert(menuVersions)
+      .values({
+        branchId: branch.id,
+        sourceImportId: catalogImport.id,
+        status: "published",
+        versionNumber: 1,
+      })
+      .returning();
+    if (menuVersion === undefined) {
+      throw new Error("Expected the picking test menu version.");
+    }
+    const [category] = await database
+      .insert(menuCategories)
+      .values({ menuVersionId: menuVersion.id, name: "Meals", sortOrder: 0 })
+      .returning();
+    if (category === undefined) {
+      throw new Error("Expected the picking test category.");
+    }
+    const [zinger] = await database
+      .insert(menuItems)
+      .values({
+        basePriceCentavos: 22500,
+        categoryId: category.id,
+        description: "Burger, fries, and drink",
+        isAvailable: true,
+        name: "Zinger Combo",
+        sortOrder: 0,
+        sourceKey: "picking-zinger-combo",
+      })
+      .returning();
+    if (zinger === undefined) {
+      throw new Error("Expected the picking test zinger item.");
+    }
+    const [chicken] = await database
+      .insert(menuItems)
+      .values({
+        basePriceCentavos: 14500,
+        categoryId: category.id,
+        description: "Chicken, rice, and drink",
+        isAvailable: true,
+        name: "1-pc Chicken Meal",
+        sortOrder: 1,
+        sourceKey: "picking-chicken-meal",
+      })
+      .returning();
+    if (chicken === undefined) {
+      throw new Error("Expected the picking test chicken item.");
+    }
+    const [favorite] = await database
+      .insert(favorites)
+      .values({
+        branchId: branch.id,
+        menuVersionId: menuVersion.id,
+        name: "Zinger Combo",
+        rank: 1,
+        userId: member.id,
+      })
+      .returning();
+    if (favorite === undefined) {
+      throw new Error("Expected the picking test favorite.");
+    }
+    await database.insert(favoriteItems).values({
+      favoriteId: favorite.id,
+      menuItemId: zinger.id,
+      note: "Extra gravy",
+      quantity: 1,
+      sortOrder: 0,
+    });
+
+    const repositories = createRepositories(database);
+    const created = await repositories.orders.createOrder({
+      choiceMode: "voting_disabled",
+      deliveryAddressSnapshot: {
+        city: "Naga",
+        lineOne: "12 Sample Street",
+        lineTwo: null,
+        notes: null,
+        phoneNumber: "+63 900 000 0000",
+        postalCode: null,
+        recipientName: "Mia Tan",
+      },
+      foodDeadline: new Date("2026-08-18T10:00:00.000Z"),
+      groupId: group.id,
+      initialBranchId: branch.id,
+      initialRestaurantId: restaurant.id,
+      managerUserId: manager.id,
+      now: new Date("2026-08-18T08:00:00.000Z"),
+      participants: [
+        {
+          displayName: "Picking Manager",
+          restaurantResponse: "responded",
+          role: "manager",
+          userId: manager.id,
+        },
+        {
+          displayName: "Picking Member",
+          restaurantResponse: "pending",
+          role: "member",
+          userId: member.id,
+        },
+      ],
+      restaurantDeadline: new Date("2026-08-18T08:00:00.000Z"),
+      selected: {
+        branchId: branch.id,
+        branchName: branch.name,
+        menuVersionId: menuVersion.id,
+        restaurantId: restaurant.id,
+        restaurantName: restaurant.name,
+      },
+      shortlistRestaurantIds: [],
+      state: "food_confirmation",
+    });
+
+    return {
+      branch,
+      chicken,
+      created,
+      favorite,
+      favoritesRepository: repositories.favorites,
+      manager,
+      member,
+      menuVersion,
+      ordersRepository: repositories.orders,
+      restaurant,
+      zinger,
+    };
+  }
+
+  it("upserts a confirmed favorite response with lines", async () => {
+    const fixture = await seedFoodPickingFixture();
+    await fixture.ordersRepository.upsertFoodResponse({
+      favoriteId: fixture.favorite.id,
+      lines: [
+        {
+          itemNameSnapshot: "Zinger Combo",
+          lineSubtotalCentavos: 22500,
+          noteSnapshot: "Extra gravy",
+          quantity: 1,
+          sortOrder: 0,
+          sourceMenuItemId: fixture.zinger.id,
+          unitPriceCentavos: 22500,
+        },
+      ],
+      now: new Date("2026-08-18T08:30:00.000Z"),
+      orderId: fixture.created.id,
+      source: "saved_favorite",
+      status: "confirmed",
+      userId: fixture.member.id,
+    });
+
+    const detail = await fixture.ordersRepository.findOrderDetail(
+      fixture.created.id,
+    );
+    const participant = detail?.participants.find(
+      (row) => row.userId === fixture.member.id,
+    );
+    expect(participant?.foodResponse).toBe("confirmed");
+
+    const lines = await fixture.ordersRepository.listOrderLines(
+      fixture.created.id,
+    );
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({
+      itemNameSnapshot: "Zinger Combo",
+      noteSnapshot: "Extra gravy",
+      quantity: 1,
+      userId: fixture.member.id,
+    });
+  });
+
+  it("rewrites lines when the response is upserted again", async () => {
+    const fixture = await seedFoodPickingFixture();
+    for (const [sortOrder, item] of [
+      fixture.zinger,
+      fixture.chicken,
+    ].entries()) {
+      await fixture.ordersRepository.upsertFoodResponse({
+        favoriteId: null,
+        lines: [
+          {
+            itemNameSnapshot: item.name,
+            lineSubtotalCentavos: 22500,
+            noteSnapshot: "",
+            quantity: 1,
+            sortOrder,
+            sourceMenuItemId: item.id,
+            unitPriceCentavos: 22500,
+          },
+        ],
+        now: new Date("2026-08-18T08:30:00.000Z"),
+        orderId: fixture.created.id,
+        source: "inline",
+        status: "confirmed",
+        userId: fixture.member.id,
+      });
+    }
+
+    const lines = await fixture.ordersRepository.listOrderLines(
+      fixture.created.id,
+    );
+    expect(lines).toHaveLength(1);
+    expect(lines[0]?.itemNameSnapshot).toBe("1-pc Chicken Meal");
+  });
+
+  it("records a declined response without lines", async () => {
+    const fixture = await seedFoodPickingFixture();
+    await fixture.ordersRepository.upsertFoodResponse({
+      favoriteId: null,
+      lines: [],
+      now: new Date("2026-08-18T08:30:00.000Z"),
+      orderId: fixture.created.id,
+      source: "declined",
+      status: "declined",
+      userId: fixture.member.id,
+    });
+
+    const detail = await fixture.ordersRepository.findOrderDetail(
+      fixture.created.id,
+    );
+    expect(
+      detail?.participants.find((row) => row.userId === fixture.member.id)
+        ?.foodResponse,
+    ).toBe("declined");
+    expect(
+      await fixture.ordersRepository.listOrderLines(fixture.created.id),
+    ).toHaveLength(0);
+  });
+
+  it("clears a response back to pending", async () => {
+    const fixture = await seedFoodPickingFixture();
+    await fixture.ordersRepository.upsertFoodResponse({
+      favoriteId: fixture.favorite.id,
+      lines: [
+        {
+          itemNameSnapshot: "Zinger Combo",
+          lineSubtotalCentavos: 22500,
+          noteSnapshot: "",
+          quantity: 1,
+          sortOrder: 0,
+          sourceMenuItemId: fixture.zinger.id,
+          unitPriceCentavos: 22500,
+        },
+      ],
+      now: new Date("2026-08-18T08:30:00.000Z"),
+      orderId: fixture.created.id,
+      source: "saved_favorite",
+      status: "confirmed",
+      userId: fixture.member.id,
+    });
+    await fixture.ordersRepository.clearFoodResponse(
+      fixture.created.id,
+      fixture.member.id,
+    );
+
+    const detail = await fixture.ordersRepository.findOrderDetail(
+      fixture.created.id,
+    );
+    expect(
+      detail?.participants.find((row) => row.userId === fixture.member.id)
+        ?.foodResponse,
+    ).toBe("pending");
+    expect(
+      await fixture.ordersRepository.listOrderLines(fixture.created.id),
+    ).toHaveLength(0);
+  });
+
+  it("exposes favorite descriptions, images, and notes for picking", async () => {
+    const fixture = await seedFoodPickingFixture();
+    const favoritesRepository = fixture.favoritesRepository;
+
+    const forPage = await favoritesRepository.listForUser(fixture.member.id);
+    expect(forPage).toHaveLength(1);
+    expect(forPage[0]).toMatchObject({
+      currentPriceCentavos: 22500,
+      itemDescription: "Burger, fries, and drink",
+      isCurrentlyAvailable: true,
+      menuItemId: fixture.zinger.id,
+    });
+
+    const withItems = await favoritesRepository.listForUserAndBranchWithItems(
+      fixture.member.id,
+      fixture.branch.id,
+    );
+    expect(withItems).toHaveLength(1);
+    expect(withItems[0]?.items[0]).toMatchObject({
+      menuItemId: fixture.zinger.id,
+      note: "Extra gravy",
+      quantity: 1,
+    });
   });
 });

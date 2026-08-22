@@ -17,6 +17,7 @@ type FavoritesDatabase = Pick<
 export interface FavoriteItemRow {
   readonly menuItemId: string;
   readonly quantity: number;
+  readonly note: string;
 }
 
 export interface FavoriteWithItemsRow {
@@ -39,6 +40,8 @@ export interface FavoritePageRow {
   readonly menuItemId: string | null;
   readonly currentPriceCentavos: number | null;
   readonly isCurrentlyAvailable: boolean | null;
+  readonly itemDescription: string | null;
+  readonly imageUrl: string | null;
 }
 
 export interface InsertFavoriteWithItemInput {
@@ -107,6 +110,7 @@ export function createFavoritesRepository(
           name: favorite.name,
           items: itemRows.map((row) => ({
             menuItemId: row.menuItemId,
+            note: row.note,
             quantity: row.quantity,
           })),
         });
@@ -139,6 +143,8 @@ export function createFavoritesRepository(
           favoriteId: favoriteItems.favoriteId,
           menuItemId: menuItems.id,
           basePriceCentavos: menuItems.basePriceCentavos,
+          description: menuItems.description,
+          imageUrl: menuItems.imageUrl,
           isAvailable: menuItems.isAvailable,
         })
         .from(favoriteItems)
@@ -164,6 +170,8 @@ export function createFavoritesRepository(
           menuItemId: item?.menuItemId ?? null,
           currentPriceCentavos: item?.basePriceCentavos ?? null,
           isCurrentlyAvailable: item?.isAvailable ?? null,
+          itemDescription: item?.description ?? null,
+          imageUrl: item?.imageUrl ?? null,
         };
       });
     },

@@ -66,3 +66,50 @@ describe("order mutation request parsers", () => {
     expect(parseManagerResolutionRequest(request)).toEqual(request);
   });
 });
+
+describe("parseFoodPickRequest", () => {
+  const favoriteId = "11111111-1111-4111-8111-111111111111";
+
+  it("parses a favorite pick", () => {
+    const parseFoodPickRequest = requiredParser("parseFoodPickRequest");
+    expect(
+      parseFoodPickRequest({ kind: "favorite", favoriteId }),
+    ).toEqual({ kind: "favorite", favoriteId });
+  });
+
+  it("parses a decline", () => {
+    const parseFoodPickRequest = requiredParser("parseFoodPickRequest");
+    expect(parseFoodPickRequest({ kind: "declined" })).toEqual({
+      kind: "declined",
+    });
+  });
+
+  it("parses a clear", () => {
+    const parseFoodPickRequest = requiredParser("parseFoodPickRequest");
+    expect(parseFoodPickRequest({ kind: "clear" })).toEqual({ kind: "clear" });
+  });
+
+  it("rejects an unknown kind", () => {
+    const parseFoodPickRequest = requiredParser("parseFoodPickRequest");
+    expect(() => parseFoodPickRequest({ kind: "inline" })).toThrow(TypeError);
+  });
+
+  it("rejects a favorite without a favorite id", () => {
+    const parseFoodPickRequest = requiredParser("parseFoodPickRequest");
+    expect(() => parseFoodPickRequest({ kind: "favorite" })).toThrow(TypeError);
+  });
+
+  it("rejects a blank favorite id", () => {
+    const parseFoodPickRequest = requiredParser("parseFoodPickRequest");
+    expect(() =>
+      parseFoodPickRequest({ kind: "favorite", favoriteId: "   " }),
+    ).toThrow(TypeError);
+  });
+
+  it("rejects unknown fields", () => {
+    const parseFoodPickRequest = requiredParser("parseFoodPickRequest");
+    expect(() =>
+      parseFoodPickRequest({ kind: "declined", menuItemId: favoriteId }),
+    ).toThrow(TypeError);
+  });
+});

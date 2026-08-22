@@ -12,6 +12,7 @@ import type { VerifiedSession } from "../../auth/verify-session";
 import {
   createCompleteOrderHandler,
   createCreateOrderHandler,
+  createFoodResponseHandler,
 } from "./orders-route-handlers";
 
 const session: VerifiedSession = {
@@ -60,6 +61,7 @@ const createGroupOrder = vi.fn(() =>
   }),
 );
 const completeOrder = vi.fn(() => Promise.resolve({ ok: true } as const));
+const submitFoodResponse = vi.fn(() => Promise.resolve({ ok: true } as const));
 
 async function readFailureCode(response: Response): Promise<string> {
   const body = (await response.json()) as { error?: { code?: string } };
@@ -266,5 +268,122 @@ describe("complete order route handler", () => {
     );
     expect(response.status).toBe(400);
     expect(await readFailureCode(response)).toBe("INVALID_INPUT");
+  });
+});
+
+describe("food response route handler", () => {
+  const orderId = "99999999-9999-4999-8999-999999999999";
+
+  it("submits a favorite pick from the URL parameter and body", async () => {
+    const handler = createFoodResponseHandler(
+      {
+        submitFoodResponse,
+        loadIdentity: () => identity,
+        verifySession: () => session,
+      },
+      () => orderId,
+    );
+    const response = await handler(
+      new Request(`https://ordah.test/api/orders/${orderId}/food-response`, {
+        body: JSON.stringify({
+          favoriteId: "11111111-1111-4111-8111-111111111111",
+          kind: "favorite",
+        }),
+        headers: {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin",
+        },
+        method: "POST",
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(submitFoodResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        identity,
+        orderId,
+        request: {
+          favoriteId: parseId<import("@ordah-please/domain").FavoriteId>(
+            "11111111-1111-4111-8111-111111111111",
+          ),
+          kind: "favorite",
+        },
+      }),
+    );
+  });
+
+  it("rejects a malformed body with INVALID_INPUT", async () => {
+    const handler = createFoodResponseHandler(
+      {
+        submitFoodResponse,
+        loadIdentity: () => identity,
+        verifySession: () => session,
+      },
+      () => orderId,
+    );
+    const response = await handler(
+      new Request(`https://ordah.test/api/orders/${orderId}/food-response`, {
+        body: JSON.stringify({ kind: "favorite" }),
+        headers: {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin",
+        },
+        method: "POST",
+      }),
+    );
+    expect(response.status).toBe(400);
+    expect(await readFailureCode(response)).toBe("INVALID_INPUT");
+  });
+
+  it("rejects cross-site mutations", async () => {
+    const submitFoodResponse = vi.fn();
+    const handler = createFoodResponseHandler(
+      {
+        submitFoodResponse,
+        loadIdentity: () => identity,
+        verifySession: () => session,
+      },
+      () => orderId,
+    );
+    const response = await handler(
+      new Request(`https://ordah.test/api/orders/${orderId}/food-response`, {
+        body: JSON.stringify({ kind: "declined" }),
+        headers: {
+          "content-type": "application/json",
+          "sec-fetch-site": "cross-site",
+        },
+        method: "POST",
+      }),
+    );
+    expect(response.status).toBe(403);
+    expect(submitFoodResponse).not.toHaveBeenCalled();
+  });
+
+  it("maps a closed-deadline conflict to 409", async () => {
+    const handler = createFoodResponseHandler(
+      {
+        submitFoodResponse: vi.fn(() =>
+          Promise.reject(
+            new PublicApiError(
+              "CONFLICT",
+              "Food picks have closed. Selections are locked in.",
+            ),
+          ),
+        ),
+        loadIdentity: () => identity,
+        verifySession: () => session,
+      },
+      () => orderId,
+    );
+    const response = await handler(
+      new Request(`https://ordah.test/api/orders/${orderId}/food-response`, {
+        body: JSON.stringify({ kind: "declined" }),
+        headers: {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin",
+        },
+        method: "POST",
+      }),
+    );
+    expect(response.status).toBe(409);
   });
 });
