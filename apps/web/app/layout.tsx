@@ -20,6 +20,7 @@ const webTokenStyle = {
   "--color-icon-on-surface": shellColors.iconOnSurface,
   "--color-on-primary": designTokens.colors.onPrimary,
   "--color-primary": designTokens.colors.primary,
+  "--color-primary-action": shellColors.primaryAction,
   "--color-primary-strong": designTokens.colors.primaryStrong,
   "--color-support": designTokens.colors.supportSurface,
   "--color-surface": designTokens.colors.surface,

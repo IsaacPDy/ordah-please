@@ -59,16 +59,16 @@
 
 ## Approved Visual System
 
-The selected Option 1 direction is the V1 visual source of truth. The corrected reference is stored at `context/assets/ordah-please-option-1.png`.
+The August 22 member-screen reference set is the current PWA visual source of truth. Its implementation contract is stored at `docs/superpowers/specs/2026-08-22-member-pwa-reference-redesign.md`; the older Option 1 image remains historical direction at `context/assets/ordah-please-option-1.png`.
 
 - **Personality:** Bright, friendly, food-first, calm, and easy to scan.
 - **Theme:** Light theme for V1. Dark theme is deliberately out of scope until the core flow is proven.
-- **Primary:** Original emerald `#0AAE5B` for primary actions, active navigation, and progress.
-- **Primary strong:** `#078847` for pressed and high-emphasis states.
-- **Support surface:** Pale mint `#EFFAF3` for active-order and informational cards.
-- **Canvas and surface:** `#F8FBF9` canvas and `#FFFFFF` cards.
-- **Text:** `#172019` primary and `#667069` secondary.
-- **Border:** `#DDE8E1`; **warning:** `#B86B00`; **error:** `#B42318`.
+- **Primary:** Muted forest green `#55945B` for primary actions, progress, avatars, and persistent actions.
+- **Primary strong:** `#477C4D` for brand text, pressed states, and accessible high-emphasis text.
+- **Support surface:** Pale green `#F0FAF2` for active-order and selected-navigation surfaces.
+- **Canvas and surface:** `#F4F6F4` outer canvas and `#FFFFFF` member/card surfaces.
+- **Text:** `#182019` primary and `#717871` secondary.
+- **Border:** `#DCE5DE`; **warning:** `#B86B00`; **error:** `#B42318`.
 - **Typography:** Nunito Sans for friendly, readable application copy. Use tabular numerals for prices, times, and totals.
 - **Spacing:** 4-point base scale: 4, 8, 12, 16, 24, 32, and 40.
 - **Radii:** 8 for compact controls, 12 for fields, 16 for standard cards, 24 for major active-order cards, and full pills only for tags.
@@ -76,11 +76,14 @@ The selected Option 1 direction is the V1 visual source of truth. The corrected 
 - **Icons:** Lucide icons on Android and web for a consistent outlined style. Icons support text; they do not replace unclear labels.
 - **Components:** React Native Paper primitives adapted to shared tokens on Android; shadcn/ui primitives adapted to the same tokens on web and admin.
 - **Photography:** Real food imagery with consistent rectangular crops. Never use copied promotional art or restaurant logos as decorative UI.
-- **Brand protection:** Do not reproduce Grab's logo, custom illustrations, promotion treatments, or exact screen composition.
+- **Member composition:** Use a centered 393–430px mobile canvas, compact 18px side margins, restrained headings, quiet rounded cards, and a fixed four-tab bar with one floating new-order action. Nested pages use only the shell back button. Restaurant menu rows use 68px real food images and 84–85px rows so more items remain visible. Suppress the floating action on Group details and Restaurant details where it duplicates or covers page actions.
+- **Brand protection:** Reproduce only the product owner's approved ordah please references. Do not reproduce Grab's logo, custom illustrations, or promotion treatments.
 
 ## Responsive Structure
 
 - Member mobile uses bottom navigation for Home, Orders, Favorites, and Groups.
+- Nested member routes use one circular shell back control while keeping the brand, notification, and profile controls in the same shell; page-local duplicate back links are not shown.
+- Member pages remain centered and phone-like on wide screens instead of stretching their content across the desktop.
 - Manager actions remain inside the active order rather than a separate global dashboard.
 - Desktop admin uses persistent navigation and table/detail split views.
 - Mobile admin exposes Groups, Catalog, Access Requests, and Audit Log.

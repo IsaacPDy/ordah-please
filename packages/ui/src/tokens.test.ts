@@ -5,16 +5,16 @@ import { designTokens } from "./tokens";
 describe("designTokens", () => {
   it("exposes the approved semantic colors", () => {
     expect(designTokens.colors).toEqual({
-      border: "#DDE8E1",
-      canvas: "#F8FBF9",
+      border: "#DCE5DE",
+      canvas: "#F4F6F4",
       error: "#B42318",
       onPrimary: "#FFFFFF",
-      primary: "#0AAE5B",
-      primaryStrong: "#078847",
-      supportSurface: "#EFFAF3",
+      primary: "#55945B",
+      primaryStrong: "#477C4D",
+      supportSurface: "#F0FAF2",
       surface: "#FFFFFF",
-      textPrimary: "#172019",
-      textSecondary: "#667069",
+      textPrimary: "#182019",
+      textSecondary: "#717871",
       warning: "#B86B00",
     });
   });

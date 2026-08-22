@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { getCurrentServerPageIdentity } from "../../../src/auth/load-server-page-identity";
@@ -24,9 +25,7 @@ export default async function GroupsPage() {
         <header className="page-intro">
           <p className="eyebrow">Memberships</p>
           <h1>Your groups</h1>
-          <p>
-            You can belong to multiple groups and hold a different role in each.
-          </p>
+          <p>Order with different circles without mixing their details.</p>
         </header>
         <ul className="group-list">
           {groupSummaries.map((group) => (
@@ -43,19 +42,10 @@ export default async function GroupsPage() {
                   <span className="group-card__meta">
                     {group.memberCount}{" "}
                     {group.memberCount === 1 ? "person" : "people"}
+                    {` · You’re a ${roleLabel(group.role)}`}
                   </span>
                 </span>
-                <span
-                  className={
-                    group.role === "group-owner"
-                      ? "role-pill role-pill--owner"
-                      : group.role === "member"
-                        ? "role-pill role-pill--member"
-                        : "role-pill"
-                  }
-                >
-                  {roleLabel(group.role)}
-                </span>
+                <ChevronRight aria-hidden="true" size={24} />
               </Link>
             </li>
           ))}

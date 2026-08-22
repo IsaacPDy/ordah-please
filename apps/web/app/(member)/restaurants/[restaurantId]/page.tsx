@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
@@ -37,10 +36,6 @@ export default async function RestaurantDetailPage({
 
   return (
     <article className="restaurant-detail">
-      <Link className="restaurant-detail__back" href="/">
-        ← Back
-      </Link>
-
       {heroImage ? (
         <Image
           alt=""

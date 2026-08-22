@@ -1,16 +1,16 @@
 /** Defines the approved visual language once so every client communicates with the same hierarchy. */
 export const designTokens = {
   colors: {
-    border: "#DDE8E1",
-    canvas: "#F8FBF9",
+    border: "#DCE5DE",
+    canvas: "#F4F6F4",
     error: "#B42318",
     onPrimary: "#FFFFFF",
-    primary: "#0AAE5B",
-    primaryStrong: "#078847",
-    supportSurface: "#EFFAF3",
+    primary: "#55945B",
+    primaryStrong: "#477C4D",
+    supportSurface: "#F0FAF2",
     surface: "#FFFFFF",
-    textPrimary: "#172019",
-    textSecondary: "#667069",
+    textPrimary: "#182019",
+    textSecondary: "#717871",
     warning: "#B86B00",
   },
   elevation: {

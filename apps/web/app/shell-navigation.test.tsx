@@ -35,6 +35,28 @@ vi.mock("../src/features/favorites/favorites-runtime", () => ({
   },
 }));
 
+vi.mock("../src/features/orders/orders-runtime", () => ({
+  ordersRuntime: {
+    listOrderSummaries: () =>
+      Promise.resolve({
+        active: [
+          {
+            completedAt: null,
+            deadline: new Date("2026-08-20T03:30:00.000Z"),
+            groupId: "group-alpha",
+            groupName: "Alpha group",
+            orderId: "order-1",
+            participantsTotal: 3,
+            participantsVoted: 2,
+            restaurantName: null,
+            state: "restaurant_voting",
+          },
+        ],
+        history: [],
+      }),
+  },
+}));
+
 vi.mock("../src/features/groups/group-runtime", () => ({
   groupRuntime: {
     listViewerGroupSummaries: () =>
@@ -103,17 +125,18 @@ describe("web navigation shells", () => {
     ).toEqual(["Groups", "Catalog", "Access requests", "Audit log"]);
   });
 
-  it("renders the active-order and restaurant sections from the approved Home design", async () => {
+  it("renders the active-order and restaurant sections from real data", async () => {
     const home = await MemberHomePage();
     const layout = await MemberLayout({ children: home });
     const html = renderToStaticMarkup(layout);
 
-    expect(html).toContain("ordah please");
     expect(html).toContain("Active group order");
-    expect(html).toContain("Friday lunch");
+    expect(html).toContain("Alpha group");
     expect(html).toContain("Choose restaurant");
-    expect(html).toContain("Restaurants");
-    expect(html).toContain("No restaurants published yet");
+    expect(html).toContain("2 of 3 responded");
+    expect(html).toContain("Good morning, Mia");
+    expect(html).toContain("Nearby restaurants");
+    expect(html).not.toContain("Friday lunch");
   });
 
   it("threads the signed-in profile fields into the member header", async () => {
@@ -124,6 +147,7 @@ describe("web navigation shells", () => {
     expect(html).toContain(
       'aria-label="Open profile menu for Mia Tan (mia@example.com)"',
     );
+    expect(html).toContain('class="member-shell member-shell--compact"');
   });
 
   it("threads the signed-in profile fields into the admin header", async () => {
@@ -136,21 +160,27 @@ describe("web navigation shells", () => {
     );
   });
 
-  it("renders active and historical orders with the approved filters", async () => {
-    const html = renderToStaticMarkup(await OrdersPage());
+  it("renders the real orders list from the runtime", async () => {
+    const page = await OrdersPage();
+    const layout = await MemberLayout({ children: page });
+    const html = renderToStaticMarkup(layout);
 
-    expect(html).toContain("Active orders");
-    expect(html).toContain("Order history");
-    expect(html).toContain("Group");
-    expect(html).toContain("Restaurant");
-    expect(html).toContain("Status");
-    expect(html).toContain("Date");
+    expect(html).toContain("Alpha group");
+    expect(html).toContain("Voting");
+    expect(html).toContain("2 of 3 responded");
+    expect(html).toContain("Needs action");
+    expect(html).toContain("History");
+    expect(html).toContain("revisit past meals");
+    expect(html).not.toContain('href="#orders-top"');
+    expect(html).not.toContain(">Filter<");
+    expect(html).not.toContain("Friday lunch");
   });
 
   it("shows the Favorites empty state when the member has none", async () => {
     const html = renderToStaticMarkup(await FavoritesPage());
 
-    expect(html).toContain("No favorites yet");
+    expect(html).toContain("Build your quick picks");
+    expect(html).toContain("Browse restaurants");
     expect(html).not.toContain("#1");
   });
 
@@ -158,6 +188,9 @@ describe("web navigation shells", () => {
     const html = renderToStaticMarkup(await GroupsPage());
 
     expect(html).toContain("Your groups");
+    expect(html).toContain(
+      "Order with different circles without mixing their details.",
+    );
     expect(html).toContain("group-alpha");
     expect(html).toContain("group-beta");
     expect(html).toContain("Group Owner");

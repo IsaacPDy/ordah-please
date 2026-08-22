@@ -46,6 +46,7 @@ npm-debug.log*
 # Agent tooling artifacts
 .superpowers/
 .claude/
+docs/superpowers/
 
 # Local catalog import source files (untrusted input — keep off the repo)
 /imports/

@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockRefresh, mockFetch } = vi.hoisted(() => ({
@@ -14,10 +20,7 @@ vi.mock("next/navigation", () => ({
 
 vi.stubGlobal("fetch", mockFetch);
 
-import {
-  FavoritesView,
-  groupFavoritesByBranch,
-} from "./favorites-view";
+import { FavoritesView, groupFavoritesByBranch } from "./favorites-view";
 
 describe("groupFavoritesByBranch", () => {
   it("groups page rows by branch preserving rank order", () => {
@@ -69,7 +72,12 @@ describe("groupFavoritesByBranch", () => {
         branchName: "Kapitolyo",
         favorites: [
           { favoriteId: "b", name: "Fries", priceCentavos: 15000, rank: 1 },
-          { favoriteId: "a", name: "Chicken Meal", priceCentavos: 25000, rank: 2 },
+          {
+            favoriteId: "a",
+            name: "Chicken Meal",
+            priceCentavos: 25000,
+            rank: 2,
+          },
         ],
         restaurantName: "McDonald's",
       },
@@ -97,9 +105,12 @@ describe("FavoritesView", () => {
 
   it("shows the empty state when there are no favorites", () => {
     render(<FavoritesView groups={[]} />);
+    expect(screen.getByText("Build your quick picks")).toBeTruthy();
     expect(
-      screen.getByText("No favorites yet — browse restaurants to add your first one."),
-    ).toBeTruthy();
+      screen
+        .getByRole("link", { name: "Browse restaurants" })
+        .getAttribute("href"),
+    ).toBe("/#restaurants");
   });
 
   it("lists favorites grouped by restaurant with rank badges, prices, and remove buttons", () => {
@@ -111,7 +122,12 @@ describe("FavoritesView", () => {
             branchName: "Kapitolyo",
             favorites: [
               { favoriteId: "b", name: "Fries", priceCentavos: 15000, rank: 1 },
-              { favoriteId: "a", name: "Chicken Meal", priceCentavos: 25000, rank: 2 },
+              {
+                favoriteId: "a",
+                name: "Chicken Meal",
+                priceCentavos: 25000,
+                rank: 2,
+              },
             ],
             restaurantName: "McDonald's",
           },
@@ -151,10 +167,9 @@ describe("FavoritesView", () => {
       screen.getByRole("button", { name: "Remove Fries from favorites" }),
     );
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        "/api/favorites/b",
-        { method: "DELETE" },
-      );
+      expect(mockFetch).toHaveBeenCalledWith("/api/favorites/b", {
+        method: "DELETE",
+      });
     });
     await waitFor(() => {
       expect(mockRefresh).toHaveBeenCalled();

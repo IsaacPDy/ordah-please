@@ -57,6 +57,13 @@
       "when": 1786575679292,
       "tag": "0007_white_hitman",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787316587414,
+      "tag": "0008_freezing_maelstrom",
+      "breakpoints": true
     }
   ]
 }

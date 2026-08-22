@@ -25,9 +25,7 @@ export default async function FavoritesPage() {
         <header className="page-intro">
           <p className="eyebrow">Your usual orders</p>
           <h1>Favorites</h1>
-          <p>
-            Your top three combinations will be ready when a group order starts.
-          </p>
+          <p>Save combinations you want ready when a group order starts.</p>
         </header>
         <FavoritesView groups={groups} />
       </div>

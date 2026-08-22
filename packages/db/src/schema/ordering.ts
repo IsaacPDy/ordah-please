@@ -141,6 +141,9 @@ export const orders = pgTable(
     selectedBranchId: uuid("selected_branch_id").references(() => branches.id),
     selectedRestaurantNameSnapshot: text("selected_restaurant_name_snapshot"),
     selectedBranchNameSnapshot: text("selected_branch_name_snapshot"),
+    selectedMenuVersionId: uuid("selected_menu_version_id").references(
+      () => menuVersions.id,
+    ),
     deliveryAddressSnapshot: jsonb("delivery_address_snapshot").notNull(),
     restaurantDeadline: utcTimestamp("restaurant_deadline").notNull(),
     foodDeadline: utcTimestamp("food_deadline").notNull(),
@@ -172,6 +175,19 @@ export const orders = pgTable(
       sql`(${table.state} in ('ordered', 'cancelled') and ${table.completedAt} is not null) or (${table.state} not in ('ordered', 'cancelled') and ${table.completedAt} is null)`,
     ),
   ],
+);
+
+export const orderShortlistRestaurants = pgTable(
+  "order_shortlist_restaurants",
+  {
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id),
+    restaurantId: uuid("restaurant_id")
+      .notNull()
+      .references(() => restaurants.id),
+  },
+  (table) => [primaryKey({ columns: [table.orderId, table.restaurantId] })],
 );
 
 export const orderParticipants = pgTable(

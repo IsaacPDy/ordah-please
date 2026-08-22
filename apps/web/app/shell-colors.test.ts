@@ -52,4 +52,10 @@ describe("shellColors", () => {
       ),
     ).toBeGreaterThanOrEqual(4.5);
   });
+
+  it("keeps ordinary white button text readable on the primary action color", () => {
+    expect(
+      contrastRatio(designTokens.colors.onPrimary, shellColors.primaryAction),
+    ).toBeGreaterThanOrEqual(4.5);
+  });
 });

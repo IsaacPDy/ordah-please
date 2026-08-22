@@ -2,6 +2,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 
 import {
   adminAccessRequests,
+  groupAddresses,
   groupInviteLinks,
   groups,
   invitations,
@@ -67,6 +68,9 @@ export interface GroupAccessRepository {
   findAdminAccessRequestById(
     requestId: string,
   ): Promise<typeof adminAccessRequests.$inferSelect | undefined>;
+  findGroupAddress(
+    groupId: string,
+  ): Promise<typeof groupAddresses.$inferSelect | undefined>;
   findGroupSummary(groupId: string): Promise<GroupSummaryRow | undefined>;
   findInvitationByTokenHash(
     tokenHash: string,
@@ -101,6 +105,18 @@ export interface GroupAccessRepository {
     expectedRole: typeof memberships.$inferSelect.role,
     role: typeof memberships.$inferSelect.role,
   ): Promise<boolean>;
+  upsertGroupAddress(input: {
+    groupId: string;
+    recipientName: string;
+    phoneNumber: string;
+    lineOne: string;
+    lineTwo: string | null;
+    city: string;
+    postalCode: string | null;
+    notes: string | null;
+    updatedByUserId: string;
+    now: Date;
+  }): Promise<{ readonly id: string }>;
 }
 
 /** Creates private-group invitation persistence without deciding who is authorized to use it. */
@@ -210,6 +226,38 @@ export function createGroupAccessRepository(
         )
         .limit(1);
       return link;
+    },
+    findGroupAddress: async (groupId) => {
+      const [address] = await database
+        .select()
+        .from(groupAddresses)
+        .where(eq(groupAddresses.groupId, groupId))
+        .limit(1);
+      return address;
+    },
+    upsertGroupAddress: async (input) => {
+      const values = {
+        groupId: input.groupId,
+        recipientName: input.recipientName,
+        phoneNumber: input.phoneNumber,
+        lineOne: input.lineOne,
+        lineTwo: input.lineTwo,
+        city: input.city,
+        postalCode: input.postalCode,
+        notes: input.notes,
+        updatedByUserId: input.updatedByUserId,
+        updatedAt: input.now,
+      };
+      return requireWrittenRow(
+        await database
+          .insert(groupAddresses)
+          .values(values)
+          .onConflictDoUpdate({
+            target: groupAddresses.groupId,
+            set: values,
+          })
+          .returning({ id: groupAddresses.id }),
+      );
     },
     findGroupSummary: async (groupId) => {
       const [row] = await database

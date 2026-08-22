@@ -547,6 +547,29 @@ button:focus-visible {
   gap: var(--space-3);
 }
 
+.category-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.category-chip {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 14px;
+}
+
+.category-chip--active {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-on-primary);
+}
+
 .restaurant-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -2465,4 +2488,1104 @@ button.admin-table__row {
     width: auto;
     min-width: 20rem;
   }
+}
+
+.setup-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.setup-form__section {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4) 0 0;
+}
+
+.setup-form__section legend {
+  font-weight: 600;
+  padding: 0 var(--space-2) 0 0;
+}
+
+.setup-form__section label {
+  display: grid;
+  font-size: var(--font-size-caption);
+  gap: var(--space-1);
+}
+
+.setup-form__hint {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  margin: 0;
+}
+
+.participant-grid {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.participant-grid > li,
+.participant-option,
+.participant-option > span {
+  min-width: 0;
+}
+
+/* Member PWA reference redesign: scoped here so admin and access surfaces keep their density. */
+body {
+  background: var(--color-canvas);
+}
+
+.member-shell {
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-border) 65%, transparent);
+  max-width: 430px;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.member-header {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  min-height: 64px;
+  padding: 12px 24px 8px;
+}
+
+.member-header .brand {
+  align-self: center;
+  font-size: 21px;
+  justify-self: start;
+  letter-spacing: -0.035em;
+}
+
+.member-header__spacer,
+.member-back-button {
+  height: 40px;
+  width: 40px;
+}
+
+.member-back-button {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text);
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  margin-left: -8px;
+}
+
+.member-header__actions {
+  gap: 8px;
+}
+
+.member-header .icon-button,
+.member-header .profile-menu__avatar-button {
+  height: 40px;
+  min-width: 40px;
+  width: 40px;
+}
+
+.member-header .profile-menu__avatar-button {
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.member-header .profile-menu__initials {
+  background: var(--color-text);
+  color: var(--color-on-primary);
+  font-size: 13px;
+}
+
+.member-header .notification-dot {
+  height: 8px;
+  right: 7px;
+  top: 6px;
+  width: 8px;
+}
+
+.member-content {
+  padding: 8px 24px 112px;
+}
+
+.member-shell .member-page {
+  gap: 28px;
+}
+
+.member-shell .page-intro {
+  gap: 6px;
+  padding: 10px 0 0;
+}
+
+.member-shell .page-intro h1,
+.home-intro h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.member-shell .page-intro > p:not(.eyebrow),
+.home-intro p {
+  color: var(--color-text-secondary);
+  font-size: 18px;
+  line-height: 1.55;
+  margin: 8px 0 0;
+}
+
+.member-shell .eyebrow,
+.status-label {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.home-page {
+  gap: 24px;
+}
+
+.home-intro {
+  display: grid;
+  gap: 4px;
+  padding-top: 20px;
+}
+
+.active-order-card {
+  background: var(--color-support);
+  border-radius: 24px;
+  box-shadow: none;
+  gap: 11px;
+  padding: 20px 18px 18px;
+}
+
+.active-order-card__topline,
+.active-order-card__context {
+  align-items: center;
+  display: flex;
+}
+
+.active-order-card__topline {
+  justify-content: space-between;
+}
+
+.active-order-card .eyebrow {
+  color: var(--color-primary-strong);
+}
+
+.active-order-card .member-count {
+  background: var(--color-surface);
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+.active-order-card h2 {
+  font-size: 26px;
+  letter-spacing: -0.035em;
+  line-height: 1.06;
+}
+
+.active-order-card__context {
+  color: var(--color-text-secondary);
+  flex-wrap: nowrap;
+  font-size: 14px;
+  gap: 5px;
+  margin: 2px 0 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.active-order-card .vote-count {
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.active-order-card .progress-track {
+  height: 5px;
+}
+
+.member-shell .primary-action {
+  background: var(--color-primary-action);
+  border: 0;
+  border-radius: 15px;
+  font-size: 16px;
+  min-height: 50px;
+}
+
+.active-order-card .primary-action {
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.restaurant-section,
+.content-section {
+  gap: 15px;
+}
+
+.member-shell .section-heading-row h2,
+.member-shell .content-section h2 {
+  font-size: 23px;
+  letter-spacing: -0.035em;
+}
+
+.member-shell .section-heading-row > a {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  padding: 8px 2px;
+}
+
+.restaurant-list,
+.group-list {
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.restaurant-card {
+  border-radius: 22px;
+  box-shadow: none;
+  grid-template-columns: 96px minmax(0, 1fr) 24px;
+  height: 98px;
+  padding: 10px;
+}
+
+.restaurant-card__image {
+  border-radius: 15px;
+}
+
+.restaurant-card__body {
+  align-content: center;
+  display: grid;
+  grid-template-columns: 1fr;
+  padding: 6px 12px;
+}
+
+.restaurant-card h3 {
+  font-size: 16px;
+}
+
+.restaurant-card__body > div > p,
+.restaurant-meta {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.restaurant-card__chevron {
+  align-self: center;
+}
+
+.section-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.section-pill {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 700;
+  min-height: 40px;
+  padding: 10px 16px;
+}
+
+.section-pill--active {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-on-primary);
+}
+
+.member-shell .member-page > .primary-action[href="/orders/new"] {
+  display: none;
+}
+
+.order-card,
+.history-card {
+  border-radius: 22px;
+  box-shadow: none;
+  min-height: 100px;
+  padding: 18px;
+}
+
+.order-card {
+  grid-template-columns: 1fr auto;
+}
+
+.order-card__content {
+  gap: 7px;
+}
+
+.order-card h3,
+.history-card h3 {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+}
+
+.order-card p,
+.history-card p {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.count-badge {
+  align-items: center;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  min-width: 30px;
+}
+
+.favorites-empty {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 24px;
+  justify-content: center;
+  min-height: 390px;
+  text-align: center;
+}
+
+.favorites-empty__icon {
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  color: var(--color-text);
+  display: flex;
+  height: 96px;
+  justify-content: center;
+  transform: rotate(4deg);
+  width: 120px;
+}
+
+.favorites-empty > div {
+  display: grid;
+  gap: 8px;
+}
+
+.favorites-empty h2,
+.favorites-empty p {
+  margin: 0;
+}
+
+.favorites-empty h2 {
+  font-size: 25px;
+  letter-spacing: -0.035em;
+}
+
+.favorites-empty p {
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  line-height: 1.55;
+  max-width: 310px;
+}
+
+.favorites-empty .primary-action {
+  padding: 0 28px;
+}
+
+.favorites-group {
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.group-card {
+  border-radius: 24px;
+  min-height: 134px;
+  padding: 18px;
+}
+
+.group-card__icon {
+  font-size: 16px;
+  height: 50px;
+  width: 50px;
+}
+
+.group-card__name {
+  font-size: 20px;
+}
+
+.group-card__meta {
+  font-size: 13px;
+  white-space: normal;
+}
+
+.group-details-header {
+  gap: 14px;
+  padding-top: 18px;
+}
+
+.group-details-header__icon {
+  font-size: 24px;
+  height: 72px;
+  width: 72px;
+}
+
+.group-details-header__title {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.group-details-header__title p {
+  display: block;
+}
+
+.group-details-header__title h1 {
+  font-size: 34px;
+  line-height: 1.05;
+  max-width: 320px;
+}
+
+.group-details-header__rename {
+  position: absolute;
+  right: -38px;
+  top: 24px;
+}
+
+.group-roster {
+  background: transparent;
+  border: 0;
+  gap: 10px;
+}
+
+.group-roster__item,
+.group-roster__item--owner {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 22px;
+  min-height: 82px;
+  padding: 13px;
+}
+
+.group-roster__avatar {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 14px;
+  font-weight: 700;
+  height: 48px;
+  width: 48px;
+}
+
+.group-roster__identity {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.group-roster__identity small {
+  color: var(--color-text-secondary);
+}
+
+.group-roster__name {
+  font-weight: 700;
+}
+
+.group-details-manage {
+  gap: 10px;
+  padding-bottom: 96px;
+}
+
+.group-details-manage h2 {
+  font-size: 22px;
+  margin: 8px 0 2px;
+}
+
+.group-details-manage__start,
+.add-people-button {
+  min-height: 52px;
+}
+
+.add-people-button {
+  border-radius: 15px;
+}
+
+.member-shell .group-details-manage__rotate {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 15px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 8px 16px;
+}
+
+.setup-progress {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.setup-progress span {
+  background: var(--color-border);
+  border-radius: 999px;
+  height: 4px;
+}
+
+.setup-progress .setup-progress__active {
+  background: var(--color-primary);
+}
+
+.setup-form {
+  gap: 28px;
+  min-width: 0;
+}
+
+.setup-form__section {
+  border-top: 0;
+  gap: 12px;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.setup-form__section legend {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.setup-form__hint {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.participant-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.participant-option {
+  align-items: flex-start;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex !important;
+  font-size: 15px !important;
+  justify-content: space-between;
+  min-height: 94px;
+  padding: 16px;
+  position: relative;
+}
+
+.participant-option--selected {
+  background: var(--color-support);
+  border-color: var(--color-primary);
+}
+
+.participant-option > span {
+  display: grid;
+  gap: 6px;
+}
+
+.participant-option strong {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.participant-option small {
+  color: var(--color-text-secondary);
+}
+
+.participant-option input {
+  height: 18px;
+  opacity: 0;
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  width: 18px;
+}
+
+.participant-option::after {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  content: "";
+  height: 18px;
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  width: 18px;
+}
+
+.participant-option--selected::after {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.participant-option__check {
+  color: var(--color-on-primary);
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  z-index: 1;
+}
+
+.setup-form__section > label:not(.participant-option) {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.setup-form input:not([type="checkbox"]),
+.setup-form select {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  color: var(--color-text);
+  font: inherit;
+  min-height: 48px;
+  padding: 10px 12px;
+}
+
+.floating-new-order {
+  align-items: center;
+  background: var(--color-primary-action);
+  border-radius: 18px;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow-raised);
+  color: var(--color-on-primary);
+  display: flex;
+  height: 56px;
+  justify-content: center;
+  position: fixed;
+  right: max(16px, calc((100vw - 430px) / 2 + 16px));
+  width: 56px;
+  z-index: 9;
+}
+
+.member-navigation {
+  bottom: 0;
+  left: 50%;
+  max-width: 430px;
+  padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+  position: fixed;
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 8;
+}
+
+.member-navigation__link {
+  border-radius: 18px;
+  font-size: 12px;
+  gap: 3px;
+  min-height: 54px;
+  padding: 7px 2px;
+}
+
+.member-navigation__link[aria-current="page"] {
+  background: var(--color-support);
+}
+
+@media (max-width: 360px) {
+  .member-header,
+  .member-content {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .participant-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Compact member density keeps useful content above the fold without shrinking touch targets. */
+.member-shell--compact .member-header {
+  grid-template-columns: 44px 1fr auto;
+  min-height: 58px;
+  padding: 7px 18px 5px;
+}
+
+.member-shell--compact .member-header .brand {
+  font-size: 19px;
+}
+
+.member-shell--compact .member-header__spacer,
+.member-shell--compact .member-back-button,
+.member-shell--compact .member-header .icon-button,
+.member-shell--compact .member-header .profile-menu__avatar-button {
+  height: 44px;
+  min-width: 44px;
+  width: 44px;
+}
+
+.member-shell--compact .member-back-button {
+  margin-left: -6px;
+}
+
+.member-shell--compact .member-content {
+  padding: 4px 18px 94px;
+}
+
+.member-shell--compact .member-page {
+  gap: 20px;
+}
+
+.member-shell--compact .page-intro {
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.member-shell--compact .page-intro h1,
+.member-shell--compact .home-intro h1 {
+  font-size: 27px;
+  line-height: 1.08;
+}
+
+.member-shell--compact .page-intro > p:not(.eyebrow),
+.member-shell--compact .home-intro p {
+  font-size: 15px;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.member-shell--compact .eyebrow,
+.member-shell--compact .status-label {
+  font-size: 11px;
+}
+
+.member-shell--compact .home-page {
+  gap: 18px;
+}
+
+.member-shell--compact .home-intro {
+  padding-top: 10px;
+}
+
+.member-shell--compact .active-order-card {
+  border-radius: 20px;
+  gap: 8px;
+  padding: 16px;
+}
+
+.member-shell--compact .active-order-card h2 {
+  font-size: 23px;
+}
+
+.member-shell--compact .active-order-card__context {
+  font-size: 13px;
+}
+
+.member-shell--compact .primary-action {
+  font-size: 15px;
+  min-height: 46px;
+}
+
+.member-shell--compact .restaurant-section,
+.member-shell--compact .content-section {
+  gap: 11px;
+}
+
+.member-shell--compact .section-heading-row h2,
+.member-shell--compact .content-section h2 {
+  font-size: 21px;
+}
+
+.member-shell--compact .restaurant-list,
+.member-shell--compact .group-list {
+  gap: 9px;
+}
+
+.member-shell--compact .restaurant-card {
+  border-radius: 18px;
+  grid-template-columns: 74px minmax(0, 1fr) 22px;
+  height: 82px;
+  padding: 7px;
+}
+
+.member-shell--compact .restaurant-card__image {
+  border-radius: 12px;
+}
+
+.member-shell--compact .restaurant-card__body {
+  padding: 4px 9px;
+}
+
+.member-shell--compact .restaurant-card h3 {
+  font-size: 15px;
+}
+
+.member-shell--compact .section-pill {
+  font-size: 13px;
+  min-height: 44px;
+  padding: 9px 14px;
+}
+
+.member-shell--compact .order-card,
+.member-shell--compact .history-card {
+  border-radius: 18px;
+  min-height: 88px;
+  padding: 14px;
+}
+
+.member-shell--compact .order-card__content {
+  gap: 5px;
+}
+
+.member-shell--compact .order-card h3,
+.member-shell--compact .history-card h3 {
+  font-size: 18px;
+}
+
+.member-shell--compact .order-card p,
+.member-shell--compact .history-card p {
+  font-size: 13px;
+}
+
+.member-shell--compact .favorites-empty {
+  gap: 18px;
+  min-height: 320px;
+}
+
+.member-shell--compact .favorites-empty__icon {
+  height: 82px;
+  width: 104px;
+}
+
+.member-shell--compact .favorites-empty h2 {
+  font-size: 23px;
+}
+
+.member-shell--compact .favorites-empty p {
+  font-size: 15px;
+}
+
+.member-shell--compact .favorites-group {
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.member-shell--compact .group-card {
+  border-radius: 20px;
+  min-height: 104px;
+  padding: 14px;
+}
+
+.member-shell--compact .group-card__icon {
+  height: 46px;
+  width: 46px;
+}
+
+.member-shell--compact .group-card__name {
+  font-size: 17px;
+}
+
+.member-shell--compact .group-details-header {
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.member-shell--compact .group-details-header__icon {
+  font-size: 21px;
+  height: 62px;
+  width: 62px;
+}
+
+.member-shell--compact .group-details-header__title h1 {
+  font-size: 29px;
+}
+
+.member-shell--compact .group-roster {
+  gap: 8px;
+}
+
+.member-shell--compact .group-roster__item,
+.member-shell--compact .group-roster__item--owner {
+  border-radius: 18px;
+  min-height: 72px;
+  padding: 10px;
+}
+
+.member-shell--compact .group-roster__avatar {
+  height: 44px;
+  width: 44px;
+}
+
+.member-shell--compact .group-details-manage {
+  gap: 8px;
+  padding-bottom: 72px;
+}
+
+.member-shell--compact .group-details-manage h2 {
+  font-size: 20px;
+}
+
+.member-shell--compact .setup-form {
+  gap: 22px;
+}
+
+.member-shell--compact .setup-form__section {
+  gap: 10px;
+}
+
+.member-shell--compact .setup-form__section legend {
+  font-size: 20px;
+}
+
+.member-shell--compact .participant-option {
+  border-radius: 17px;
+  min-height: 86px;
+  padding: 13px;
+}
+
+.member-shell--compact .participant-option strong {
+  font-size: 15px;
+}
+
+.member-shell--compact .floating-new-order {
+  bottom: calc(66px + env(safe-area-inset-bottom));
+  height: 52px;
+  width: 52px;
+}
+
+.member-shell--compact .member-navigation {
+  padding: 6px 7px max(6px, env(safe-area-inset-bottom));
+}
+
+.member-shell--compact .member-navigation__link {
+  border-radius: 16px;
+  font-size: 11px;
+  min-height: 50px;
+  padding: 5px 2px;
+}
+
+.member-shell--compact .restaurant-detail {
+  gap: 13px;
+  padding-bottom: 20px;
+}
+
+.member-shell--compact .restaurant-detail__hero {
+  aspect-ratio: 2.8 / 1;
+  border-radius: 18px;
+  max-height: 132px;
+}
+
+.member-shell--compact .restaurant-detail__header {
+  gap: 6px;
+}
+
+.member-shell--compact .restaurant-detail__header h1 {
+  font-size: 27px;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+}
+
+.member-shell--compact .restaurant-detail__branch {
+  font-size: 14px;
+}
+
+.member-shell--compact .restaurant-detail__cuisines {
+  gap: 6px;
+}
+
+.member-shell--compact .restaurant-detail__cuisines li {
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
+.member-shell--compact .restaurant-detail__grab {
+  font-size: 14px;
+  min-height: 44px;
+}
+
+.member-shell--compact .restaurant-detail__chips {
+  gap: 6px;
+  margin-inline: -18px;
+  padding: 6px 18px;
+  scrollbar-width: none;
+}
+
+.member-shell--compact .restaurant-detail__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.member-shell--compact .restaurant-detail__chips a {
+  font-size: 12px;
+  min-height: 44px;
+  padding: 8px 11px;
+}
+
+.member-shell--compact .restaurant-detail__category {
+  gap: 9px;
+  scroll-margin-top: 4rem;
+}
+
+.member-shell--compact .restaurant-detail__category h2 {
+  font-size: 20px;
+}
+
+.member-shell--compact .restaurant-detail__items {
+  gap: 8px;
+}
+
+.member-shell--compact .restaurant-detail__item {
+  align-items: center;
+  border-radius: 15px;
+  gap: 8px;
+  min-height: 84px;
+  padding: 7px;
+}
+
+.member-shell--compact .restaurant-detail__item > img {
+  border-radius: 11px;
+  height: 68px;
+  width: 68px;
+}
+
+.member-shell--compact .restaurant-detail__item-body {
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.member-shell--compact .restaurant-detail__item h3 {
+  display: -webkit-box;
+  font-size: 14px;
+  line-height: 1.2;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.member-shell--compact
+  .restaurant-detail__item-body
+  > p:not(.restaurant-detail__price) {
+  display: -webkit-box;
+  font-size: 11px;
+  line-height: 1.25;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.member-shell--compact .restaurant-detail__price {
+  font-size: 13px;
+}
+
+.member-shell--compact .restaurant-detail__item-favorite-wrap {
+  max-width: 52px;
+}
+
+.member-shell--compact .restaurant-detail__item-favorite {
+  height: 44px;
+  width: 44px;
 }

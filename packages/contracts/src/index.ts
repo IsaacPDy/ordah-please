@@ -12,6 +12,8 @@ export * from "./favorites/favorite-combination.js";
 export * from "./favorites/favorite-save-request.js";
 export * from "./groups/group-details.js";
 export * from "./groups/group-requests.js";
+export * from "./orders/order-complete-request.js";
+export * from "./orders/order-create-request.js";
 export * from "./orders/food-selection.js";
 export * from "./orders/order-history.js";
 export * from "./orders/order-requests.js";

@@ -14,9 +14,11 @@ import {
   catalogImports,
   favorites,
   groups,
+  memberships,
   menuCategories,
   menuItems,
   menuVersions,
+  orderShortlistRestaurants,
   orders,
   restaurants,
   users,
@@ -773,8 +775,7 @@ describe("focused repositories", () => {
 
     await repositories.identityAccess.setPlatformAdminFlag(owner.id, true);
 
-    const summaries =
-      await repositories.identityAccess.listUsersWithSummary();
+    const summaries = await repositories.identityAccess.listUsersWithSummary();
 
     // Archived user is excluded.
     expect(summaries.find((u) => u.id === archived.id)).toBeUndefined();
@@ -1036,6 +1037,56 @@ describe("group access V1-06 decide flow", () => {
   });
 });
 
+describe("group address repository", () => {
+  it("upserts and reads the single default address per group", async () => {
+    const repositories = createRepositories(database);
+    const [user] = await database
+      .insert(users)
+      .values({ displayName: "Address User" })
+      .returning();
+    if (user === undefined) {
+      throw new Error("Expected the address test user.");
+    }
+    const [group] = await database
+      .insert(groups)
+      .values({ createdByUserId: user.id, name: "Address Group" })
+      .returning();
+    if (group === undefined) {
+      throw new Error("Expected the address test group.");
+    }
+
+    const address = {
+      city: "Naga",
+      groupId: group.id,
+      lineOne: "12 Sample Street",
+      lineTwo: null,
+      notes: null,
+      now: new Date(),
+      phoneNumber: "+63 900 000 0000",
+      postalCode: null,
+      recipientName: "Mia Tan",
+      updatedByUserId: user.id,
+    };
+
+    const inserted = await repositories.groupAccess.upsertGroupAddress(address);
+    expect(inserted.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+
+    await repositories.groupAccess.upsertGroupAddress({
+      ...address,
+      lineOne: "14 Updated Street",
+    });
+
+    const saved = await repositories.groupAccess.findGroupAddress(group.id);
+    expect(saved?.lineOne).toBe("14 Updated Street");
+    expect(saved?.recipientName).toBe("Mia Tan");
+    expect(
+      await repositories.groupAccess.findGroupAddress(randomUUID()),
+    ).toBeUndefined();
+  });
+});
+
 describe("admin archive helpers", () => {
   it("archiveUser sets archivedAt on an active user and returns true", async () => {
     await withRolledBackRepositories(async (repositories) => {
@@ -1102,7 +1153,9 @@ describe("admin archive helpers", () => {
       );
       expect(result).toBe(true);
 
-      const summary = await repositories.groupAccess.findGroupSummary(created.id);
+      const summary = await repositories.groupAccess.findGroupSummary(
+        created.id,
+      );
       expect(summary?.archivedAt).toEqual(archivedAt);
     });
   });
@@ -1117,7 +1170,9 @@ describe("admin archive helpers", () => {
         .values({ createdByUserId: owner.id, name: "Archive Group 2" })
         .returning();
       if (created === undefined) {
-        throw new Error("Expected the second archive test group to be created.");
+        throw new Error(
+          "Expected the second archive test group to be created.",
+        );
       }
       const firstAt = new Date("2026-08-13T12:00:00.000Z");
       const secondAt = new Date("2026-08-13T13:00:00.000Z");
@@ -1239,7 +1294,15 @@ describe("favorites repository writes", () => {
       throw new Error("Expected the second favorites test item.");
     }
 
-    return { branch, category, item, menuVersion, restaurant, secondItem, user };
+    return {
+      branch,
+      category,
+      item,
+      menuVersion,
+      restaurant,
+      secondItem,
+      user,
+    };
   }
 
   it("resolves a menu item context from the published menu", async () => {
@@ -1340,5 +1403,249 @@ describe("favorites repository writes", () => {
         isCurrentlyAvailable: true,
       },
     ]);
+  });
+});
+
+describe("orders repository writes", () => {
+  /** Seeds one owner user, group, restaurant, branch, and published menu. */
+  async function seedOrdersFixture() {
+    const [manager] = await database
+      .insert(users)
+      .values({ displayName: "Order Manager" })
+      .returning();
+    if (manager === undefined) {
+      throw new Error("Expected the orders test manager.");
+    }
+    const [member] = await database
+      .insert(users)
+      .values({ displayName: "Order Member" })
+      .returning();
+    if (member === undefined) {
+      throw new Error("Expected the orders test member.");
+    }
+    const [outsider] = await database
+      .insert(users)
+      .values({ displayName: "Order Outsider" })
+      .returning();
+    if (outsider === undefined) {
+      throw new Error("Expected the orders test outsider.");
+    }
+    const [group] = await database
+      .insert(groups)
+      .values({ createdByUserId: manager.id, name: "Orders Group" })
+      .returning();
+    if (group === undefined) {
+      throw new Error("Expected the orders test group.");
+    }
+    await database
+      .insert(memberships)
+      .values({ groupId: group.id, role: "owner", userId: manager.id });
+    const [restaurant] = await database
+      .insert(restaurants)
+      .values({ name: "Orders Restaurant" })
+      .returning();
+    if (restaurant === undefined) {
+      throw new Error("Expected the orders test restaurant.");
+    }
+    const [secondRestaurant] = await database
+      .insert(restaurants)
+      .values({ name: "Orders Second Restaurant" })
+      .returning();
+    if (secondRestaurant === undefined) {
+      throw new Error("Expected the second orders test restaurant.");
+    }
+    const [branch] = await database
+      .insert(branches)
+      .values({ name: "Orders Branch", restaurantId: restaurant.id })
+      .returning();
+    if (branch === undefined) {
+      throw new Error("Expected the orders test branch.");
+    }
+    const [catalogImport] = await database
+      .insert(catalogImports)
+      .values({ createdByUserId: manager.id, status: "published" })
+      .returning();
+    if (catalogImport === undefined) {
+      throw new Error("Expected the orders test import.");
+    }
+    const [menuVersion] = await database
+      .insert(menuVersions)
+      .values({
+        branchId: branch.id,
+        sourceImportId: catalogImport.id,
+        status: "published",
+        versionNumber: 1,
+      })
+      .returning();
+    if (menuVersion === undefined) {
+      throw new Error("Expected the orders test menu version.");
+    }
+    return {
+      branch,
+      group,
+      manager,
+      member,
+      menuVersion,
+      outsider,
+      restaurant,
+      secondRestaurant,
+    };
+  }
+
+  const addressSnapshot = {
+    city: "Naga",
+    lineOne: "12 Sample Street",
+    lineTwo: null,
+    notes: null,
+    phoneNumber: "+63 900 000 0000",
+    postalCode: null,
+    recipientName: "Mia Tan",
+  };
+
+  it("creates a voting order with participants and shortlist", async () => {
+    const repositories = createRepositories(database);
+    const fixture = await seedOrdersFixture();
+    const now = new Date();
+
+    const created = await repositories.orders.createOrder({
+      choiceMode: "shortlist",
+      deliveryAddressSnapshot: addressSnapshot,
+      foodDeadline: new Date(now.getTime() + 3_600_000),
+      groupId: fixture.group.id,
+      initialBranchId: fixture.branch.id,
+      initialRestaurantId: fixture.restaurant.id,
+      managerUserId: fixture.manager.id,
+      now,
+      participants: [
+        {
+          displayName: fixture.manager.displayName,
+          restaurantResponse: "responded",
+          role: "manager",
+          userId: fixture.manager.id,
+        },
+        {
+          displayName: fixture.member.displayName,
+          restaurantResponse: "pending",
+          role: "member",
+          userId: fixture.member.id,
+        },
+      ],
+      restaurantDeadline: new Date(now.getTime() + 1_800_000),
+      selected: null,
+      shortlistRestaurantIds: [
+        fixture.restaurant.id,
+        fixture.secondRestaurant.id,
+      ],
+      state: "restaurant_voting",
+    });
+
+    const detail = await repositories.orders.findOrderDetail(created.id);
+    expect(detail?.state).toBe("restaurant_voting");
+    expect(detail?.groupName).toBe("Orders Group");
+    expect(detail?.initialRestaurantName).toBe("Orders Restaurant");
+    expect(detail?.initialBranchName).toBe("Orders Branch");
+    expect(detail?.selectedMenuVersionId).toBeNull();
+    expect(detail?.participants).toHaveLength(2);
+    expect([...(detail?.participants ?? [])].map((p) => p.role).sort()).toEqual(
+      ["manager", "member"],
+    );
+
+    const shortlist = await database
+      .select()
+      .from(orderShortlistRestaurants)
+      .where(eq(orderShortlistRestaurants.orderId, created.id));
+    expect(shortlist).toHaveLength(2);
+  });
+
+  it("creates a voting-disabled order with pinned selection", async () => {
+    const repositories = createRepositories(database);
+    const fixture = await seedOrdersFixture();
+    const now = new Date();
+
+    const created = await repositories.orders.createOrder({
+      choiceMode: "voting_disabled",
+      deliveryAddressSnapshot: addressSnapshot,
+      foodDeadline: new Date(now.getTime() + 3_600_000),
+      groupId: fixture.group.id,
+      initialBranchId: fixture.branch.id,
+      initialRestaurantId: fixture.restaurant.id,
+      managerUserId: fixture.manager.id,
+      now,
+      participants: [
+        {
+          displayName: fixture.manager.displayName,
+          restaurantResponse: "responded",
+          role: "manager",
+          userId: fixture.manager.id,
+        },
+      ],
+      restaurantDeadline: now,
+      selected: {
+        branchId: fixture.branch.id,
+        branchName: "Orders Branch",
+        menuVersionId: fixture.menuVersion.id,
+        restaurantId: fixture.restaurant.id,
+        restaurantName: "Orders Restaurant",
+      },
+      shortlistRestaurantIds: [],
+      state: "food_confirmation",
+    });
+
+    const detail = await repositories.orders.findOrderDetail(created.id);
+    expect(detail?.state).toBe("food_confirmation");
+    expect(detail?.selectedRestaurantName).toBe("Orders Restaurant");
+    expect(detail?.selectedMenuVersionId).toBe(fixture.menuVersion.id);
+  });
+
+  it("lists orders for participants and owners only", async () => {
+    const repositories = createRepositories(database);
+    const fixture = await seedOrdersFixture();
+    const now = new Date();
+
+    const created = await repositories.orders.createOrder({
+      choiceMode: "global_catalog",
+      deliveryAddressSnapshot: addressSnapshot,
+      foodDeadline: new Date(now.getTime() + 3_600_000),
+      groupId: fixture.group.id,
+      initialBranchId: fixture.branch.id,
+      initialRestaurantId: fixture.restaurant.id,
+      managerUserId: fixture.manager.id,
+      now,
+      participants: [
+        {
+          displayName: fixture.manager.displayName,
+          restaurantResponse: "responded",
+          role: "manager",
+          userId: fixture.manager.id,
+        },
+        {
+          displayName: fixture.member.displayName,
+          restaurantResponse: "pending",
+          role: "member",
+          userId: fixture.member.id,
+        },
+      ],
+      restaurantDeadline: new Date(now.getTime() + 1_800_000),
+      selected: null,
+      shortlistRestaurantIds: [],
+      state: "restaurant_voting",
+    });
+
+    const memberView = await repositories.orders.listVisibleForUser(
+      fixture.member.id,
+    );
+    expect(memberView.some((order) => order.orderId === created.id)).toBe(true);
+
+    const ownerView = await repositories.orders.listVisibleForUser(
+      fixture.manager.id,
+    );
+    expect(ownerView.some((order) => order.orderId === created.id)).toBe(true);
+
+    const outsiderView = await repositories.orders.listVisibleForUser(
+      fixture.outsider.id,
+    );
+    expect(outsiderView.some((order) => order.orderId === created.id)).toBe(
+      false,
+    );
   });
 });

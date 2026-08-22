@@ -1,8 +1,11 @@
-import { ChevronRight, Clock3, Sparkles, Users, Utensils } from "lucide-react";
+import { ArrowRight, ChevronRight, Clock3, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
 import { catalogRuntime } from "../../src/features/catalog/catalog-runtime";
+import { ordersRuntime } from "../../src/features/orders/orders-runtime";
+import { formatStateLabel } from "../../src/features/orders/order-format";
+import type { OrderSummary } from "../../src/features/orders/orders-service";
 import { getCurrentServerPageIdentity } from "../../src/auth/load-server-page-identity";
 import { MemberAccessState } from "../components/member-access-state";
 
@@ -13,72 +16,37 @@ export default async function MemberHomePage() {
     identityResult.status === "authenticated" &&
     identityResult.identity.memberships.length > 0;
   const restaurants = await catalogRuntime.catalog.listRestaurants();
+  const orderSummaries =
+    hasMemberships && identityResult.status === "authenticated"
+      ? await ordersRuntime.listOrderSummaries(identityResult.identity.userId)
+      : { active: [], history: [] };
+  const nearbyCategories = Array.from(
+    new Set(restaurants.flatMap((restaurant) => restaurant.cuisines)),
+  ).slice(0, 3);
+  const firstName =
+    identityResult.status === "authenticated"
+      ? identityResult.identity.displayName.trim().split(/\s+/)[0] || "there"
+      : "there";
 
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="home">
       <div className="member-page home-page">
-        <h1 className="sr-only">Home</h1>
+        <header className="home-intro">
+          <h1>Good morning, {firstName}</h1>
+          <p>
+            {orderSummaries.active.length === 1
+              ? "One group order needs your food choice."
+              : orderSummaries.active.length > 1
+                ? `${orderSummaries.active.length} group orders need your attention.`
+                : "Find something good for your next group order."}
+          </p>
+        </header>
 
-        {hasMemberships ? (
-          <section
-            aria-labelledby="active-order-title"
-            className="active-order-card"
-          >
-            <p className="eyebrow">Active group order</p>
-            <div className="active-order-card__group">
-              <span aria-hidden="true" className="group-icon">
-                <Users size={22} />
-              </span>
-              <strong>Friends</strong>
-              <ChevronRight aria-hidden="true" size={22} />
-              <span className="member-count">7 members</span>
-            </div>
-
-            <div className="active-order-card__inner">
-              <div className="active-order-card__heading">
-                <div>
-                  <h2 id="active-order-title">Friday lunch</h2>
-                  <p className="deadline">
-                    <Clock3 aria-hidden="true" size={18} /> Vote by 11:30 AM
-                  </p>
-                </div>
-                <div
-                  aria-label="Four of seven members shown"
-                  className="avatar-stack"
-                >
-                  <span aria-hidden="true">M</span>
-                  <span aria-hidden="true">JD</span>
-                  <span aria-hidden="true">AK</span>
-                  <span aria-hidden="true" className="avatar-more">
-                    +3
-                  </span>
-                </div>
-              </div>
-              <p className="vote-count">
-                <strong>4</strong> of 7 voted
-              </p>
-              <div
-                aria-label="4 of 7 members voted"
-                aria-valuemax={7}
-                aria-valuemin={0}
-                aria-valuenow={4}
-                className="progress-track"
-                role="progressbar"
-              >
-                <span />
-              </div>
-              <Link className="primary-action" href="/orders">
-                <span aria-hidden="true" className="primary-action__icon">
-                  <Utensils size={21} />
-                </span>
-                Choose restaurant
-              </Link>
-              <p className="fallback-note">
-                <Sparkles aria-hidden="true" size={18} /> No response?
-                Mia&apos;s pick wins.
-              </p>
-            </div>
-          </section>
+        {hasMemberships && orderSummaries.active[0] !== undefined ? (
+          <ActiveOrderSection
+            more={orderSummaries.active.length - 1}
+            order={orderSummaries.active[0]}
+          />
         ) : null}
 
         <section
@@ -87,8 +55,24 @@ export default async function MemberHomePage() {
           id="restaurants"
         >
           <div className="section-heading-row">
-            <h2 id="restaurants-title">Restaurants</h2>
+            <h2 id="restaurants-title">Nearby restaurants</h2>
+            <a href="#restaurant-list">See all</a>
           </div>
+          {restaurants.length === 0 ? null : (
+            <div
+              aria-label="Nearby restaurant categories"
+              className="category-chips"
+            >
+              <span className="category-chip category-chip--active">
+                All nearby
+              </span>
+              {nearbyCategories.map((category) => (
+                <span className="category-chip" key={category}>
+                  {category}
+                </span>
+              ))}
+            </div>
+          )}
           {restaurants.length === 0 ? (
             <p className="restaurant-empty">
               No restaurants published yet. Check back soon.
@@ -126,6 +110,11 @@ export default async function MemberHomePage() {
                       {restaurant.branchName}
                     </span>
                   </div>
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="restaurant-card__chevron"
+                    size={21}
+                  />
                 </Link>
               ))}
             </div>
@@ -134,4 +123,75 @@ export default async function MemberHomePage() {
       </div>
     </MemberAccessState>
   );
+}
+
+function ActiveOrderSection({
+  order,
+  more,
+}: {
+  readonly order: OrderSummary;
+  readonly more: number;
+}) {
+  const callToAction =
+    order.state === "restaurant_voting"
+      ? "Choose restaurant"
+      : order.state === "food_confirmation"
+        ? "Confirm your food"
+        : "Review handoff";
+  return (
+    <section aria-labelledby="active-order-title" className="active-order-card">
+      <div className="active-order-card__topline">
+        <p className="eyebrow">Active group order</p>
+        <span className="member-count">
+          {order.participantsVoted} of {order.participantsTotal} ready
+        </span>
+      </div>
+      <h2 id="active-order-title">
+        {order.restaurantName ?? formatStateLabel(order.state)}
+      </h2>
+      <p className="active-order-card__context">
+        <Users aria-hidden="true" size={18} /> {order.groupName}
+        <span aria-hidden="true">·</span>
+        <Clock3 aria-hidden="true" size={18} />
+        {order.deadline === null
+          ? "Waiting for the order manager"
+          : `ends ${formatHomeDeadline(order.deadline)}`}
+      </p>
+      <p className="vote-count">
+        {order.participantsVoted} of {order.participantsTotal} responded
+      </p>
+      <div
+        aria-label={`${order.participantsVoted} of ${order.participantsTotal} members responded`}
+        aria-valuemax={order.participantsTotal}
+        aria-valuemin={0}
+        aria-valuenow={order.participantsVoted}
+        className="progress-track"
+        role="progressbar"
+      >
+        <span
+          style={{
+            width: `${(order.participantsVoted / order.participantsTotal) * 100}%`,
+          }}
+        />
+      </div>
+      <Link className="primary-action" href={`/orders/${order.orderId}`}>
+        {callToAction}
+        <ArrowRight aria-hidden="true" size={20} />
+      </Link>
+      {more > 0 ? (
+        <p className="fallback-note">
+          <Link href="/orders">+{more} more in Orders</Link>
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+/** Keeps the compact Home card readable while preserving the full deadline on Orders. */
+function formatHomeDeadline(deadline: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Asia/Manila",
+  }).format(deadline);
 }

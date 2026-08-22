@@ -1,53 +1,17 @@
 # Progress Tracker
 
-Current state and remaining work. Completed bundle evidence lives in [`context/history/`](history/).
 
 ## Current Phase
 
-- V1-01 through V1-06 and Multi-group foundation are merged to `main`.
-- Restaurant catalog import, admin editing, and member browsing are connected to Neon on web. Other persistence, permission enforcement, order actions, file uploads, notifications, and background work remain deferred.
+- Member PWA reference redesign and compact-density refinement implemented across member screens, including single-back nested pages and 84–85px restaurant menu rows. Evidence: 94 test files / 520 tests, full workspace typecheck, web production build, lint with one pre-existing unrelated mobile warning, and authenticated comparison captures.
 
-## Completed
-
-- V1-01 Monorepo, Expo Android, Next.js web
-- V1-02 Shared contracts and provider-neutral domain types
-- V1-03 Neon schema, migrations, pooled access, immutable audit
-- V1-04 Clerk Google sign-in (replaced by V1-04A)
-- V1-04A Better Auth Google sign-in on Neon
-- V1-05 Invitation-only access, one-group membership, roles, admin requests
-- V1-06 Platform-admin approval and limited mobile-admin permissions
-- Multi-group foundation — multi-membership, Manager rename, one active Owner per group, group-scoped authorization
-- V1-07 Group details, creation, and persistent invites — Group details read path on web and mobile, web admin Create group, Owner rename and rotate-link actions, persistent multi-use per-group invite links replacing single-use tokens for new acceptances. The simple role checks introduced here will be refactored by the Effective permissions foundation bundle.
-- Profile menu and sign out — Real avatar, name, and email in the web member header, web admin header, and mobile member header. Working Sign out on all three surfaces. Removes the hardcoded `profile-mia.jpg` mock and threads the Better Auth session profile fields through `AppIdentity`, `AppIdentitySummary`, and `/api/identity/me`.
-- Admin Create group modal — Centered modal styling, dirty-form wobble on backdrop clicks, and explicit discard confirmation from the X close control.
-- Users & permissions real users list — Platform Admin now sees real users (themselves included), real group roles, and Platform Admin status on the admin Users & permissions page, replacing the prior mock UI. Working client-side search by name/email. Effective permissions panel and Save are deferred to their own foundation bundle; Add-user-to-group and Suspend-account buttons stay visible but disabled. Automated checks (unit, provider integration, lint, typecheck, web build) all pass; manual browser verification is the remaining step before squash-merge.
-- Member and admin UI polish — Member groups list now shows initials-icon, name, member count, and role pill on each card. Group details page centers the title at the top with a single roster that pins the Owner first, followed by Members, plus an "Add people" action for owners. Admin catalog page dropped the nested panel wrapper, gave the search its own labeled field, and aligned restaurant card content under a single body padding. Admin import dropzone centers an "Upload" button, switches to a centered restaurant-name + logo preview after a file is picked, and exposes "Import this Restaurant" as the confirming action.
-- Admin CRUD on users and groups — Platform Admin can add/remove users in groups (Member role only), suspend users (sets archivedAt), rename groups (bypassing owner check), and archive groups. All five actions are Platform-Admin-gated and append an immutable audit event. Automated checks pass (one pre-existing provider-test failure also fails on main); manual browser verification is the remaining step before squash-merge. Effective permissions, override Save, role changes within a group, ownership transfer, and restoration of archived rows remain deferred.
 
 ## Journey Bundles
 
-**Foundation** (sequential):
 
-- [ ] Effective permissions and account overrides
-- [ ] Group membership journey — after Effective permissions
+## Completed
 
-**After Multi-group** (parallel):
-
-- [x] Restaurant catalog — implementation, strict public API mapping, source-ID replacement, required-field/upload validation, admin search/branch editing/recent imports, and focused checks pass. Development Neon accepted McDonald's (158 items) and KFC (129 items), admin edit persistence passed, authenticated web Home/detail passed, migrations `0006`/`0007` are present, and the verified `0004`–`0007` journal drift was reconciled; the normal migration runner now completes successfully. Android acceptance remains blocked by an Expo SDK 57 Router/Worklets native crash reproduced in both this app and a fresh official Router control project on the installed Android 16 emulator; a plain Expo control project stays open.
-- [x] add Favorites — web save/ranking shipped: members save up to 3 ranked meals per restaurant from meal cards (+/✓), duplicate and fourth saves return friendly messages, removal compacts ranks, and the Favorites page lists ranked groups per restaurant — branch with prices and Remove; unit/lint/typecheck/build pass, provider tests pass (one known pre-existing failure), manual browser verification completed 2026-08-17; auto-order wiring is deferred to the order bundles and mobile is deferred.
-- [ ] Private files and import
-- [ ] Platform Admin operations — after Effective permissions
-
-**Order sequence** (after Group membership + Restaurant catalog):
-
-- [ ] Order setup and participant → Restaurant voting → Food confirmation → Handoff and completion → Receipts, history, post-order Favorites
-
-**Operational**:
-
-- [ ] Catalog refresh — after Private files and import
-- [ ] Deadlines and notifications — after Order setup contracts stabilize
-- [ ] Client delivery — after the full order loop
-- [ ] Release verification — final
+- [x] Order setup and participants — merged to `main` 2026-08-22 (squash title "Order setup and participants"). Evidence and decisions in [`history/order-setup-participants.md`](history/order-setup-participants.md). Next order-sequence stage: Restaurant voting.
 
 ## Completion Evidence
 

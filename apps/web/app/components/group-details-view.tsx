@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Crown, ShieldCheck, User, UserPlus } from "lucide-react";
+import { Pencil, UserPlus } from "lucide-react";
+import Link from "next/link";
 
 import type { GroupDetails } from "@ordah-please/domain";
 
@@ -11,7 +12,10 @@ export interface GroupDetailsViewProps {
 }
 
 /** Renders one group's name, a single roster with the owner pinned first, and management actions. */
-export function GroupDetailsView({ details, canManage }: GroupDetailsViewProps) {
+export function GroupDetailsView({
+  details,
+  canManage,
+}: GroupDetailsViewProps) {
   const [name, setName] = useState(details.name);
   const [editing, setEditing] = useState(false);
   const [savingRename, setSavingRename] = useState(false);
@@ -144,10 +148,10 @@ export function GroupDetailsView({ details, canManage }: GroupDetailsViewProps) 
           </div>
         ) : (
           <div className="group-details-header__title">
-            <h1>{details.name}</h1>
-            <p>
-              {totalPeople} {totalPeople === 1 ? "person" : "people"}
+            <p className="eyebrow">
+              {totalPeople} {totalPeople === 1 ? "member" : "members"}
             </p>
+            <h1>{details.name}</h1>
             {canManage ? (
               <button
                 aria-label="Rename group"
@@ -155,7 +159,7 @@ export function GroupDetailsView({ details, canManage }: GroupDetailsViewProps) 
                 onClick={() => setEditing(true)}
                 type="button"
               >
-                ✏️
+                <Pencil aria-hidden="true" size={16} />
               </button>
             ) : null}
           </div>
@@ -170,17 +174,25 @@ export function GroupDetailsView({ details, canManage }: GroupDetailsViewProps) 
       <ul className="group-roster">
         <li className="group-roster__item group-roster__item--owner">
           <span className="group-roster__avatar" aria-hidden="true">
-            <Crown size={16} />
+            {initialsOf(details.owner.displayName)}
           </span>
-          <span className="group-roster__name">{details.owner.displayName}</span>
+          <span className="group-roster__identity">
+            <span className="group-roster__name">
+              {details.owner.displayName}
+            </span>
+            <small>Order manager</small>
+          </span>
           <span className="role-pill role-pill--owner">Owner</span>
         </li>
         {nonOwnerMembers.map((member) => (
           <li key={member.userId} className="group-roster__item">
             <span className="group-roster__avatar" aria-hidden="true">
-              <RoleIcon role={member.role} />
+              {initialsOf(member.displayName)}
             </span>
-            <span className="group-roster__name">{member.displayName}</span>
+            <span className="group-roster__identity">
+              <span className="group-roster__name">{member.displayName}</span>
+              <small>Joined this group</small>
+            </span>
             <span
               className={
                 member.role === "manager"
@@ -196,6 +208,13 @@ export function GroupDetailsView({ details, canManage }: GroupDetailsViewProps) 
 
       {canManage && inviteLink !== undefined ? (
         <div className="group-details-manage">
+          <h2>Group actions</h2>
+          <Link
+            className="primary-action group-details-manage__start"
+            href={`/orders/new?groupId=${encodeURIComponent(details.groupId)}`}
+          >
+            Start an order
+          </Link>
           <button
             className="add-people-button"
             onClick={() => {
@@ -204,7 +223,7 @@ export function GroupDetailsView({ details, canManage }: GroupDetailsViewProps) 
             type="button"
           >
             <UserPlus aria-hidden="true" size={16} />
-            {copied ? "Link copied" : "Add people"}
+            {copied ? "Link copied" : "Copy invite link"}
           </button>
           <p className="group-details-manage__hint">
             Anyone with the link can join. Link ends in{" "}
@@ -239,16 +258,6 @@ function roleLabel(role: string): string {
     return "Manager";
   }
   return "Member";
-}
-
-function RoleIcon({ role }: { readonly role: string }) {
-  if (role === "group-owner") {
-    return <Crown aria-hidden="true" size={14} />;
-  }
-  if (role === "manager") {
-    return <ShieldCheck aria-hidden="true" size={14} />;
-  }
-  return <User aria-hidden="true" size={14} />;
 }
 
 /** Returns up to two uppercase initials from a group name for the icon badge. */

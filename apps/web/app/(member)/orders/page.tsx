@@ -1,14 +1,32 @@
-import { ChevronRight, Clock3, Store, Users } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
+import Link from "next/link";
 
 import { getCurrentServerPageIdentity } from "../../../src/auth/load-server-page-identity";
+import {
+  formatDeadline,
+  formatStateLabel,
+} from "../../../src/features/orders/order-format";
+import { ordersRuntime } from "../../../src/features/orders/orders-runtime";
+import type { OrderSummary } from "../../../src/features/orders/orders-service";
 import { MemberAccessState } from "../../components/member-access-state";
 
-/** Shows actionable current orders and immutable past participation with practical filters. */
+/** Shows actionable current orders and immutable past participation. */
 export default async function OrdersPage() {
   const identityResult = await getCurrentServerPageIdentity();
   const hasMemberships =
     identityResult.status === "authenticated" &&
     identityResult.identity.memberships.length > 0;
+  const canStartOrder =
+    identityResult.status === "authenticated" &&
+    identityResult.identity.memberships.some(
+      (membership) =>
+        membership.role === "group-owner" || membership.role === "manager",
+    );
+
+  const summaries =
+    identityResult.status === "authenticated"
+      ? await ordersRuntime.listOrderSummaries(identityResult.identity.userId)
+      : { active: [], history: [] };
 
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="orders">
@@ -16,85 +34,98 @@ export default async function OrdersPage() {
         <header className="page-intro">
           <p className="eyebrow">Your activity</p>
           <h1>Orders</h1>
-          <p>Respond to active orders and revisit the meals you joined.</p>
+          <p>Respond to active orders and revisit past meals.</p>
         </header>
 
-        <form aria-label="Order filters" className="filter-grid">
-          {["Group", "Restaurant", "Status", "Date"].map((label) => (
-            <label key={label}>
-              {label}
-              <select defaultValue="All">
-                <option>All</option>
-              </select>
-            </label>
-          ))}
-        </form>
+        <div aria-label="Order sections" className="section-pills">
+          <span className="section-pill section-pill--active">All</span>
+          <span className="section-pill">Needs action</span>
+          <span className="section-pill">History</span>
+        </div>
+
+        {canStartOrder ? (
+          <Link className="primary-action" href="/orders/new">
+            <span aria-hidden="true" className="primary-action__icon">
+              <Plus size={21} />
+            </span>
+            New order
+          </Link>
+        ) : null}
 
         <section
           aria-labelledby="active-orders-heading"
           className="content-section"
         >
           <div className="section-heading-row">
-            <h2 id="active-orders-heading">Active orders</h2>
-            <span className="count-badge">2</span>
+            <h2 id="active-orders-heading">Active</h2>
+            <span className="count-badge">{summaries.active.length}</span>
           </div>
-          <article className="order-card order-card--urgent">
-            <div className="order-card__icon">
-              <Users aria-hidden="true" size={22} />
-            </div>
-            <div className="order-card__content">
-              <span className="status-pill">Voting</span>
-              <h3>Friday lunch</h3>
-              <p>Friends · Choose a restaurant</p>
-              <p className="deadline">
-                <Clock3 aria-hidden="true" size={16} /> Due today at 11:30 AM
-              </p>
-            </div>
-            <ChevronRight aria-hidden="true" size={22} />
-          </article>
-          <article className="order-card">
-            <div className="order-card__icon">
-              <Store aria-hidden="true" size={22} />
-            </div>
-            <div className="order-card__content">
-              <span className="status-pill status-pill--soft">
-                Food confirmation
-              </span>
-              <h3>Campaign dinner</h3>
-              <p>Design team · Restaurant selected</p>
-              <p className="deadline">
-                <Clock3 aria-hidden="true" size={16} /> Due tomorrow at 5:00 PM
-              </p>
-            </div>
-            <ChevronRight aria-hidden="true" size={22} />
-          </article>
+          {summaries.active.length === 0 ? (
+            <p className="restaurant-empty">
+              No active orders right now.{" "}
+              {canStartOrder ? "Start one for your group." : "Check back soon."}
+            </p>
+          ) : (
+            summaries.active.map((order) => (
+              <ActiveOrderCard key={order.orderId} order={order} />
+            ))
+          )}
         </section>
 
         <section aria-labelledby="history-heading" className="content-section">
           <div className="section-heading-row">
-            <h2 id="history-heading">Order history</h2>
-            <button className="text-button" type="button">
-              View all
-            </button>
+            <h2 id="history-heading">History</h2>
           </div>
-          <article className="history-card">
-            <div>
-              <span className="status-pill status-pill--complete">Ordered</span>
-              <h3>Tuesday lunch</h3>
-              <p>Restaurant selected · Friends</p>
-            </div>
-            <strong>₱420.00</strong>
-          </article>
-          <article className="history-card">
-            <div>
-              <span className="status-pill status-pill--muted">Cancelled</span>
-              <h3>Planning snacks</h3>
-              <p>Restaurant pending · Design team</p>
-            </div>
-            <strong>₱0.00</strong>
-          </article>
+          {summaries.history.length === 0 ? (
+            <p className="restaurant-empty">
+              Completed orders will appear here.
+            </p>
+          ) : (
+            summaries.history.map((order) => (
+              <article className="history-card" key={order.orderId}>
+                <div>
+                  <span
+                    className={
+                      order.state === "ordered"
+                        ? "status-pill status-pill--complete"
+                        : "status-pill status-pill--muted"
+                    }
+                  >
+                    {formatStateLabel(order.state)}
+                  </span>
+                  <h3>{order.groupName}</h3>
+                  <p>
+                    {order.restaurantName ?? "Restaurant pending"} ·{" "}
+                    {order.participantsTotal}{" "}
+                    {order.participantsTotal === 1 ? "person" : "people"}
+                  </p>
+                </div>
+              </article>
+            ))
+          )}
         </section>
       </div>
     </MemberAccessState>
+  );
+}
+
+function ActiveOrderCard({ order }: { readonly order: OrderSummary }) {
+  return (
+    <Link className="order-card" href={`/orders/${order.orderId}`}>
+      <div className="order-card__content">
+        <span className="status-label">
+          {formatStateLabel(order.state)} · Action needed
+        </span>
+        <h3>{order.restaurantName ?? order.groupName}</h3>
+        <p>
+          {order.groupName} · {order.participantsVoted} of{" "}
+          {order.participantsTotal} responded
+          {order.deadline === null
+            ? ""
+            : ` · ends ${formatDeadline(order.deadline)}`}
+        </p>
+      </div>
+      <ChevronRight aria-hidden="true" size={22} />
+    </Link>
   );
 }

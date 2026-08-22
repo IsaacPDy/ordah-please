@@ -36,6 +36,7 @@ const expectedTables = [
   "order_line_modifiers",
   "order_lines",
   "order_participants",
+  "order_shortlist_restaurants",
   "orders",
   "receipts",
   "refresh_review_outcomes",
