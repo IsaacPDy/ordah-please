@@ -11,6 +11,7 @@ import {
   advanceFoodDeadline,
   completeOrder,
   createGroupOrder,
+  finishOrder,
   loadOrderDetail,
   listOrderSummaries,
   submitFoodResponse,
@@ -1077,5 +1078,116 @@ describe("loadOrderDetail food view", () => {
       itemName: "Zinger Combo",
       userId: memberId,
     });
+  });
+});
+
+describe("finishOrder", () => {
+  function finishRepositories(
+    overrides: Partial<OrdersServiceRepositories> = {},
+  ) {
+    const repositories = createRepositories();
+    vi.mocked(repositories.orders.findOrderDetail).mockResolvedValue(
+      foodOrderDetail(),
+    );
+    vi.mocked(
+      repositories.favorites.listForUserAndBranchWithItems,
+    ).mockImplementation((userId: string) =>
+      Promise.resolve(
+        userId === memberId
+          ? [
+              {
+                branchId,
+                id: favoriteId,
+                items: [{ menuItemId, note: "", quantity: 1 }],
+                name: "Zinger Combo",
+                rank: 1,
+              },
+            ]
+          : [],
+      ),
+    );
+    return { ...repositories, ...overrides };
+  }
+
+  it("orders rank-1 defaults for pending participants and moves the order to history", async () => {
+    const repositories = finishRepositories();
+    await finishOrder(
+      {
+        identity: identityFor(managerId, "manager"),
+        now,
+        orderId: foodOrderId,
+      },
+      runnerFor(repositories),
+    );
+    expect(repositories.orders.upsertFoodResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        favoriteId,
+        lines: [expect.objectContaining({ itemNameSnapshot: "Zinger Combo" })],
+        source: "saved_favorite",
+        status: "confirmed",
+        userId: memberId,
+      }),
+    );
+    expect(repositories.orders.upsertFoodResponse).toHaveBeenCalledTimes(1);
+    expect(repositories.orders.setState).toHaveBeenCalledWith(
+      foodOrderId,
+      expect.objectContaining({ completedAt: now, state: "ordered" }),
+    );
+    expect(repositories.auditEvents.append).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "order.ordered" }),
+    );
+  });
+
+  it("finishes even when a pending participant has no usable favorite", async () => {
+    const repositories = finishRepositories();
+    vi.mocked(
+      repositories.favorites.listForUserAndBranchWithItems,
+    ).mockResolvedValue([] as never);
+    await finishOrder(
+      {
+        identity: identityFor(managerId, "manager"),
+        now,
+        orderId: foodOrderId,
+      },
+      runnerFor(repositories),
+    );
+    expect(repositories.orders.upsertFoodResponse).not.toHaveBeenCalled();
+    expect(repositories.orders.setState).toHaveBeenCalledWith(
+      foodOrderId,
+      expect.objectContaining({ state: "ordered" }),
+    );
+  });
+
+  it("rejects a plain participant", async () => {
+    const repositories = finishRepositories();
+    await expect(
+      finishOrder(
+        {
+          identity: identityFor(memberId, "member"),
+          now,
+          orderId: foodOrderId,
+        },
+        runnerFor(repositories),
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(repositories.orders.setState).not.toHaveBeenCalled();
+  });
+
+  it("rejects orders outside the food-picks stage", async () => {
+    const repositories = finishRepositories();
+    vi.mocked(repositories.orders.findOrderDetail).mockResolvedValue(
+      foodOrderDetail({ state: "ready_for_handoff" }),
+    );
+    await expect(
+      finishOrder(
+        {
+          identity: identityFor(managerId, "manager"),
+          now,
+          orderId: foodOrderId,
+        },
+        runnerFor(repositories),
+      ),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(repositories.orders.setState).not.toHaveBeenCalled();
   });
 });

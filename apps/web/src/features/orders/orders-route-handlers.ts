@@ -50,6 +50,15 @@ export interface FoodResponseHandlerDependencies
   }) => Promise<Readonly<{ ok: true }>>;
 }
 
+export interface FinishOrderHandlerDependencies
+  extends OrdersHandlerDependencies {
+  readonly finishOrder: (command: {
+    identity: AppIdentity;
+    orderId: string;
+    now: Date;
+  }) => Promise<Readonly<{ ok: true }>>;
+}
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -199,6 +208,32 @@ export function createFoodResponseHandler(
           }
           throw new PublicApiError("INVALID_INPUT", "Invalid request body.");
         }
+      },
+    }, {
+      loadIdentity: dependencies.loadIdentity,
+      verifySession: () => dependencies.verifySession(request),
+    });
+}
+
+/** Creates the POST handler that finishes an order early. */
+export function createFinishOrderHandler(
+  dependencies: FinishOrderHandlerDependencies,
+  getOrderId: (request: Request) => string | undefined,
+): (request: Request) => Promise<Response> {
+  return (request) =>
+    executeRoute<Readonly<{ orderId: OrderId }>, unknown>(request, {
+      authorize: () => true,
+      execute: async ({ identity, input }) =>
+        dependencies.finishOrder({
+          identity,
+          now: new Date(),
+          orderId: input.orderId,
+        }),
+      validate: async (currentRequest) => {
+        verifyTrustedMutationRequest(currentRequest);
+        const orderId = parseOrderIdParam(getOrderId(currentRequest));
+        await parseJsonBody(currentRequest);
+        return { orderId };
       },
     }, {
       loadIdentity: dependencies.loadIdentity,

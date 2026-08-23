@@ -639,6 +639,41 @@ export async function submitFoodResponse(
   });
 }
 
+/** Collects expandable rank-1 favorites for the given pending participants. */
+async function collectRankOneDefaults(
+  pendingUserIds: readonly string[],
+  selectedBranchId: string,
+  selectedMenuVersionId: string,
+  repositories: Pick<OrdersServiceRepositories, "catalog" | "favorites">,
+): Promise<
+  Map<string, { favoriteId: string; lines: readonly FoodResponseLineInput[] }>
+> {
+  const defaults = new Map<
+    string,
+    { favoriteId: string; lines: readonly FoodResponseLineInput[] }
+  >();
+  for (const userId of pendingUserIds) {
+    const favorites = await repositories.favorites.listForUserAndBranchWithItems(
+      userId,
+      selectedBranchId,
+    );
+    const rankOne = favorites[0];
+    if (rankOne === undefined || rankOne.items.length === 0) {
+      continue;
+    }
+    const lines = await expandFavoriteLines(
+      rankOne,
+      selectedMenuVersionId,
+      repositories,
+    );
+    if (lines === null || lines.length === 0) {
+      continue;
+    }
+    defaults.set(userId, { favoriteId: rankOne.id, lines });
+  }
+  return defaults;
+}
+
 /**
  * Lazily closes food picks when the deadline has passed: materializes
  * rank-1 favorite defaults for still-pending participants and, once every
@@ -686,29 +721,12 @@ export async function advanceFoodDeadline(
       .map((participant) => participant.userId);
     const pendingByUser = new Set(pendingUserIds);
 
-    const defaults = new Map<
-      string,
-      { favoriteId: string; lines: readonly FoodResponseLineInput[] }
-    >();
-    for (const userId of pendingUserIds) {
-      const favorites = await repositories.favorites.listForUserAndBranchWithItems(
-        userId,
-        row.selectedBranchId,
-      );
-      const rankOne = favorites[0];
-      if (rankOne === undefined || rankOne.items.length === 0) {
-        continue;
-      }
-      const lines = await expandFavoriteLines(
-        rankOne,
-        row.selectedMenuVersionId,
-        repositories,
-      );
-      if (lines === null || lines.length === 0) {
-        continue;
-      }
-      defaults.set(userId, { favoriteId: rankOne.id, lines });
-    }
+    const defaults = await collectRankOneDefaults(
+      pendingUserIds,
+      row.selectedBranchId,
+      row.selectedMenuVersionId,
+      repositories,
+    );
 
     // The policy carries explicit selections opaquely; this engine consumes
     // only its classification (default / declined / unresolved), so already
@@ -798,6 +816,97 @@ export async function advanceFoodDeadline(
       }
     }
     return { advanced: materialized > 0 } as const;
+  });
+}
+
+/**
+ * Finishes the order early at the manager's request: rank-1 favorites are
+ * ordered for still-pending participants, no-favorite participants are left
+ * empty, and the order moves straight to ordered (History).
+ */
+export async function finishOrder(
+  command: Readonly<{
+    identity: AppIdentity;
+    orderId: string;
+    now: Date;
+  }>,
+  runner: OrdersTransactionRunner,
+): Promise<Readonly<{ ok: true }>> {
+  return runner.run(async (repositories) => {
+    const row = (await repositories.orders.findOrderDetail(
+      command.orderId,
+    )) as OrderDetailDatabaseRow | undefined;
+    if (row === undefined) {
+      throw new PublicApiError("NOT_FOUND", "Order not found.");
+    }
+
+    const membership = command.identity.memberships.find(
+      (candidate) => candidate.groupId === row.groupId,
+    );
+    const isParticipant = row.participants.some(
+      (participant) => participant.userId === command.identity.userId,
+    );
+    const isOwner = membership?.role === "group-owner";
+    if (!isParticipant && !isOwner) {
+      throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
+    }
+    if (row.managerUserId !== command.identity.userId && !isOwner) {
+      throw new PublicApiError(
+        "FORBIDDEN",
+        "Only the order manager can finish this order early.",
+      );
+    }
+
+    if (
+      row.state !== "food_confirmation" ||
+      row.selectedBranchId === null ||
+      row.selectedMenuVersionId === null
+    ) {
+      throw new PublicApiError(
+        "CONFLICT",
+        "Only orders in food picks can be finished early.",
+      );
+    }
+
+    const pendingUserIds = row.participants
+      .filter((participant) => participant.foodResponse === "pending")
+      .map((participant) => participant.userId);
+    const defaults = await collectRankOneDefaults(
+      pendingUserIds,
+      row.selectedBranchId,
+      row.selectedMenuVersionId,
+      repositories,
+    );
+    for (const userId of pendingUserIds) {
+      const fallback = defaults.get(userId);
+      if (fallback === undefined) {
+        continue;
+      }
+      await repositories.orders.upsertFoodResponse({
+        favoriteId: fallback.favoriteId,
+        lines: fallback.lines,
+        now: command.now,
+        orderId: row.orderId,
+        source: "saved_favorite",
+        status: "confirmed",
+        userId,
+      });
+    }
+
+    const target = transitionOrderState(row.state, "ordered");
+    await repositories.orders.setState(row.orderId, {
+      completedAt: command.now,
+      state: target.state,
+      updatedAt: command.now,
+    });
+    await repositories.auditEvents.append({
+      action: "order.ordered",
+      actorUserId: command.identity.userId,
+      details: { finishedEarly: true },
+      resourceId: row.orderId,
+      resourceType: "order",
+    });
+    return { ok: true } as const;
   });
 }
 

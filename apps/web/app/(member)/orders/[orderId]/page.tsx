@@ -12,6 +12,7 @@ import {
 import { ordersRuntime } from "../../../../src/features/orders/orders-runtime";
 import { MemberAccessState } from "../../../components/member-access-state";
 import { CancelOrderButton } from "./cancel-order-button";
+import { FinishOrderButton } from "./finish-order-button";
 import { FoodPickerSection } from "./food-picker-section";
 
 type OrderView = Awaited<ReturnType<typeof ordersRuntime.loadOrderDetailView>>;
@@ -297,6 +298,10 @@ export default async function OrderDetailPage({
               })}
             </ul>
           </section>
+        ) : null}
+
+        {view.viewer.canManage && view.order.state === "food_confirmation" ? (
+          <FinishOrderButton orderId={view.order.orderId} />
         ) : null}
 
         {view.viewer.canManage &&

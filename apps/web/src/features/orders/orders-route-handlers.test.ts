@@ -12,6 +12,7 @@ import type { VerifiedSession } from "../../auth/verify-session";
 import {
   createCompleteOrderHandler,
   createCreateOrderHandler,
+  createFinishOrderHandler,
   createFoodResponseHandler,
 } from "./orders-route-handlers";
 
@@ -377,6 +378,113 @@ describe("food response route handler", () => {
     const response = await handler(
       new Request(`https://ordah.test/api/orders/${orderId}/food-response`, {
         body: JSON.stringify({ kind: "declined" }),
+        headers: {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin",
+        },
+        method: "POST",
+      }),
+    );
+    expect(response.status).toBe(409);
+  });
+});
+
+describe("finish order route handler", () => {
+  const orderId = "99999999-9999-4999-8999-999999999999";
+
+  it("finishes an order from its URL parameter", async () => {
+    const finishOrder = vi.fn(() => Promise.resolve({ ok: true } as const));
+    const handler = createFinishOrderHandler(
+      {
+        finishOrder,
+        loadIdentity: () => identity,
+        verifySession: () => session,
+      },
+      () => orderId,
+    );
+    const response = await handler(
+      new Request(`https://ordah.test/api/orders/${orderId}/finish`, {
+        body: JSON.stringify({}),
+        headers: {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin",
+        },
+        method: "POST",
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(finishOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ identity, orderId }),
+    );
+  });
+
+  it("rejects an invalid order id parameter", async () => {
+    const finishOrder = vi.fn(() => Promise.resolve({ ok: true } as const));
+    const handler = createFinishOrderHandler(
+      {
+        finishOrder,
+        loadIdentity: () => identity,
+        verifySession: () => session,
+      },
+      () => "not-a-uuid",
+    );
+    const response = await handler(
+      new Request(`https://ordah.test/api/orders/${orderId}/finish`, {
+        body: JSON.stringify({}),
+        headers: {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin",
+        },
+        method: "POST",
+      }),
+    );
+    expect(response.status).toBe(400);
+    expect(await readFailureCode(response)).toBe("INVALID_INPUT");
+  });
+
+  it("rejects cross-site mutations", async () => {
+    const finishOrder = vi.fn(() => Promise.resolve({ ok: true } as const));
+    const handler = createFinishOrderHandler(
+      {
+        finishOrder,
+        loadIdentity: () => identity,
+        verifySession: () => session,
+      },
+      () => orderId,
+    );
+    const response = await handler(
+      new Request(`https://ordah.test/api/orders/${orderId}/finish`, {
+        body: JSON.stringify({}),
+        headers: {
+          "content-type": "application/json",
+          "sec-fetch-site": "cross-site",
+        },
+        method: "POST",
+      }),
+    );
+    expect(response.status).toBe(403);
+    expect(finishOrder).not.toHaveBeenCalled();
+  });
+
+  it("maps an out-of-stage conflict to 409", async () => {
+    const handler = createFinishOrderHandler(
+      {
+        finishOrder: vi.fn(() =>
+          Promise.reject(
+            new PublicApiError(
+              "CONFLICT",
+              "Only orders in food picks can be finished early.",
+            ),
+          ),
+        ),
+        loadIdentity: () => identity,
+        verifySession: () => session,
+      },
+      () => orderId,
+    );
+    const response = await handler(
+      new Request(`https://ordah.test/api/orders/${orderId}/finish`, {
+        body: JSON.stringify({}),
         headers: {
           "content-type": "application/json",
           "sec-fetch-site": "same-origin",

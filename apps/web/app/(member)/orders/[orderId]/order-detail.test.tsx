@@ -248,4 +248,39 @@ describe("order detail food picking", () => {
       "Top favorites stay visible until a participant confirms one meal.",
     );
   });
+
+  it("shows the manager Finish order now during food picks", async () => {
+    const { ordersRuntime } = await import(
+      "../../../../src/features/orders/orders-runtime"
+    );
+    vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce(
+      foodView as never,
+    );
+    const html = await renderFoodPage();
+    expect(html).toContain("Finish order now");
+  });
+
+  it("hides Finish order now outside the food-picks stage", async () => {
+    const { ordersRuntime } = await import(
+      "../../../../src/features/orders/orders-runtime"
+    );
+    vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
+      ...foodView,
+      order: { ...foodView.order, state: "ready_for_handoff" },
+    } as never);
+    const html = await renderFoodPage();
+    expect(html).not.toContain("Finish order now");
+  });
+
+  it("hides Finish order now from members", async () => {
+    const { ordersRuntime } = await import(
+      "../../../../src/features/orders/orders-runtime"
+    );
+    vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
+      ...foodView,
+      viewer: { canManage: false, kind: "participant" },
+    } as never);
+    const html = await renderFoodPage();
+    expect(html).not.toContain("Finish order now");
+  });
 });

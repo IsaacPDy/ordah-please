@@ -12,6 +12,7 @@ import {
   advanceFoodDeadline,
   completeOrder,
   createGroupOrder,
+  finishOrder,
   listOrderSummaries,
   loadOrderDetail,
   submitFoodResponse,
@@ -64,6 +65,9 @@ export const ordersRuntime = {
   /** Saves the participant's favorites-only food pick. */
   submitFoodResponse: (command: Parameters<typeof submitFoodResponse>[0]) =>
     submitFoodResponse(command, { run: runOrdersTransaction }),
+  /** Finishes the order early at the manager's request. */
+  finishOrder: (command: Parameters<typeof finishOrder>[0]) =>
+    finishOrder(command, { run: runOrdersTransaction }),
   /** Loads one order detail view for the living order page. */
   loadOrderDetailView: async (
     identity: Parameters<typeof loadOrderDetail>[0]["identity"],
