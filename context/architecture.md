@@ -64,6 +64,14 @@ Use private buckets for cached menu thumbnails, optional receipts, uploaded JSON
 
 Cache only non-secret display data and short-lived session state. The server remains authoritative for permissions, deadlines, votes, totals, and order state.
 
+### Web Rendering and Server Cache
+
+- Next.js Cache Components partially prerender a neutral route fallback while authenticated content streams from the server.
+- Shared published restaurant previews and menu detail use tagged, hour-scale server caching because every signed-in viewer receives the same published catalog.
+- Successful catalog imports and edits expire the shared catalog tag; restaurant edits also expire that restaurant's detail tag.
+- Identity, sessions, roles, memberships, favorites, orders, and history details are never placed in the shared catalog cache.
+- Home reads active orders only. Orders reads every active card plus ten compact terminal summaries; an authenticated, resource-authorized endpoint loads participant totals for one opened terminal order.
+
 ## Auth and Access Model
 
 - Google OAuth proves control of a Google identity, and Better Auth creates and verifies the application session.

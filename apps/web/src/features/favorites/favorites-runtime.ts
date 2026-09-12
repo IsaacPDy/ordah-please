@@ -51,6 +51,12 @@ export const favoritesRuntime = {
   /** Lists every favorite for the signed-in member, for the Favorites page. */
   listFavoritesForUser: (userId: string) =>
     createRepositories(getRuntimeDatabase()).favorites.listForUser(userId),
+  /** Lists only the signed-in member's bounded favorites for one restaurant branch. */
+  listFavoritesForBranch: (userId: string, branchId: string) =>
+    createRepositories(getRuntimeDatabase()).favorites.listForUserAndBranchWithItems(
+      userId,
+      branchId,
+    ),
   loadIdentity: loadRuntimeIdentity,
   verifySession,
 } as const;

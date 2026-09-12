@@ -29,6 +29,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │       │   ├── api/admin/catalog/# Platform Admin CSV import and restaurant/menu-item editing routes
 │       │   ├── api/auth/       # Better Auth handler and Google OAuth callback
 │       │   ├── api/catalog/    # Signed-in restaurant list and detail routes
+│       │   ├── api/orders/     # Order mutations plus cursor history pages and protected terminal detail
 │       │   ├── api/webhooks/   # Public signature-verified callbacks for non-auth providers
 │       │   ├── components/     # Web member/admin shells and reusable Groups/admin-page views
 │       │   ├── invite/         # PWA invitation sign-in and acceptance route
@@ -37,7 +38,8 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │       └── src/
 │           ├── application/    # Ordered route execution plus exact-group authorization in group-authorization.ts
 │           ├── auth/           # Better Auth, multi-membership identity, and request-cached gates in load-server-page-identity.ts
-│           └── features/access/# Access policies, route composition, and PWA access views
+│           ├── features/access/# Access policies, route composition, and PWA access views
+│           └── features/catalog/# Published-catalog cache tags and authenticated catalog runtime
 ├── packages/
 │   ├── contracts/              # Strict API parsers, including the shared multi-membership identity summary
 │   │   └── src/
@@ -90,7 +92,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 └── vitest.config.ts            # Node test projects and clean-clone workspace source resolution
 ```
 
-The current UI baseline replaces the original empty member shells with Home, Orders, Favorites, and Groups views on web/PWA and native mobile. Groups renders the signed-in account's real group names and exact roles from the protected identity boundary, and tapping a group opens Group details with the owner and member roster. The restaurant catalog now flows from strict Platform Admin CSV import through Neon-backed list/detail/edit APIs into member Home and restaurant detail on web and mobile. Catalog imports replace by globally unique Grab source ID, keep one import record and filename per upload, and feed the admin search, branch editor, and Recent imports table; Favorites remains an honest empty state until its separate bundle. The web admin shell contains the approved eight desktop destinations, lets Platform Admins create groups, and limits mobile navigation to Groups, Catalog, Access Requests, and Audit Log. Upcoming journey bundles connect the remaining Favorites, permission, order, receipt, and notification behavior.
+The current UI baseline replaces the original empty member shells with Home, Orders, Favorites, and Groups views on web/PWA and native mobile. Groups renders the signed-in account's real group names and exact roles from the protected identity boundary, and tapping a group opens Group details with the owner and member roster. The restaurant catalog now flows from strict Platform Admin CSV import through Neon-backed list/detail/edit APIs into member Home and restaurant detail on web and mobile. Published web catalog reads are bounded and tag-cached, while committed admin edits invalidate those tags. Orders server-renders active work and ten compact history summaries, then uses protected routes for expanded participant totals and later cursor pages. Catalog imports replace by globally unique Grab source ID, keep one import record and filename per upload, and feed the admin search, branch editor, and Recent imports table. The web admin shell contains the approved eight desktop destinations, lets Platform Admins create groups, and limits mobile navigation to Groups, Catalog, Access Requests, and Audit Log.
 
 ## Ownership Rules
 

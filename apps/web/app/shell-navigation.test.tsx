@@ -1,13 +1,14 @@
-import { renderToStaticMarkup } from "react-dom/server";
+import type { ReactNode } from "react";
+import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import AdminHomePage from "./admin/page";
-import AdminLayout from "./admin/layout";
+import AdminLayout, { AdminShellAccessLoading } from "./admin/layout";
 import AuditPage from "./admin/audit/page";
 import CatalogPage from "./admin/catalog/page";
 import ImportsPage from "./admin/imports/page";
 import RefreshPage from "./admin/refresh/page";
-import MemberLayout from "./(member)/layout";
+import MemberLayout, { MemberShellAccessLoading } from "./(member)/layout";
 import FavoritesPage from "./(member)/favorites/page";
 import GroupsPage from "./(member)/groups/page";
 import MemberHomePage from "./(member)/page";
@@ -24,9 +25,14 @@ vi.mock("../src/features/catalog/catalog-runtime", () => ({
   catalogRuntime: {
     catalog: {
       listRecentImports: () => Promise.resolve([]),
+      listRestaurantPreviews: () => Promise.resolve([]),
       listRestaurants: () => Promise.resolve([]),
     },
   },
+}));
+
+vi.mock("../src/features/catalog/catalog-cache", () => ({
+  listCachedRestaurantPreviews: () => Promise.resolve([]),
 }));
 
 vi.mock("../src/features/favorites/favorites-runtime", () => ({
@@ -37,6 +43,21 @@ vi.mock("../src/features/favorites/favorites-runtime", () => ({
 
 vi.mock("../src/features/orders/orders-runtime", () => ({
   ordersRuntime: {
+    listActiveOrderSummaries: () =>
+      Promise.resolve([
+        {
+          completedAt: null,
+          deadline: new Date("2026-08-20T03:30:00.000Z"),
+          groupId: "group-alpha",
+          groupName: "Alpha group",
+          orderId: "order-1",
+          participants: [],
+          participantsTotal: 3,
+          participantsVoted: 2,
+          restaurantName: null,
+          state: "restaurant_voting",
+        },
+      ]),
     listOrderSummaries: () =>
       Promise.resolve({
         active: [
@@ -54,6 +75,25 @@ vi.mock("../src/features/orders/orders-runtime", () => ({
           },
         ],
         history: [],
+      }),
+    listOrderSummaryPage: () =>
+      Promise.resolve({
+        active: [
+          {
+            completedAt: null,
+            deadline: new Date("2026-08-20T03:30:00.000Z"),
+            groupId: "group-alpha",
+            groupName: "Alpha group",
+            orderId: "order-1",
+            participants: [],
+            participantsTotal: 3,
+            participantsVoted: 2,
+            restaurantName: null,
+            state: "restaurant_voting",
+          },
+        ],
+        history: [],
+        nextCursor: null,
       }),
   },
 }));
@@ -99,6 +139,13 @@ vi.mock("../src/auth/load-server-page-identity", () => ({
     }),
 }));
 
+/** Waits for async Server Components before converting their stream to test HTML. */
+async function renderAsync(element: ReactNode): Promise<string> {
+  const stream = await renderToReadableStream(element);
+  await stream.allReady;
+  return new Response(stream).text();
+}
+
 describe("web navigation shells", () => {
   it("keeps member and admin navigation separate", () => {
     expect(memberNavigation.map((item) => item.label)).toEqual([
@@ -128,22 +175,23 @@ describe("web navigation shells", () => {
 
   it("renders the active-order and restaurant sections from real data", async () => {
     const home = await MemberHomePage();
-    const layout = await MemberLayout({ children: home });
-    const html = renderToStaticMarkup(layout);
+    const layout = MemberLayout({ children: home });
+    const html = await renderAsync(layout);
+    const textHtml = html.replaceAll("<!-- -->", "");
 
     expect(html).toContain("Active group order");
     expect(html).toContain("Alpha group");
     expect(html).toContain("Choose restaurant");
-    expect(html).toContain("2 of 3 responded");
-    expect(html).toContain("Good morning, Mia");
+    expect(textHtml).toContain("2 of 3 responded");
+    expect(textHtml).toContain("Good morning, Mia");
     expect(html).toContain("Nearby restaurants");
     expect(html).not.toContain("Friday lunch");
   });
 
   it("threads the signed-in profile fields into the member header", async () => {
     const home = await MemberHomePage();
-    const layout = await MemberLayout({ children: home });
-    const html = renderToStaticMarkup(layout);
+    const layout = MemberLayout({ children: home });
+    const html = await renderAsync(layout);
 
     expect(html).toContain(
       'aria-label="Open profile menu for Mia Tan (mia@example.com)"',
@@ -153,8 +201,8 @@ describe("web navigation shells", () => {
 
   it("threads the signed-in profile fields into the admin header", async () => {
     const home = AdminHomePage();
-    const layout = await AdminLayout({ children: home });
-    const html = renderToStaticMarkup(layout);
+    const layout = AdminLayout({ children: home });
+    const html = await renderAsync(layout);
 
     expect(html).toContain(
       'aria-label="Open profile menu for Mia Tan (mia@example.com)"',
@@ -163,12 +211,13 @@ describe("web navigation shells", () => {
 
   it("renders the real orders list from the runtime", async () => {
     const page = await OrdersPage();
-    const layout = await MemberLayout({ children: page });
-    const html = renderToStaticMarkup(layout);
+    const layout = MemberLayout({ children: page });
+    const html = await renderAsync(layout);
+    const textHtml = html.replaceAll("<!-- -->", "");
 
     expect(html).toContain("Alpha group");
     expect(html).toContain("Voting");
-    expect(html).toContain("2 of 3 responded");
+    expect(textHtml).toContain("2 of 3 responded");
     expect(html).toContain("Needs action");
     expect(html).toContain("History");
     expect(html).toContain("revisit past meals");
@@ -209,8 +258,8 @@ describe("web navigation shells", () => {
   });
 
   it("renders a distinct admin operations overview", async () => {
-    const layout = await AdminLayout({ children: <AdminHomePage /> });
-    const html = renderToStaticMarkup(layout);
+    const layout = AdminLayout({ children: <AdminHomePage /> });
+    const html = await renderAsync(layout);
 
     expect(html).toContain("Admin overview");
     expect(html).toContain("Pending decisions");
@@ -219,6 +268,15 @@ describe("web navigation shells", () => {
     expect(html).not.toContain("Nothing needs your attention yet");
     expect(html).toContain('aria-label="Admin navigation"');
     expect(html.match(/<h1/g)).toHaveLength(1);
+  });
+
+  it("keeps protected children out of identity-loading shells", () => {
+    const member = renderToStaticMarkup(<MemberShellAccessLoading />);
+    const admin = renderToStaticMarkup(<AdminShellAccessLoading />);
+
+    expect(member).toContain("Checking your access");
+    expect(admin).toContain("Checking your access");
+    expect(`${member}${admin}`).not.toContain("protected child");
   });
 
   it("renders the catalog, imports, refresh queue, and audit workspaces", async () => {

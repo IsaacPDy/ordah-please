@@ -1,5 +1,5 @@
 import { Bell } from "lucide-react";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { getCurrentServerPageIdentity } from "../../src/auth/load-server-page-identity";
 import { MemberPageAccessView } from "../../src/features/access/page-access-view";
@@ -11,9 +11,18 @@ import {
 import { ProfileMenu } from "../components/profile-menu";
 
 /** Provides the focused member/PWA shell without exposing admin-only information architecture. */
-export default async function MemberLayout({
+export default function MemberLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
+  return (
+    <Suspense fallback={<MemberShellAccessLoading />}>
+      <AuthenticatedMemberShell>{children}</AuthenticatedMemberShell>
+    </Suspense>
+  );
+}
+
+/** Loads private identity before it is allowed to receive protected member content. */
+async function AuthenticatedMemberShell({ children }: { children: ReactNode }) {
   const identityResult = await getCurrentServerPageIdentity();
   const canStartOrder =
     identityResult.status === "authenticated" &&
@@ -56,5 +65,19 @@ export default async function MemberLayout({
         <MemberNavigation />
       </div>
     </MemberPageAccessView>
+  );
+}
+
+/** Shows the stable public member frame without rendering protected children. */
+export function MemberShellAccessLoading() {
+  return (
+    <div className="member-shell member-shell--compact">
+      <header className="member-header">
+        <span className="brand">ordah please</span>
+        <span role="status">Checking your access…</span>
+      </header>
+      <main className="member-content" />
+      <MemberNavigation />
+    </div>
   );
 }

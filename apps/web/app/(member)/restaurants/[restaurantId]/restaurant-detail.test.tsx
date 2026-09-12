@@ -1,49 +1,54 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("../../../../src/features/catalog/catalog-runtime", () => ({
-  catalogRuntime: {
-    catalog: {
-      getRestaurantDetail: () =>
-        Promise.resolve({
-          branchId: "branch-1",
-          branchName: "Naga Plaza",
-          categories: [
+const readEvents = vi.hoisted(() => [] as string[]);
+const listFavoritesForBranch = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve([])),
+);
+
+vi.mock("../../../../src/features/catalog/catalog-cache", () => ({
+  getCachedRestaurantDetail: () => (
+    readEvents.push("detail"),
+    Promise.resolve({
+      branchId: "branch-1",
+      branchName: "Naga Plaza",
+      categories: [
+        {
+          items: [
             {
-              items: [
-                {
-                  basePriceCentavos: 19900,
-                  description: "Crispy chicken with rice and a drink.",
-                  id: "item-1",
-                  imageUrl: "https://example.com/chicken.jpg",
-                  name: "Chicken meal",
-                },
-              ],
-              name: "Meals",
+              basePriceCentavos: 19900,
+              description: "Crispy chicken with rice and a drink.",
+              id: "item-1",
+              imageUrl: "https://example.com/chicken.jpg",
+              name: "Chicken meal",
             },
           ],
-          cuisines: ["Fried Chicken"],
-          grabUrl: "https://example.com/grab",
-          restaurantName: "KFC - Naga Plaza",
-        }),
-    },
-  },
+          name: "Meals",
+        },
+      ],
+      cuisines: ["Fried Chicken"],
+      grabUrl: "https://example.com/grab",
+      restaurantName: "KFC - Naga Plaza",
+    })
+  ),
 }));
 
 vi.mock("../../../../src/features/favorites/favorites-runtime", () => ({
   favoritesRuntime: {
-    listFavoritesForUser: () => Promise.resolve([]),
+    listFavoritesForBranch,
   },
 }));
 
 vi.mock("../../../../src/auth/load-server-page-identity", () => ({
-  getCurrentServerPageIdentity: () =>
+  getCurrentServerPageIdentity: () => (
+    readEvents.push("identity"),
     Promise.resolve({
       identity: {
         userId: "user-1",
       },
       status: "authenticated",
-    }),
+    })
+  ),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -55,6 +60,8 @@ import RestaurantDetailPage from "./page";
 
 describe("restaurant detail page", () => {
   it("renders the real menu without a duplicate page-level back link", async () => {
+    readEvents.length = 0;
+    listFavoritesForBranch.mockClear();
     const page = await RestaurantDetailPage({
       params: Promise.resolve({ restaurantId: "restaurant-1" }),
     });
@@ -66,5 +73,7 @@ describe("restaurant detail page", () => {
     expect(html).toContain("restaurant-detail__item");
     expect(html).not.toContain("restaurant-detail__back");
     expect(html).not.toContain("← Back");
+    expect(readEvents.slice(0, 2)).toEqual(["identity", "detail"]);
+    expect(listFavoritesForBranch).toHaveBeenCalledWith("user-1", "branch-1");
   });
 });

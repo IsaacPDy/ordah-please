@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 
 import {
   adminAccessRequests,
@@ -37,6 +37,13 @@ export interface GroupSummaryRow {
   readonly ownerUserId: string | null;
 }
 
+export interface GroupMemberBatchRow {
+  readonly displayName: string;
+  readonly groupId: string;
+  readonly role: typeof memberships.$inferSelect.role;
+  readonly userId: string;
+}
+
 export interface GroupAccessRepository {
   acceptInvitation(
     invitationId: string,
@@ -72,6 +79,9 @@ export interface GroupAccessRepository {
     groupId: string,
   ): Promise<typeof groupAddresses.$inferSelect | undefined>;
   findGroupSummary(groupId: string): Promise<GroupSummaryRow | undefined>;
+  listGroupSummaries(
+    groupIds: readonly string[],
+  ): Promise<readonly GroupSummaryRow[]>;
   findInvitationByTokenHash(
     tokenHash: string,
   ): Promise<typeof invitations.$inferSelect | undefined>;
@@ -85,6 +95,9 @@ export interface GroupAccessRepository {
       readonly userId: string;
     }[]
   >;
+  listActiveMembersForGroups(
+    groupIds: readonly string[],
+  ): Promise<readonly GroupMemberBatchRow[]>;
   listPendingAdminAccessRequests(): Promise<
     readonly PendingAdminAccessRequestRow[]
   >;
@@ -280,6 +293,28 @@ export function createGroupAccessRepository(
         .limit(1);
       return row === undefined ? undefined : row;
     },
+    /** Loads group names and current owners for a whole visible group set. */
+    listGroupSummaries: (groupIds) =>
+      groupIds.length === 0
+        ? Promise.resolve([])
+        : database
+            .select({
+              archivedAt: groups.archivedAt,
+              id: groups.id,
+              name: groups.name,
+              ownerUserId: memberships.userId,
+            })
+            .from(groups)
+            .leftJoin(
+              memberships,
+              and(
+                eq(memberships.groupId, groups.id),
+                eq(memberships.role, "owner"),
+                isNull(memberships.removedAt),
+              ),
+            )
+            .where(inArray(groups.id, [...groupIds]))
+            .orderBy(asc(groups.name)),
     findPendingAdminAccessRequest: async (requesterUserId) => {
       const [request] = await database
         .select()
@@ -306,6 +341,26 @@ export function createGroupAccessRepository(
           and(eq(memberships.groupId, groupId), isNull(memberships.removedAt)),
         )
         .orderBy(asc(users.displayName)),
+    /** Loads active members for many groups in one database round trip. */
+    listActiveMembersForGroups: (groupIds) =>
+      groupIds.length === 0
+        ? Promise.resolve([])
+        : database
+            .select({
+              displayName: users.displayName,
+              groupId: memberships.groupId,
+              role: memberships.role,
+              userId: users.id,
+            })
+            .from(memberships)
+            .innerJoin(users, eq(users.id, memberships.userId))
+            .where(
+              and(
+                inArray(memberships.groupId, [...groupIds]),
+                isNull(memberships.removedAt),
+              ),
+            )
+            .orderBy(asc(memberships.groupId), asc(users.displayName)),
     listPendingAdminAccessRequests: () =>
       database
         .select({

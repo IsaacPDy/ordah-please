@@ -13,7 +13,12 @@ import {
   createGroupOrder,
   finishOrder,
   loadOrderDetail,
+  listActiveOrderSummaries,
+  encodeOrderHistoryCursor,
+  listOrderSummaryPage,
+  loadOrderHistoryDetail,
   listOrderSummaries,
+  parseOrderHistoryCursor,
   submitFoodResponse,
 } from "./orders-service";
 import type { OrdersServiceRepositories } from "./orders-service";
@@ -36,6 +41,25 @@ const orderedOrderId = "aaaaaaa1-0000-4000-8000-000000000004";
 const cancelledOrderId = "aaaaaaa1-0000-4000-8000-000000000005";
 
 const now = new Date("2026-08-18T08:00:00.000Z");
+
+describe("order history cursors", () => {
+  it("round-trips a stable terminal history cursor", () => {
+    const cursor = {
+      orderId,
+      sortTime: new Date("2026-09-10T16:30:00.000Z"),
+    };
+
+    expect(parseOrderHistoryCursor(encodeOrderHistoryCursor(cursor))).toEqual(
+      cursor,
+    );
+  });
+
+  it("rejects malformed terminal history cursors", () => {
+    expect(() => parseOrderHistoryCursor("not-a-cursor")).toThrowError(
+      expect.objectContaining({ code: "INVALID_INPUT" }),
+    );
+  });
+});
 
 function identityFor(
   userId: typeof managerId,
@@ -117,6 +141,10 @@ function createRepositories(
       clearFoodResponse: vi.fn(() => Promise.resolve(undefined)),
       listOrderLines: vi.fn(() => Promise.resolve([])),
       listOrderLinesForOrders: vi.fn(() => Promise.resolve([])),
+      listActiveVisibleForUser: vi.fn(() => Promise.resolve([])),
+      listTerminalVisibleForUser: vi.fn(() =>
+        Promise.resolve({ nextCursorRow: null, rows: [] }),
+      ),
     },
     ...overrides,
   } as OrdersServiceRepositories;
@@ -795,6 +823,197 @@ describe("listOrderSummaries", () => {
     );
 
     expect(result.history).toEqual([]);
+  });
+});
+
+describe("progressive order history", () => {
+  const activeRow = () => ({
+    completedAt: null,
+    createdAt: now,
+    foodDeadline: new Date("2026-08-18T10:00:00.000Z"),
+    groupId,
+    groupName: "Test Group",
+    initialRestaurantId: restaurantId,
+    managerUserId: managerId,
+    orderId: foodOrderId,
+    participants: [
+      {
+        displayName: "Order Member",
+        foodResponse: "pending" as const,
+        restaurantResponse: "responded" as const,
+        role: "member" as const,
+        userId: memberId,
+      },
+    ],
+    restaurantDeadline: new Date("2026-08-18T09:00:00.000Z"),
+    selectedRestaurantName: "KFC",
+    state: "food_confirmation" as const,
+  });
+  const terminalRow = () => ({
+    completedAt: new Date("2026-08-18T12:00:00.000Z"),
+    createdAt: now,
+    foodDeadline: new Date("2026-08-18T10:00:00.000Z"),
+    groupId,
+    groupName: "Test Group",
+    initialRestaurantId: restaurantId,
+    managerUserId: managerId,
+    orderId: orderedOrderId,
+    participantCount: 2,
+    restaurantDeadline: new Date("2026-08-18T09:00:00.000Z"),
+    selectedRestaurantName: "KFC",
+    state: "ordered" as const,
+  });
+
+  it("loads active orders and only one compact terminal page", async () => {
+    const nextCursorRow = terminalRow();
+    const orders = {
+      ...createRepositories().orders,
+      listActiveVisibleForUser: vi.fn(() => Promise.resolve([activeRow()])),
+      listTerminalVisibleForUser: vi.fn(() =>
+        Promise.resolve({ nextCursorRow, rows: [terminalRow()] }),
+      ),
+    };
+
+    const result = await listOrderSummaryPage(
+      { cursor: null, identity: identityFor(memberId, "member"), limit: 10 },
+      { orders },
+    );
+
+    expect(orders.listActiveVisibleForUser).toHaveBeenCalledWith(memberId);
+    expect(orders.listTerminalVisibleForUser).toHaveBeenCalledWith(memberId, {
+      cursor: null,
+      limit: 10,
+    });
+    expect(orders.listOrderLinesForOrders).not.toHaveBeenCalled();
+    expect(result.active[0]?.participantsTotal).toBe(1);
+    expect(result.history[0]?.participants).toEqual([]);
+    expect(result.nextCursor).toEqual(expect.any(String));
+  });
+
+  it("loads only the Member's own terminal participant detail", async () => {
+    const orders = {
+      ...createRepositories().orders,
+      findOrderDetail: vi.fn(() =>
+        Promise.resolve(
+          foodOrderDetail({
+            completedAt: new Date("2026-08-18T12:00:00.000Z"),
+            state: "ordered",
+          }),
+        ),
+      ),
+      listOrderLines: vi.fn(() =>
+        Promise.resolve([
+          {
+            itemNameSnapshot: "Chicken meal",
+            lineSubtotalCentavos: 22500,
+            noteSnapshot: "",
+            quantity: 1,
+            sortOrder: 0,
+            sourceMenuItemId: menuItemId,
+            unitPriceCentavos: 22500,
+            userId: memberId,
+          },
+        ]),
+      ),
+    };
+
+    const result = await loadOrderHistoryDetail(
+      { identity: identityFor(memberId, "member"), orderId: foodOrderId },
+      { orders },
+    );
+
+    expect(result.participants).toEqual([
+      expect.objectContaining({ itemCount: 1, userId: memberId }),
+    ]);
+  });
+
+  it.each(["group-owner", "manager"] as const)(
+    "loads every terminal participant for a %s",
+    async (role) => {
+      const orders = {
+        ...createRepositories().orders,
+        findOrderDetail: vi.fn(() =>
+          Promise.resolve(
+            foodOrderDetail({
+              completedAt: new Date("2026-08-18T12:00:00.000Z"),
+              state: "ordered",
+            }),
+          ),
+        ),
+      };
+
+      const result = await loadOrderHistoryDetail(
+        { identity: identityFor(ownerId, role), orderId: foodOrderId },
+        { orders },
+      );
+
+      expect(result.participants).toHaveLength(2);
+    },
+  );
+
+  it("rejects a missing terminal order", async () => {
+    const orders = {
+      ...createRepositories().orders,
+      findOrderDetail: vi.fn(() => Promise.resolve(undefined)),
+    };
+
+    await expect(
+      loadOrderHistoryDetail(
+        { identity: identityFor(memberId, "member"), orderId: foodOrderId },
+        { orders },
+      ),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(orders.listOrderLines).not.toHaveBeenCalled();
+  });
+
+  it("rejects detail while the order is still active", async () => {
+    const orders = {
+      ...createRepositories().orders,
+      findOrderDetail: vi.fn(() => Promise.resolve(foodOrderDetail())),
+    };
+
+    await expect(
+      loadOrderHistoryDetail(
+        { identity: identityFor(memberId, "member"), orderId: foodOrderId },
+        { orders },
+      ),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(orders.listOrderLines).not.toHaveBeenCalled();
+  });
+
+  it("rejects terminal detail after the Member loses group access", async () => {
+    const identity = { ...identityFor(memberId, "member"), memberships: [] };
+    const orders = {
+      ...createRepositories().orders,
+      findOrderDetail: vi.fn(() =>
+        Promise.resolve(
+          foodOrderDetail({
+            completedAt: new Date("2026-08-18T12:00:00.000Z"),
+            state: "ordered",
+          }),
+        ),
+      ),
+    };
+
+    await expect(
+      loadOrderHistoryDetail({ identity, orderId: foodOrderId }, { orders }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(orders.listOrderLines).not.toHaveBeenCalled();
+  });
+
+  it("loads active summaries without touching terminal history", async () => {
+    const orders = {
+      ...createRepositories().orders,
+      listActiveVisibleForUser: vi.fn(() => Promise.resolve([activeRow()])),
+    };
+
+    const result = await listActiveOrderSummaries(
+      { identity: identityFor(memberId, "member") },
+      { orders },
+    );
+
+    expect(result).toHaveLength(1);
+    expect(orders.listTerminalVisibleForUser).not.toHaveBeenCalled();
   });
 });
 

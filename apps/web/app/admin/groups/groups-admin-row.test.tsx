@@ -22,6 +22,7 @@ vi.mock("next/navigation", () => ({
 afterEach(cleanup);
 
 const group = {
+  activeOrderCount: 2,
   groupId: "group-1",
   name: "Friends",
   ownerDisplayName: "Alice",
@@ -41,6 +42,7 @@ describe("GroupsAdminRow", () => {
     expect(screen.getByText("Friends")).toBeTruthy();
     expect(screen.getByText("Alice")).toBeTruthy();
     expect(screen.getByText("4")).toBeTruthy();
+    expect(screen.getByText("2")).toBeTruthy();
   });
 
   it("opens the rename dialog prefilled and submits a rename", async () => {

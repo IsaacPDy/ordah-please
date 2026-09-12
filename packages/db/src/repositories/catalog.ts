@@ -6,6 +6,7 @@ import {
   eq,
   inArray,
   isNull,
+  sql,
 } from "drizzle-orm";
 
 import type { Database } from "../client.js";
@@ -123,6 +124,10 @@ export interface CatalogRepository {
   findMenuItemContext(
     menuItemId: string,
   ): Promise<MenuItemContextRow | undefined>;
+  listRestaurantPreviews(options: {
+    readonly limit: number;
+    readonly offset?: number;
+  }): Promise<readonly RestaurantSummaryRow[]>;
   listRestaurants(): Promise<readonly RestaurantSummaryRow[]>;
   getRestaurantDetail(
     restaurantId: string,
@@ -183,6 +188,57 @@ export function createCatalogRepository(
         )
         .limit(1);
       return menuVersion;
+    },
+
+    /** Returns one bounded restaurant page without loading every menu item into Node. */
+    listRestaurantPreviews: ({ limit, offset = 0 }) => {
+      if (!Number.isInteger(limit) || limit < 1 || limit > 101) {
+        throw new Error("Restaurant preview limit must be between 1 and 101.");
+      }
+      if (!Number.isInteger(offset) || offset < 0) {
+        throw new Error(
+          "Restaurant preview offset must be a non-negative integer.",
+        );
+      }
+
+      const heroImageUrl = sql<string | null>`(
+        select ${menuItems.imageUrl}
+        from ${menuItems}
+        inner join ${menuCategories}
+          on ${menuCategories.id} = ${menuItems.categoryId}
+        where ${menuCategories.menuVersionId} = ${menuVersions.id}
+          and ${menuItems.imageUrl} is not null
+        order by ${menuCategories.sortOrder}, ${menuItems.sortOrder}
+        limit 1
+      )`;
+
+      return database
+        .select({
+          restaurantId: restaurants.id,
+          restaurantName: restaurants.name,
+          cuisines: restaurants.cuisines,
+          branchId: branches.id,
+          branchName: branches.name,
+          heroImageUrl,
+        })
+        .from(restaurants)
+        .innerJoin(branches, eq(branches.restaurantId, restaurants.id))
+        .innerJoin(
+          menuVersions,
+          and(
+            eq(menuVersions.branchId, branches.id),
+            eq(menuVersions.status, "published"),
+          ),
+        )
+        .where(isNull(restaurants.archivedAt))
+        .orderBy(
+          asc(restaurants.name),
+          asc(branches.name),
+          asc(restaurants.id),
+          asc(branches.id),
+        )
+        .limit(limit)
+        .offset(offset);
     },
 
     listRestaurants: async () => {

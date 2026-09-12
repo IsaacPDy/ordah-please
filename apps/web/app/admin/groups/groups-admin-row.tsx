@@ -8,6 +8,7 @@ import { RenameGroupDialog } from "./rename-group-dialog";
 
 interface GroupsAdminRowProps {
   readonly group: {
+    readonly activeOrderCount: number;
     readonly groupId: string;
     readonly name: string;
     readonly ownerDisplayName: string | null;
@@ -27,7 +28,7 @@ export function GroupsAdminRow({ group }: GroupsAdminRowProps) {
       </strong>
       <span>{group.ownerDisplayName ?? "—"}</span>
       <span>{group.memberCount}</span>
-      <span>0</span>
+      <span>{group.activeOrderCount}</span>
       <span className="status-pill">Active</span>
       <span>
         <button

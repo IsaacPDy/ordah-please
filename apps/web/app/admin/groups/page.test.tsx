@@ -10,6 +10,7 @@ vi.mock("../../../src/features/groups/group-runtime", () => ({
     listAllGroupsForAdmin: vi.fn(() =>
       Promise.resolve([
         {
+          activeOrderCount: 2,
           groupId: "group-1",
           name: "Active Group",
           ownerDisplayName: "Alice",

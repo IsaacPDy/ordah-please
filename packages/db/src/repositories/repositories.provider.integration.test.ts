@@ -928,6 +928,62 @@ async function seedPendingRequestFixture(
 }
 
 describe("group access V1-06 decide flow", () => {
+  it("loads group summaries and active members in bounded batches", async () => {
+    await withRolledBackRepositories(async (repositories) => {
+      const owner = await repositories.identityAccess.createUser({
+        displayName: "Batch Owner",
+      });
+      const member = await repositories.identityAccess.createUser({
+        displayName: "Batch Member",
+      });
+      const first = await repositories.groupAccess.createGroup({
+        createdByUserId: owner.id,
+        name: "Batch First",
+      });
+      const second = await repositories.groupAccess.createGroup({
+        createdByUserId: owner.id,
+        name: "Batch Second",
+      });
+      await repositories.identityAccess.addMembership({
+        groupId: first.id,
+        role: "owner",
+        userId: owner.id,
+      });
+      await repositories.identityAccess.addMembership({
+        groupId: first.id,
+        role: "member",
+        userId: member.id,
+      });
+      await repositories.identityAccess.addMembership({
+        groupId: second.id,
+        role: "owner",
+        userId: owner.id,
+      });
+
+      await expect(
+        repositories.groupAccess.listGroupSummaries([first.id, second.id]),
+      ).resolves.toEqual([
+        expect.objectContaining({ id: first.id, name: "Batch First" }),
+        expect.objectContaining({ id: second.id, name: "Batch Second" }),
+      ]);
+      await expect(
+        repositories.groupAccess.listActiveMembersForGroups([
+          first.id,
+          second.id,
+        ]),
+      ).resolves.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ groupId: first.id, userId: member.id }),
+          expect.objectContaining({ groupId: first.id, userId: owner.id }),
+          expect.objectContaining({ groupId: second.id, userId: owner.id }),
+        ]),
+      );
+      await expect(
+        repositories.groupAccess.listGroupSummaries([]),
+      ).resolves.toEqual([]);
+    });
+  });
+
   it("lists pending requests with requester and group names", async () => {
     await withRolledBackRepositories(async (repositories, tx) => {
       const requesterAuthId = randomUUID();
@@ -1325,6 +1381,41 @@ describe("favorites repository writes", () => {
     ).toBeUndefined();
   });
 
+  it("lists a bounded restaurant preview with the first usable menu image", async () => {
+    const repositories = createRepositories(database);
+    const { item, restaurant, secondItem } = await seedFavoritesFixture();
+    const previewName = `000 Preview ${randomUUID()}`;
+    const heroImageUrl = "https://example.test/preview-hero.jpg";
+
+    await database
+      .update(restaurants)
+      .set({ name: previewName })
+      .where(eq(restaurants.id, restaurant.id));
+    await database
+      .update(menuItems)
+      .set({ imageUrl: null })
+      .where(eq(menuItems.id, item.id));
+    await database
+      .update(menuItems)
+      .set({ imageUrl: heroImageUrl })
+      .where(eq(menuItems.id, secondItem.id));
+
+    const rows = await repositories.catalog.listRestaurantPreviews({
+      limit: 1,
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toStrictEqual({
+      branchId: rows[0]?.branchId,
+      branchName: "Favorites Branch",
+      cuisines: [],
+      heroImageUrl,
+      restaurantId: restaurant.id,
+      restaurantName: previewName,
+    });
+    expect(typeof rows[0]?.branchId).toBe("string");
+  });
+
   it("saves, lists, deletes, and compacts ranked favorites", async () => {
     const repositories = createRepositories(database);
     const { branch, item, menuVersion, restaurant, secondItem, user } =
@@ -1440,9 +1531,10 @@ describe("orders repository writes", () => {
     if (group === undefined) {
       throw new Error("Expected the orders test group.");
     }
-    await database
-      .insert(memberships)
-      .values({ groupId: group.id, role: "owner", userId: manager.id });
+    await database.insert(memberships).values([
+      { groupId: group.id, role: "owner", userId: manager.id },
+      { groupId: group.id, role: "member", userId: member.id },
+    ]);
     const [restaurant] = await database
       .insert(restaurants)
       .values({ name: "Orders Restaurant" })
@@ -1703,6 +1795,10 @@ describe("orders repository writes", () => {
     expect(activeVisible.map((order) => order.orderId)).not.toContain(
       created.id,
     );
+    const activeSummaries = await repositories.orders.listActiveVisibleForUser(
+      fixture.manager.id,
+    );
+    expect(activeSummaries.map((order) => order.orderId)).toContain(created.id);
 
     await repositories.orders.setState(created.id, {
       completedAt: new Date("2026-09-11T05:00:00.000Z"),
@@ -1714,6 +1810,19 @@ describe("orders repository writes", () => {
       viewer.id,
     );
     expect(historyVisible.map((order) => order.orderId)).toContain(created.id);
+    const terminalPage = await repositories.orders.listTerminalVisibleForUser(
+      viewer.id,
+      { cursor: null, limit: 10 },
+    );
+    expect(terminalPage.rows).toEqual([
+      expect.objectContaining({
+        orderId: created.id,
+        participantCount: 2,
+        state: "ordered",
+      }),
+    ]);
+    expect(terminalPage.nextCursorRow).toBeNull();
+    expect(terminalPage.rows[0]).not.toHaveProperty("participants");
 
     await database
       .update(memberships)
@@ -1729,6 +1838,73 @@ describe("orders repository writes", () => {
     expect(
       removedParticipantVisible.map((order) => order.orderId),
     ).not.toContain(created.id);
+  });
+
+  it("counts active orders and paginates more than ten terminal orders", async () => {
+    const repositories = createRepositories(database);
+    const fixture = await seedOrdersFixture();
+    const baseTime = new Date("2026-09-11T04:00:00.000Z");
+    const commonOrder = {
+      choiceMode: "global_catalog" as const,
+      deliveryAddressSnapshot: addressSnapshot,
+      foodDeadline: new Date("2026-09-11T06:00:00.000Z"),
+      groupId: fixture.group.id,
+      initialBranchId: fixture.branch.id,
+      initialRestaurantId: fixture.restaurant.id,
+      managerUserId: fixture.manager.id,
+      restaurantDeadline: new Date("2026-09-11T05:00:00.000Z"),
+    };
+    await database.insert(orders).values([
+      {
+        ...commonOrder,
+        completedAt: null,
+        createdAt: baseTime,
+        state: "restaurant_voting",
+        updatedAt: baseTime,
+      },
+      ...Array.from({ length: 11 }, (_, index) => {
+        const completedAt = new Date(baseTime.getTime() + index * 60_000);
+        return {
+          ...commonOrder,
+          completedAt,
+          createdAt: completedAt,
+          state: "ordered" as const,
+          updatedAt: completedAt,
+        };
+      }),
+    ]);
+
+    const counts = await repositories.orders.listActiveCountsForGroups([
+      fixture.group.id,
+    ]);
+    expect(counts).toEqual([
+      { activeOrderCount: 1, groupId: fixture.group.id },
+    ]);
+
+    const firstPage = await repositories.orders.listTerminalVisibleForUser(
+      fixture.manager.id,
+      { cursor: null, limit: 10 },
+    );
+    expect(firstPage.rows).toHaveLength(10);
+    expect(firstPage.nextCursorRow).toEqual(firstPage.rows[9]);
+
+    const cursorRow = firstPage.nextCursorRow;
+    if (cursorRow === null) throw new Error("Expected a second history page.");
+    const secondPage = await repositories.orders.listTerminalVisibleForUser(
+      fixture.manager.id,
+      {
+        cursor: {
+          orderId: cursorRow.orderId,
+          sortTime: cursorRow.completedAt ?? cursorRow.createdAt,
+        },
+        limit: 10,
+      },
+    );
+    expect(secondPage.rows).toHaveLength(1);
+    expect(secondPage.nextCursorRow).toBeNull();
+    expect(
+      firstPage.rows.some((row) => row.orderId === secondPage.rows[0]?.orderId),
+    ).toBe(false);
   });
 });
 
@@ -1965,8 +2141,9 @@ describe("orders food picking", () => {
         recipientName: "Mia Tan",
       },
       foodDeadline: new Date("2026-08-19T10:00:00.000Z"),
-      groupId: (await fixture.ordersRepository.findOrderDetail(fixture.created.id))!
-        .groupId,
+      groupId: (await fixture.ordersRepository.findOrderDetail(
+        fixture.created.id,
+      ))!.groupId,
       initialBranchId: fixture.branch.id,
       initialRestaurantId: fixture.restaurant.id,
       managerUserId: fixture.manager.id,

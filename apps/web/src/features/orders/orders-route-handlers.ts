@@ -11,6 +11,10 @@ import { parseId } from "@ordah-please/domain";
 import { executeRoute } from "../../application/execute-route";
 import type { AppIdentity } from "../../auth/load-app-identity";
 import type { VerifiedSession } from "../../auth/verify-session";
+import type {
+  OrderHistoryDetail,
+  OrderSummaryPage,
+} from "./orders-service";
 
 type MaybePromise<Value> = Value | Promise<Value>;
 
@@ -19,6 +23,23 @@ interface OrdersHandlerDependencies {
     session: VerifiedSession,
   ) => MaybePromise<AppIdentity>;
   readonly verifySession: (request: Request) => MaybePromise<VerifiedSession>;
+}
+
+export interface OrderHistoryPageHandlerDependencies
+  extends OrdersHandlerDependencies {
+  readonly listOrderSummaryPage: (command: {
+    readonly cursor: string | null;
+    readonly identity: AppIdentity;
+    readonly limit: number;
+  }) => Promise<OrderSummaryPage>;
+}
+
+export interface OrderHistoryDetailHandlerDependencies
+  extends OrdersHandlerDependencies {
+  readonly loadOrderHistoryDetail: (command: {
+    readonly identity: AppIdentity;
+    readonly orderId: string;
+  }) => Promise<OrderHistoryDetail>;
 }
 
 export interface CreateOrderHandlerDependencies
@@ -80,6 +101,58 @@ async function parseJsonBody(request: Request): Promise<unknown> {
   } catch {
     throw new PublicApiError("INVALID_INPUT", "Invalid request body.");
   }
+}
+
+/** Creates the authenticated GET handler for one compact history page. */
+export function createOrderHistoryPageHandler(
+  dependencies: OrderHistoryPageHandlerDependencies,
+): (request: Request) => Promise<Response> {
+  return (request) =>
+    executeRoute<Readonly<{ cursor: string | null }>, OrderSummaryPage>(
+      request,
+      {
+        authorize: () => true,
+        execute: ({ identity, input }) =>
+          dependencies.listOrderSummaryPage({
+            cursor: input.cursor,
+            identity,
+            limit: 10,
+          }),
+        validate: (currentRequest) =>
+          Promise.resolve({
+            cursor: new URL(currentRequest.url).searchParams.get("cursor"),
+          }),
+      },
+      {
+        loadIdentity: dependencies.loadIdentity,
+        verifySession: () => dependencies.verifySession(request),
+      },
+    );
+}
+
+/** Creates the authenticated GET handler for one expanded terminal order log. */
+export function createOrderHistoryDetailHandler(
+  dependencies: OrderHistoryDetailHandlerDependencies,
+  getOrderId: (request: Request) => string | undefined,
+): (request: Request) => Promise<Response> {
+  return (request) =>
+    executeRoute<Readonly<{ orderId: OrderId }>, OrderHistoryDetail>(
+      request,
+      {
+        authorize: () => true,
+        execute: ({ identity, input }) =>
+          dependencies.loadOrderHistoryDetail({
+            identity,
+            orderId: input.orderId,
+          }),
+        validate: (currentRequest) =>
+          Promise.resolve({ orderId: parseOrderIdParam(getOrderId(currentRequest)) }),
+      },
+      {
+        loadIdentity: dependencies.loadIdentity,
+        verifySession: () => dependencies.verifySession(request),
+      },
+    );
 }
 
 /** Rejects browser cross-site mutations while allowing native requests without Origin. */

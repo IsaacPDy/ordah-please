@@ -41,9 +41,7 @@ export interface IdentityAccessRepository {
   findUserByAuthUserId(
     authUserId: string,
   ): Promise<typeof users.$inferSelect | undefined>;
-  findUserById(
-    userId: string,
-  ): Promise<typeof users.$inferSelect | undefined>;
+  findUserById(userId: string): Promise<typeof users.$inferSelect | undefined>;
   listActiveMemberships(
     userId: string,
   ): Promise<readonly (typeof memberships.$inferSelect)[]>;
@@ -151,7 +149,7 @@ export function createIdentityAccessRepository(
         .from(users)
         .leftJoin(authUsers, eq(users.authUserId, authUsers.id))
         .where(isNull(users.archivedAt))
-        .orderBy(asc(users.displayName));
+        .orderBy(asc(users.displayName), asc(users.id));
 
       const membershipRows = await database
         .select({
@@ -160,7 +158,8 @@ export function createIdentityAccessRepository(
           userId: memberships.userId,
         })
         .from(memberships)
-        .where(isNull(memberships.removedAt));
+        .where(isNull(memberships.removedAt))
+        .orderBy(asc(memberships.userId), asc(memberships.groupId));
 
       const membershipsByUser = new Map<
         string,

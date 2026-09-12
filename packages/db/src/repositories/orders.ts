@@ -6,6 +6,8 @@ import {
   exists,
   inArray,
   isNull,
+  lt,
+  notInArray,
   or,
   sql,
 } from "drizzle-orm";
@@ -82,6 +84,18 @@ export interface OrderListItemRow {
   readonly participants: readonly OrderParticipantRow[];
 }
 
+export interface TerminalOrderSummaryRow extends Omit<
+  OrderListItemRow,
+  "participants"
+> {
+  readonly participantCount: number;
+}
+
+export interface ActiveOrderCountRow {
+  readonly activeOrderCount: number;
+  readonly groupId: string;
+}
+
 export interface OrderDetailRow {
   readonly orderId: string;
   readonly groupId: string;
@@ -149,6 +163,24 @@ export interface OrdersRepository {
     next: PersistedOrderState,
   ): Promise<typeof orders.$inferSelect>;
   createOrder(input: CreateOrderRow): Promise<{ readonly id: string }>;
+  listActiveVisibleForUser(
+    userId: string,
+  ): Promise<readonly OrderListItemRow[]>;
+  listActiveCountsForGroups(
+    groupIds: readonly string[],
+  ): Promise<readonly ActiveOrderCountRow[]>;
+  listTerminalVisibleForUser(
+    userId: string,
+    options: Readonly<{
+      cursor: Readonly<{ sortTime: Date; orderId: string }> | null;
+      limit: number;
+    }>,
+  ): Promise<
+    Readonly<{
+      rows: readonly TerminalOrderSummaryRow[];
+      nextCursorRow: TerminalOrderSummaryRow | null;
+    }>
+  >;
   listVisibleForUser(userId: string): Promise<readonly OrderListItemRow[]>;
   findOrderDetail(orderId: string): Promise<OrderDetailRow | undefined>;
   upsertFoodResponse(input: UpsertFoodResponseInput): Promise<void>;
@@ -163,7 +195,131 @@ export interface OrdersRepository {
 export function createOrdersRepository(
   database: Database | DatabaseTransaction,
 ): OrdersRepository {
+  /** Keeps every order list read behind the same participant and current-role rules. */
+  const visibleOrderPredicate = (userId: string) =>
+    or(
+      and(
+        exists(
+          database
+            .select({ one: sql`1` })
+            .from(orderParticipants)
+            .where(
+              and(
+                eq(orderParticipants.orderId, orders.id),
+                eq(orderParticipants.userId, userId),
+              ),
+            ),
+        ),
+        exists(
+          database
+            .select({ one: sql`1` })
+            .from(memberships)
+            .where(
+              and(
+                eq(memberships.groupId, orders.groupId),
+                eq(memberships.userId, userId),
+                isNull(memberships.removedAt),
+              ),
+            ),
+        ),
+      ),
+      exists(
+        database
+          .select({ one: sql`1` })
+          .from(memberships)
+          .where(
+            and(
+              eq(memberships.groupId, orders.groupId),
+              eq(memberships.userId, userId),
+              eq(memberships.role, "owner"),
+              isNull(memberships.removedAt),
+            ),
+          ),
+      ),
+      and(
+        inArray(orders.state, ["ordered", "cancelled"]),
+        exists(
+          database
+            .select({ one: sql`1` })
+            .from(memberships)
+            .where(
+              and(
+                eq(memberships.groupId, orders.groupId),
+                eq(memberships.userId, userId),
+                eq(memberships.role, "manager"),
+                isNull(memberships.removedAt),
+              ),
+            ),
+        ),
+      ),
+    );
+
+  const orderListSelection = {
+    completedAt: orders.completedAt,
+    createdAt: orders.createdAt,
+    foodDeadline: orders.foodDeadline,
+    groupId: orders.groupId,
+    groupName: groups.name,
+    initialRestaurantId: orders.initialRestaurantId,
+    managerUserId: orders.managerUserId,
+    orderId: orders.id,
+    restaurantDeadline: orders.restaurantDeadline,
+    selectedRestaurantName: orders.selectedRestaurantNameSnapshot,
+    state: orders.state,
+  } as const;
+
+  /** Attaches participant response rows only to the active orders that need them. */
+  async function attachParticipants(
+    orderRows: readonly Omit<OrderListItemRow, "participants">[],
+  ): Promise<readonly OrderListItemRow[]> {
+    if (orderRows.length === 0) return [];
+    const participantRows = await database
+      .select({
+        displayName: orderParticipants.displayNameSnapshot,
+        foodResponse: orderParticipants.foodResponse,
+        orderId: orderParticipants.orderId,
+        restaurantResponse: orderParticipants.restaurantResponse,
+        role: orderParticipants.role,
+        userId: orderParticipants.userId,
+      })
+      .from(orderParticipants)
+      .where(
+        inArray(
+          orderParticipants.orderId,
+          orderRows.map((row) => row.orderId),
+        ),
+      );
+    const participantsByOrderId = new Map<string, OrderParticipantRow[]>();
+    for (const participant of participantRows) {
+      const current = participantsByOrderId.get(participant.orderId) ?? [];
+      current.push(participant);
+      participantsByOrderId.set(participant.orderId, current);
+    }
+    return orderRows.map((row) => ({
+      ...row,
+      participants: participantsByOrderId.get(row.orderId) ?? [],
+    }));
+  }
+
   return {
+    /** Counts every non-terminal order for several admin group rows in one query. */
+    listActiveCountsForGroups: async (groupIds) =>
+      groupIds.length === 0
+        ? []
+        : database
+            .select({
+              activeOrderCount: sql<number>`count(*)`.mapWith(Number),
+              groupId: orders.groupId,
+            })
+            .from(orders)
+            .where(
+              and(
+                inArray(orders.groupId, [...groupIds]),
+                notInArray(orders.state, ["ordered", "cancelled"]),
+              ),
+            )
+            .groupBy(orders.groupId)
+            .orderBy(asc(orders.groupId)),
     findById: async (id) => {
       const [order] = await database
         .select()
@@ -186,25 +342,25 @@ export function createOrdersRepository(
           await tx
             .insert(orders)
             .values({
-            choiceMode: input.choiceMode,
-            completedAt: null,
-            createdAt: input.now,
-            deliveryAddressSnapshot: input.deliveryAddressSnapshot,
-            foodDeadline: input.foodDeadline,
-            groupId: input.groupId,
-            initialBranchId: input.initialBranchId,
-            initialRestaurantId: input.initialRestaurantId,
-            managerUserId: input.managerUserId,
-            restaurantDeadline: input.restaurantDeadline,
-            selectedBranchId: input.selected?.branchId ?? null,
-            selectedBranchNameSnapshot: input.selected?.branchName ?? null,
-            selectedMenuVersionId: input.selected?.menuVersionId ?? null,
-            selectedRestaurantId: input.selected?.restaurantId ?? null,
-            selectedRestaurantNameSnapshot:
-              input.selected?.restaurantName ?? null,
-            state: input.state,
-            updatedAt: input.now,
-          })
+              choiceMode: input.choiceMode,
+              completedAt: null,
+              createdAt: input.now,
+              deliveryAddressSnapshot: input.deliveryAddressSnapshot,
+              foodDeadline: input.foodDeadline,
+              groupId: input.groupId,
+              initialBranchId: input.initialBranchId,
+              initialRestaurantId: input.initialRestaurantId,
+              managerUserId: input.managerUserId,
+              restaurantDeadline: input.restaurantDeadline,
+              selectedBranchId: input.selected?.branchId ?? null,
+              selectedBranchNameSnapshot: input.selected?.branchName ?? null,
+              selectedMenuVersionId: input.selected?.menuVersionId ?? null,
+              selectedRestaurantId: input.selected?.restaurantId ?? null,
+              selectedRestaurantNameSnapshot:
+                input.selected?.restaurantName ?? null,
+              state: input.state,
+              updatedAt: input.now,
+            })
             .returning({ id: orders.id }),
         );
 
@@ -230,110 +386,66 @@ export function createOrdersRepository(
 
         return created;
       }),
-    listVisibleForUser: async (userId) => {
+    /** Lists only non-terminal orders and their response counts for the first screen. */
+    listActiveVisibleForUser: async (userId) => {
       const orderRows = await database
-        .select({
-          completedAt: orders.completedAt,
-          createdAt: orders.createdAt,
-          foodDeadline: orders.foodDeadline,
-          groupId: orders.groupId,
-          groupName: groups.name,
-          initialRestaurantId: orders.initialRestaurantId,
-          managerUserId: orders.managerUserId,
-          orderId: orders.id,
-          restaurantDeadline: orders.restaurantDeadline,
-          selectedRestaurantName: orders.selectedRestaurantNameSnapshot,
-          state: orders.state,
-        })
+        .select(orderListSelection)
         .from(orders)
         .innerJoin(groups, eq(groups.id, orders.groupId))
         .where(
-          or(
-            and(
-              exists(
-                database
-                  .select({ one: sql`1` })
-                  .from(orderParticipants)
-                  .where(
-                    and(
-                      eq(orderParticipants.orderId, orders.id),
-                      eq(orderParticipants.userId, userId),
-                    ),
-                  ),
-              ),
-              exists(
-                database
-                  .select({ one: sql`1` })
-                  .from(memberships)
-                  .where(
-                    and(
-                      eq(memberships.groupId, orders.groupId),
-                      eq(memberships.userId, userId),
-                      isNull(memberships.removedAt),
-                    ),
-                  ),
-              ),
-            ),
-            exists(
-              database
-                .select({ one: sql`1` })
-                .from(memberships)
-                .where(
-                  and(
-                    eq(memberships.groupId, orders.groupId),
-                    eq(memberships.userId, userId),
-                    eq(memberships.role, "owner"),
-                    isNull(memberships.removedAt),
-                  ),
-                ),
-            ),
-            and(
-              inArray(orders.state, ["ordered", "cancelled"]),
-              exists(
-                database
-                  .select({ one: sql`1` })
-                  .from(memberships)
-                  .where(
-                    and(
-                      eq(memberships.groupId, orders.groupId),
-                      eq(memberships.userId, userId),
-                      eq(memberships.role, "manager"),
-                      isNull(memberships.removedAt),
-                    ),
-                  ),
-              ),
-            ),
+          and(
+            visibleOrderPredicate(userId),
+            notInArray(orders.state, ["ordered", "cancelled"]),
           ),
         )
-        .orderBy(desc(orders.createdAt));
-
-      if (orderRows.length === 0) {
-        return [];
+        .orderBy(asc(orders.restaurantDeadline), asc(orders.id));
+      return attachParticipants(orderRows);
+    },
+    /** Lists one compact terminal page without loading participant or food rows. */
+    listTerminalVisibleForUser: async (userId, { cursor, limit }) => {
+      if (!Number.isInteger(limit) || limit < 1 || limit > 25) {
+        throw new Error("Terminal order limit must be between 1 and 25.");
       }
-
-      const participantRows = await database
-        .select({
-          displayName: orderParticipants.displayNameSnapshot,
-          foodResponse: orderParticipants.foodResponse,
-          orderId: orderParticipants.orderId,
-          restaurantResponse: orderParticipants.restaurantResponse,
-          role: orderParticipants.role,
-          userId: orderParticipants.userId,
-        })
-        .from(orderParticipants)
+      const sortTime = sql<Date>`coalesce(${orders.completedAt}, ${orders.createdAt})`;
+      const participantCount = sql<number>`(
+        select count(*)
+        from ${orderParticipants}
+        where ${orderParticipants.orderId} = ${orders.id}
+      )`.mapWith(Number);
+      const rows = await database
+        .select({ ...orderListSelection, participantCount })
+        .from(orders)
+        .innerJoin(groups, eq(groups.id, orders.groupId))
         .where(
-          inArray(
-            orderParticipants.orderId,
-            orderRows.map((row) => row.orderId),
+          and(
+            visibleOrderPredicate(userId),
+            inArray(orders.state, ["ordered", "cancelled"]),
+            cursor === null
+              ? undefined
+              : or(
+                  lt(sortTime, cursor.sortTime),
+                  and(
+                    eq(sortTime, cursor.sortTime),
+                    lt(orders.id, cursor.orderId),
+                  ),
+                ),
           ),
-        );
-
-      return orderRows.map((row) => ({
-        ...row,
-        participants: participantRows.filter(
-          (participant) => participant.orderId === row.orderId,
-        ),
-      }));
+        )
+        .orderBy(desc(sortTime), desc(orders.id))
+        .limit(limit + 1);
+      return {
+        nextCursorRow: rows.length > limit ? (rows[limit - 1] ?? null) : null,
+        rows: rows.slice(0, limit),
+      };
+    },
+    listVisibleForUser: async (userId) => {
+      const orderRows = await database
+        .select(orderListSelection)
+        .from(orders)
+        .innerJoin(groups, eq(groups.id, orders.groupId))
+        .where(visibleOrderPredicate(userId))
+        .orderBy(desc(orders.createdAt));
+      return attachParticipants(orderRows);
     },
     findOrderDetail: async (orderId) => {
       const [row] = await database

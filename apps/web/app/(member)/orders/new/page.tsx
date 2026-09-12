@@ -8,8 +8,10 @@ import {
 } from "@ordah-please/db";
 
 import { getCurrentServerPageIdentity } from "../../../../src/auth/load-server-page-identity";
+import { listCachedRestaurantPreviews } from "../../../../src/features/catalog/catalog-cache";
 import { MemberAccessState } from "../../../components/member-access-state";
 import { NewOrderWizard } from "./new-order-wizard";
+import { loadNewOrderPageData } from "./new-order-page-data";
 
 let runtimeDatabase: Database | undefined;
 
@@ -45,12 +47,19 @@ export default async function NewOrderPage({
   let wizard: ReactNode = null;
   if (groupId !== undefined && eligible.some((m) => m.groupId === groupId)) {
     const repositories = createRepositories(getRuntimeDatabase());
-    const [members, address, restaurants] = await Promise.all([
-      repositories.groupAccess.listActiveMembers(groupId),
-      repositories.groupAccess.findGroupAddress(groupId),
-      repositories.catalog.listRestaurants(),
-    ]);
-    const group = await repositories.groupAccess.findGroupSummary(groupId);
+    const { address, group, members, restaurants } = await loadNewOrderPageData(
+      groupId,
+      {
+        findGroupAddress: (selectedGroupId) =>
+          repositories.groupAccess.findGroupAddress(selectedGroupId),
+        findGroupSummary: (selectedGroupId) =>
+          repositories.groupAccess.findGroupSummary(selectedGroupId),
+        listActiveMembers: (selectedGroupId) =>
+          repositories.groupAccess.listActiveMembers(selectedGroupId),
+        listRestaurantPreviews: (options) =>
+          listCachedRestaurantPreviews(options),
+      },
+    );
     wizard = (
       <NewOrderWizard
         groupAddress={

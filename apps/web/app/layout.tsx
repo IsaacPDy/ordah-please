@@ -1,10 +1,11 @@
 import "@fontsource-variable/nunito-sans/wght.css";
 import { designTokens } from "@ordah-please/ui";
 import type { Metadata } from "next";
-import type { CSSProperties, ReactNode } from "react";
+import { Suspense, type CSSProperties, type ReactNode } from "react";
 import "./globals.css";
 
 import { shellColors } from "./shell-colors";
+import { AppPageLoading } from "./components/page-loading";
 
 export const metadata: Metadata = {
   description: "Private food-order planning for friends.",
@@ -54,7 +55,9 @@ export default function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" style={webTokenStyle}>
-      <body>{children}</body>
+      <body>
+        <Suspense fallback={<AppPageLoading />}>{children}</Suspense>
+      </body>
     </html>
   );
 }

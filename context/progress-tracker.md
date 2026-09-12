@@ -16,6 +16,7 @@
 
 ## Completed
 
+- [x] V1-08 Progressive web performance — deployed to production 2026-09-13 and prepared for `main` as squash commit `Performance update`. Core-route shell medians are 334–344 ms, replacing the old 5.9–8.4-second wait before meaningful feedback. Evidence and the remaining multi-account acceptance boundary are in [`history/v1-08.md`](history/v1-08.md).
 - [x] Finish order early — merged to `main` 2026-08-23 (squash title "Finish order early"). Evidence and decisions in [`history/finish-order-early.md`](history/finish-order-early.md). Next order-sequence stage: Restaurant voting.
 - [x] Food confirmation picking — merged to `main` 2026-08-23 (squash title "Food confirmation picking"). Evidence and decisions in [`history/food-confirmation-picking.md`](history/food-confirmation-picking.md). Next order-sequence stage: Finish order early, then Restaurant voting, then handoff/completion and manager resolution.
 - [x] Order setup and participants — merged to `main` 2026-08-22 (squash title "Order setup and participants"). Evidence and decisions in [`history/order-setup-participants.md`](history/order-setup-participants.md). Next order-sequence stage: Restaurant voting.

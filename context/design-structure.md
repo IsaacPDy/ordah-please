@@ -56,6 +56,8 @@
 - Keep admin creation forms in centered modals. If a form has changed, backdrop clicks keep it open with a short wobble, while the X asks before discarding the entered values.
 - Use English for all application-authored labels, messages, notifications, placeholders, documentation, and mock data.
 - Preserve imported proper names exactly as supplied by the reviewed catalog.
+- Show a layout-matched loading skeleton immediately during dynamic member and admin navigation. Announce it once to assistive technology and disable its pulse when reduced motion is requested.
+- Keep terminal orders compact at first: load participant totals only when a person opens that order, and add older summaries ten at a time without replacing visible history.
 
 ## Approved Visual System
 

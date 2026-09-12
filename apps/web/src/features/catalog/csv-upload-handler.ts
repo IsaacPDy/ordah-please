@@ -12,6 +12,7 @@ import type { AppIdentity } from "../../auth/load-app-identity";
 import type { VerifiedSession } from "../../auth/verify-session";
 
 import { catalogRuntime } from "./catalog-runtime";
+import { invalidatePublishedCatalog } from "./catalog-cache";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const CSV_CONTENT_TYPES = new Set([
@@ -23,6 +24,7 @@ const CSV_CONTENT_TYPES = new Set([
 type MaybePromise<Value> = Value | Promise<Value>;
 
 export interface ImportCsvHandlerDependencies {
+  readonly invalidateCatalog: () => MaybePromise<void>;
   readonly importCatalog: (
     userId: string,
     sourceFileName: string,
@@ -193,6 +195,7 @@ export function createImportCsvHandler(
         typedRows,
         warnings,
       );
+      await dependencies.invalidateCatalog();
       return Response.json(apiSuccess(result));
     } catch (error) {
       if (error instanceof PublicApiError) {
@@ -214,6 +217,7 @@ export const importCsvHandler = createImportCsvHandler({
       rows,
       warnings,
     ),
+  invalidateCatalog: () => invalidatePublishedCatalog(),
   loadIdentity: catalogRuntime.loadIdentity,
   verifySession: catalogRuntime.verifySession,
 });

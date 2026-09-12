@@ -19,6 +19,10 @@ import {
   type OrderState,
   type UserId,
 } from "@ordah-please/domain";
+import type {
+  OrderListItemRow,
+  TerminalOrderSummaryRow,
+} from "@ordah-please/db";
 
 import { requireGroupRole } from "../../application/group-authorization";
 import type { AppIdentity } from "../../auth/load-app-identity";
@@ -196,6 +200,19 @@ export interface OrdersServiceRepositories {
         readonly sortOrder: number;
       }[]
     >;
+    readonly listActiveVisibleForUser: (
+      userId: string,
+    ) => Promise<readonly OrderListItemRow[]>;
+    readonly listTerminalVisibleForUser: (
+      userId: string,
+      options: Readonly<{
+        cursor: OrderHistoryCursor | null;
+        limit: number;
+      }>,
+    ) => Promise<Readonly<{
+      rows: readonly TerminalOrderSummaryRow[];
+      nextCursorRow: TerminalOrderSummaryRow | null;
+    }>>;
     readonly listVisibleForUser: (userId: string) => Promise<
       readonly {
         readonly orderId: string;
@@ -1146,6 +1163,59 @@ export interface HistoryParticipantSummary {
   readonly userId: string;
 }
 
+export interface OrderHistoryCursor {
+  readonly orderId: string;
+  readonly sortTime: Date;
+}
+
+export interface CompactOrderSummary extends Omit<OrderSummary, "participants"> {
+  readonly participants: readonly [];
+}
+
+export interface OrderSummaryPage {
+  readonly active: readonly CompactOrderSummary[];
+  readonly history: readonly CompactOrderSummary[];
+  readonly nextCursor: string | null;
+}
+
+export interface OrderHistoryDetail {
+  readonly orderId: string;
+  readonly participants: readonly HistoryParticipantSummary[];
+}
+
+const ORDER_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Encodes the stable sort position used to request the next history page. */
+export function encodeOrderHistoryCursor(cursor: OrderHistoryCursor): string {
+  return Buffer.from(
+    JSON.stringify({
+      orderId: cursor.orderId,
+      sortTime: cursor.sortTime.toISOString(),
+    }),
+    "utf8",
+  ).toString("base64url");
+}
+
+/** Decodes and validates an opaque history cursor before it reaches storage. */
+export function parseOrderHistoryCursor(raw: string): OrderHistoryCursor {
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(raw, "base64url").toString("utf8"),
+    ) as Record<string, unknown>;
+    const sortTime = new Date(String(parsed.sortTime));
+    if (
+      !ORDER_ID_PATTERN.test(String(parsed.orderId)) ||
+      !Number.isFinite(sortTime.getTime())
+    ) {
+      throw new Error("Invalid cursor fields");
+    }
+    return { orderId: String(parsed.orderId), sortTime };
+  } catch {
+    throw new PublicApiError("INVALID_INPUT", "History cursor is invalid.");
+  }
+}
+
 export interface OrderSummary {
   readonly orderId: string;
   readonly groupId: string;
@@ -1165,6 +1235,164 @@ function canViewGroupHistory(identity: AppIdentity, groupId: string): boolean {
     (membership) => membership.groupId === groupId,
   )?.role;
   return role === "group-owner" || role === "manager";
+}
+
+/** Maps an active database row into the compact card shape used by Home and Orders. */
+function mapActiveOrderSummary(row: OrderListItemRow): CompactOrderSummary {
+  return {
+    completedAt: row.completedAt,
+    deadline:
+      row.state === "restaurant_voting"
+        ? row.restaurantDeadline
+        : row.state === "food_confirmation"
+          ? row.foodDeadline
+          : null,
+    groupId: row.groupId,
+    groupName: row.groupName,
+    orderId: row.orderId,
+    participants: [],
+    participantsTotal: row.participants.length,
+    participantsVoted: row.participants.filter(
+      (participant) => participant.restaurantResponse === "responded",
+    ).length,
+    restaurantName: row.selectedRestaurantName,
+    state: row.state,
+  };
+}
+
+/** Maps a terminal row without introducing participant or saved-line payloads. */
+function mapTerminalOrderSummary(
+  row: TerminalOrderSummaryRow,
+): CompactOrderSummary {
+  return {
+    completedAt: row.completedAt,
+    deadline: null,
+    groupId: row.groupId,
+    groupName: row.groupName,
+    orderId: row.orderId,
+    participants: [],
+    participantsTotal: row.participantCount,
+    participantsVoted: 0,
+    restaurantName: row.selectedRestaurantName,
+    state: row.state,
+  };
+}
+
+/** Loads active orders only, so Home never pays for historical data. */
+export async function listActiveOrderSummaries(
+  command: Readonly<{ identity: AppIdentity }>,
+  repositories: Pick<OrdersServiceRepositories, "orders">,
+): Promise<readonly CompactOrderSummary[]> {
+  const rows = await repositories.orders.listActiveVisibleForUser(
+    command.identity.userId,
+  );
+  return rows.map(mapActiveOrderSummary).sort((left, right) => {
+    const leftTime = left.deadline?.getTime() ?? Number.MAX_SAFE_INTEGER;
+    const rightTime = right.deadline?.getTime() ?? Number.MAX_SAFE_INTEGER;
+    return leftTime - rightTime;
+  });
+}
+
+/** Loads active cards plus one bounded compact history page. */
+export async function listOrderSummaryPage(
+  command: Readonly<{
+    cursor: string | null;
+    identity: AppIdentity;
+    limit: number;
+  }>,
+  repositories: Pick<OrdersServiceRepositories, "orders">,
+): Promise<OrderSummaryPage> {
+  if (!Number.isInteger(command.limit) || command.limit < 1 || command.limit > 25) {
+    throw new PublicApiError(
+      "INVALID_INPUT",
+      "History page size must be between 1 and 25.",
+    );
+  }
+  const cursor =
+    command.cursor === null ? null : parseOrderHistoryCursor(command.cursor);
+  const [active, terminal] = await Promise.all([
+    cursor === null
+      ? listActiveOrderSummaries(command, repositories)
+      : Promise.resolve([]),
+    repositories.orders.listTerminalVisibleForUser(command.identity.userId, {
+      cursor,
+      limit: command.limit,
+    }),
+  ]);
+  const next = terminal.nextCursorRow;
+  return {
+    active,
+    history: terminal.rows.map(mapTerminalOrderSummary),
+    nextCursor:
+      next === null
+        ? null
+        : encodeOrderHistoryCursor({
+            orderId: next.orderId,
+            sortTime: next.completedAt ?? next.createdAt,
+          }),
+  };
+}
+
+/** Loads the permitted participant totals for one expanded terminal order. */
+export async function loadOrderHistoryDetail(
+  command: Readonly<{ identity: AppIdentity; orderId: string }>,
+  repositories: Pick<OrdersServiceRepositories, "orders">,
+): Promise<OrderHistoryDetail> {
+  const row = (await repositories.orders.findOrderDetail(command.orderId)) as
+    | OrderDetailDatabaseRow
+    | undefined;
+  if (row === undefined) {
+    throw new PublicApiError("NOT_FOUND", "Order not found.");
+  }
+  if (row.state !== "ordered" && row.state !== "cancelled") {
+    throw new PublicApiError(
+      "CONFLICT",
+      "Order history is available after the order ends.",
+    );
+  }
+  const membership = command.identity.memberships.find(
+    (candidate) => candidate.groupId === row.groupId,
+  );
+  const isParticipant = row.participants.some(
+    (participant) => participant.userId === command.identity.userId,
+  );
+  if (membership === undefined || (!isParticipant && !canViewGroupHistory(command.identity, row.groupId))) {
+    throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
+  }
+  const visibleParticipants = canViewGroupHistory(command.identity, row.groupId)
+    ? row.participants
+    : row.participants.filter(
+        (participant) => participant.userId === command.identity.userId,
+      );
+  const visibleUserIds = new Set(
+    visibleParticipants.map((participant) => participant.userId),
+  );
+  const lines = (await repositories.orders.listOrderLines(row.orderId)).filter(
+    (line) => visibleUserIds.has(line.userId),
+  );
+  return {
+    orderId: row.orderId,
+    participants: visibleParticipants.map((participant) => {
+      const participantLines = lines.filter(
+        (line) => line.userId === participant.userId,
+      );
+      return {
+        displayName: participant.displayName,
+        foodResponse: participant.foodResponse,
+        itemCount: participantLines.reduce(
+          (sum, line) => sum + line.quantity,
+          0,
+        ),
+        subtotalCentavos: parseCentavos(
+          participantLines.reduce(
+            (sum, line) => sum + line.lineSubtotalCentavos,
+            0,
+          ),
+        ),
+        userId: participant.userId,
+      };
+    }),
+  };
 }
 
 /** Lists the viewer's active and historical order summaries. */

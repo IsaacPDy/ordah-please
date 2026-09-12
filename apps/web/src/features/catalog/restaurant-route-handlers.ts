@@ -9,6 +9,7 @@ import { PublicApiError } from "@ordah-please/contracts";
 import type { AppIdentity } from "../../auth/load-app-identity";
 import type { VerifiedSession } from "../../auth/verify-session";
 import { catalogRuntime } from "./catalog-runtime";
+import { invalidatePublishedCatalog } from "./catalog-cache";
 
 type MaybePromise<Value> = Value | Promise<Value>;
 
@@ -31,6 +32,7 @@ export interface GetRestaurantHandlerDependencies {
 }
 
 export interface PatchRestaurantHandlerDependencies {
+  readonly invalidateCatalog: (restaurantId: string) => MaybePromise<void>;
   readonly loadIdentity: (
     session: VerifiedSession,
   ) => MaybePromise<AppIdentity>;
@@ -47,6 +49,7 @@ export interface PatchRestaurantHandlerDependencies {
 }
 
 export interface PatchMenuItemHandlerDependencies {
+  readonly invalidateCatalog: () => MaybePromise<void>;
   readonly loadIdentity: (
     session: VerifiedSession,
   ) => MaybePromise<AppIdentity>;
@@ -175,6 +178,7 @@ export function createPatchRestaurantHandler(
           if (!updated) {
             throw new PublicApiError("NOT_FOUND", "Restaurant not found.");
           }
+          await dependencies.invalidateCatalog(input.restaurantId);
           return { ok: true as const };
         },
         validate: async (incomingRequest) => ({
@@ -212,6 +216,7 @@ export function createPatchMenuItemHandler(
           if (!updated) {
             throw new PublicApiError("NOT_FOUND", "Menu item not found.");
           }
+          await dependencies.invalidateCatalog();
           return { ok: true as const };
         },
         validate: async (incomingRequest) => ({
@@ -377,6 +382,8 @@ export const patchRestaurantHandler = (
 ) =>
   createPatchRestaurantHandler(
     {
+      invalidateCatalog: (restaurantId) =>
+        invalidatePublishedCatalog(restaurantId),
       loadIdentity: catalogRuntime.loadIdentity,
       patch: (id, patch) => catalogRuntime.catalog.updateRestaurant(id, patch),
       verifySession: catalogRuntime.verifySession,
@@ -389,6 +396,7 @@ export const patchMenuItemHandler = (
 ) =>
   createPatchMenuItemHandler(
     {
+      invalidateCatalog: () => invalidatePublishedCatalog(),
       loadIdentity: catalogRuntime.loadIdentity,
       patch: (id, patch) => catalogRuntime.catalog.updateMenuItem(id, patch),
       verifySession: catalogRuntime.verifySession,

@@ -5,7 +5,12 @@ vi.mock("./orders-runtime", () => ({
 }));
 
 import { PublicApiError } from "@ordah-please/contracts";
-import { parseId, type GroupId, type OrderId, type UserId } from "@ordah-please/domain";
+import {
+  parseId,
+  type GroupId,
+  type OrderId,
+  type UserId,
+} from "@ordah-please/domain";
 
 import type { AppIdentity } from "../../auth/load-app-identity";
 import type { VerifiedSession } from "../../auth/verify-session";
@@ -14,6 +19,8 @@ import {
   createCreateOrderHandler,
   createFinishOrderHandler,
   createFoodResponseHandler,
+  createOrderHistoryDetailHandler,
+  createOrderHistoryPageHandler,
 } from "./orders-route-handlers";
 
 const session: VerifiedSession = {
@@ -68,6 +75,108 @@ async function readFailureCode(response: Response): Promise<string> {
   const body = (await response.json()) as { error?: { code?: string } };
   return body.error?.code ?? "none";
 }
+
+describe("order history GET handlers", () => {
+  it("loads one authenticated compact history page", async () => {
+    const listOrderSummaryPage = vi.fn(() =>
+      Promise.resolve({ active: [], history: [], nextCursor: null }),
+    );
+    const handler = createOrderHistoryPageHandler({
+      listOrderSummaryPage,
+      loadIdentity: () => identity,
+      verifySession: () => session,
+    });
+
+    const response = await handler(
+      new Request("https://ordah.test/api/orders/history"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: { active: [], history: [], nextCursor: null },
+      ok: true,
+    });
+    expect(listOrderSummaryPage).toHaveBeenCalledWith({
+      cursor: null,
+      identity,
+      limit: 10,
+    });
+  });
+
+  it("maps an invalid cursor to 400", async () => {
+    const handler = createOrderHistoryPageHandler({
+      listOrderSummaryPage: vi.fn(() =>
+        Promise.reject(new PublicApiError("INVALID_INPUT", "Bad cursor")),
+      ),
+      loadIdentity: () => identity,
+      verifySession: () => session,
+    });
+
+    const response = await handler(
+      new Request("https://ordah.test/api/orders/history?cursor=bad"),
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  it("requires authentication before loading history", async () => {
+    const listOrderSummaryPage = vi.fn();
+    const handler = createOrderHistoryPageHandler({
+      listOrderSummaryPage,
+      loadIdentity: () => identity,
+      verifySession: () => {
+        throw new PublicApiError("UNAUTHENTICATED", "Sign in is required.");
+      },
+    });
+
+    const response = await handler(
+      new Request("https://ordah.test/api/orders/history"),
+    );
+
+    expect(response.status).toBe(401);
+    expect(listOrderSummaryPage).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid history order id", async () => {
+    const loadOrderHistoryDetail = vi.fn();
+    const handler = createOrderHistoryDetailHandler(
+      {
+        loadIdentity: () => identity,
+        loadOrderHistoryDetail,
+        verifySession: () => session,
+      },
+      () => "not-an-id",
+    );
+
+    const response = await handler(
+      new Request("https://ordah.test/api/orders/not-an-id/history"),
+    );
+
+    expect(response.status).toBe(400);
+    expect(loadOrderHistoryDetail).not.toHaveBeenCalled();
+  });
+
+  it("maps forbidden history detail to 403", async () => {
+    const handler = createOrderHistoryDetailHandler(
+      {
+        loadIdentity: () => identity,
+        loadOrderHistoryDetail: vi.fn(() =>
+          Promise.reject(new PublicApiError("FORBIDDEN", "No access")),
+        ),
+        verifySession: () => session,
+      },
+      () => "99999999-9999-4999-8999-999999999999",
+    );
+
+    const response = await handler(
+      new Request(
+        "https://ordah.test/api/orders/99999999-9999-4999-8999-999999999999/history",
+      ),
+    );
+
+    expect(response.status).toBe(403);
+  });
+});
 
 describe("create order route handler", () => {
   it("creates an order for the signed-in manager", async () => {

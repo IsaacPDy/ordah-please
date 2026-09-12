@@ -13,6 +13,9 @@ import {
   completeOrder,
   createGroupOrder,
   finishOrder,
+  listActiveOrderSummaries,
+  listOrderSummaryPage,
+  loadOrderHistoryDetail,
   listOrderSummaries,
   loadOrderDetail,
   submitFoodResponse,
@@ -61,6 +64,28 @@ export const ordersRuntime = {
       { identity },
       { orders: createRepositories(getRuntimeDatabase()).orders },
     ),
+  /** Lists active cards only, so Home does not touch terminal history. */
+  listActiveOrderSummaries: (
+    identity: Parameters<typeof listActiveOrderSummaries>[0]["identity"],
+  ) =>
+    listActiveOrderSummaries(
+      { identity },
+      { orders: createRepositories(getRuntimeDatabase()).orders },
+    ),
+  /** Lists one bounded compact Orders page. */
+  listOrderSummaryPage: (
+    command: Parameters<typeof listOrderSummaryPage>[0],
+  ) =>
+    listOrderSummaryPage(command, {
+      orders: createRepositories(getRuntimeDatabase()).orders,
+    }),
+  /** Loads one authorized terminal order log when its card opens. */
+  loadOrderHistoryDetail: (
+    command: Parameters<typeof loadOrderHistoryDetail>[0],
+  ) =>
+    loadOrderHistoryDetail(command, {
+      orders: createRepositories(getRuntimeDatabase()).orders,
+    }),
   /** Lazily closes food picks past their deadline before reading the order. */
   advanceFoodDeadline: (command: Parameters<typeof advanceFoodDeadline>[0]) =>
     advanceFoodDeadline(command, { run: runOrdersTransaction }),

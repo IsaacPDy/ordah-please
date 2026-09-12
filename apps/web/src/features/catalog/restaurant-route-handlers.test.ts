@@ -139,9 +139,11 @@ describe("catalog restaurant route handlers", () => {
 
   it("returns not found when a restaurant update affects no record", async () => {
     const patch = vi.fn(() => false);
+    const invalidateCatalog = vi.fn();
     const handler = createPatchRestaurantHandler(
       {
         loadIdentity: () => ({ ...identity, isPlatformAdmin: true }),
+        invalidateCatalog,
         patch,
         verifySession: () => session,
       },
@@ -164,11 +166,41 @@ describe("catalog restaurant route handlers", () => {
       branchName: "New branch",
       grabUrl: "https://food.grab.com/new-branch",
     });
+    expect(invalidateCatalog).not.toHaveBeenCalled();
+  });
+
+  it("invalidates restaurant catalog reads after a successful update", async () => {
+    const invalidateCatalog = vi.fn();
+    const handler = createPatchRestaurantHandler(
+      {
+        invalidateCatalog,
+        loadIdentity: () => ({ ...identity, isPlatformAdmin: true }),
+        patch: () => true,
+        verifySession: () => session,
+      },
+      () => "restaurant-1",
+    );
+
+    const response = await handler(
+      new Request(
+        "https://ordah.test/api/admin/catalog/restaurants/restaurant-1",
+        {
+          body: JSON.stringify({ name: "Updated" }),
+          headers: { "content-type": "application/json" },
+          method: "PATCH",
+        },
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(invalidateCatalog).toHaveBeenCalledWith("restaurant-1");
   });
 
   it("returns not found when a menu item update affects no record", async () => {
+    const invalidateCatalog = vi.fn();
     const handler = createPatchMenuItemHandler(
       {
+        invalidateCatalog,
         loadIdentity: () => ({ ...identity, isPlatformAdmin: true }),
         patch: () => false,
         verifySession: () => session,
@@ -185,5 +217,6 @@ describe("catalog restaurant route handlers", () => {
     );
 
     expect(response.status).toBe(404);
+    expect(invalidateCatalog).not.toHaveBeenCalled();
   });
 });

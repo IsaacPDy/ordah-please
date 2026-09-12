@@ -2,12 +2,13 @@ import { ArrowRight, ChevronRight, Clock3, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
-import { catalogRuntime } from "../../src/features/catalog/catalog-runtime";
+import { listCachedRestaurantPreviews } from "../../src/features/catalog/catalog-cache";
 import { ordersRuntime } from "../../src/features/orders/orders-runtime";
 import { formatStateLabel } from "../../src/features/orders/order-format";
 import type { OrderSummary } from "../../src/features/orders/orders-service";
 import { getCurrentServerPageIdentity } from "../../src/auth/load-server-page-identity";
 import { MemberAccessState } from "../components/member-access-state";
+import { loadMemberHomeData } from "./home-data";
 
 /** Shows the approved member Home experience with urgent order work, group context, and restaurant discovery. */
 export default async function MemberHomePage() {
@@ -15,11 +16,20 @@ export default async function MemberHomePage() {
   const hasMemberships =
     identityResult.status === "authenticated" &&
     identityResult.identity.memberships.length > 0;
-  const restaurants = await catalogRuntime.catalog.listRestaurants();
-  const orderSummaries =
-    hasMemberships && identityResult.status === "authenticated"
-      ? await ordersRuntime.listOrderSummaries(identityResult.identity)
-      : { active: [], history: [] };
+  const { errors, orderSummaries, restaurants } =
+    identityResult.status === "authenticated"
+      ? await loadMemberHomeData(identityResult.identity, {
+          listActiveOrderSummaries: ordersRuntime.listActiveOrderSummaries,
+          listRestaurantPreviews: (options) =>
+            listCachedRestaurantPreviews(options),
+        })
+      : {
+          errors: { orders: false, restaurants: false },
+          orderSummaries: { active: [], history: [] },
+          restaurants: await listCachedRestaurantPreviews({
+            limit: 6,
+          }),
+        };
   const nearbyCategories = Array.from(
     new Set(restaurants.flatMap((restaurant) => restaurant.cuisines)),
   ).slice(0, 3);
@@ -48,6 +58,11 @@ export default async function MemberHomePage() {
             order={orderSummaries.active[0]}
           />
         ) : null}
+        {errors.orders ? (
+          <p className="restaurant-empty" role="status">
+            Couldn’t load active orders. Refresh to try again.
+          </p>
+        ) : null}
 
         <section
           aria-labelledby="restaurants-title"
@@ -56,7 +71,7 @@ export default async function MemberHomePage() {
         >
           <div className="section-heading-row">
             <h2 id="restaurants-title">Nearby restaurants</h2>
-            <a href="#restaurant-list">See all</a>
+            <Link href="/restaurants">See all</Link>
           </div>
           {restaurants.length === 0 ? null : (
             <div
@@ -73,7 +88,11 @@ export default async function MemberHomePage() {
               ))}
             </div>
           )}
-          {restaurants.length === 0 ? (
+          {errors.restaurants ? (
+            <p className="restaurant-empty" role="status">
+              Couldn’t load restaurants. Refresh to try again.
+            </p>
+          ) : restaurants.length === 0 ? (
             <p className="restaurant-empty">
               No restaurants published yet. Check back soon.
             </p>

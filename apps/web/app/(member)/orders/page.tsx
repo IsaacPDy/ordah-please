@@ -1,17 +1,18 @@
 import { ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 
-import { formatCentavos } from "@ordah-please/domain";
-
 import { getCurrentServerPageIdentity } from "../../../src/auth/load-server-page-identity";
 import {
   formatDeadline,
-  formatHistoryDate,
   formatStateLabel,
 } from "../../../src/features/orders/order-format";
 import { ordersRuntime } from "../../../src/features/orders/orders-runtime";
-import type { OrderSummary } from "../../../src/features/orders/orders-service";
+import type {
+  OrderSummary,
+  OrderSummaryPage,
+} from "../../../src/features/orders/orders-service";
 import { MemberAccessState } from "../../components/member-access-state";
+import { OrderHistoryList } from "./order-history-list";
 
 /** Shows actionable current orders and immutable past participation. */
 export default async function OrdersPage() {
@@ -27,15 +28,18 @@ export default async function OrdersPage() {
     );
 
   let ordersLoadFailed = false;
-  let summaries: Readonly<{
-    active: readonly OrderSummary[];
-    history: readonly OrderSummary[];
-  }> = { active: [], history: [] };
+  let summaries: OrderSummaryPage = {
+    active: [],
+    history: [],
+    nextCursor: null,
+  };
   if (identityResult.status === "authenticated") {
     try {
-      summaries = await ordersRuntime.listOrderSummaries(
-        identityResult.identity,
-      );
+      summaries = await ordersRuntime.listOrderSummaryPage({
+        cursor: null,
+        identity: identityResult.identity,
+        limit: 10,
+      });
     } catch {
       ordersLoadFailed = true;
     }
@@ -100,73 +104,14 @@ export default async function OrdersPage() {
               Completed orders will appear here.
             </p>
           ) : (
-            summaries.history.map((order) => (
-              <HistoryOrderCard key={order.orderId} order={order} />
-            ))
+            <OrderHistoryList
+              initialHistory={summaries.history}
+              initialNextCursor={summaries.nextCursor}
+            />
           )}
         </section>
       </div>
     </MemberAccessState>
-  );
-}
-
-/** Shows a compact terminal order that expands into the permitted person log. */
-function HistoryOrderCard({ order }: { readonly order: OrderSummary }) {
-  const restaurant = order.restaurantName ?? "Restaurant pending";
-  return (
-    <details className="history-card">
-      <summary aria-label={`Show order log for ${restaurant}`}>
-        <span className="history-card__summary">
-          <span
-            className={
-              order.state === "ordered"
-                ? "status-pill status-pill--complete"
-                : "status-pill status-pill--muted"
-            }
-          >
-            {formatStateLabel(order.state)}
-          </span>
-          <strong>{restaurant}</strong>
-          <small>
-            {order.groupName} ·{" "}
-            {order.completedAt === null
-              ? "Completion date unavailable"
-              : formatHistoryDate(order.completedAt)}{" "}
-            · {order.participantsTotal}{" "}
-            {order.participantsTotal === 1 ? "person" : "people"}
-          </small>
-        </span>
-      </summary>
-      <ul className="history-log">
-        {order.participants.map((participant) => {
-          const hasNoSelection =
-            participant.foodResponse === "pending" &&
-            participant.itemCount === 0;
-          const status =
-            participant.foodResponse === "declined"
-              ? "Not eating"
-              : participant.itemCount === 0
-                ? "No food selected"
-                : `${participant.itemCount} ${participant.itemCount === 1 ? "item" : "items"}`;
-          return (
-            <li key={participant.userId}>
-              <span>
-                <strong>{participant.displayName}</strong>
-                <small>{status}</small>
-              </span>
-              {hasNoSelection ? null : (
-                <strong className="history-log__subtotal">
-                  {formatCentavos(participant.subtotalCentavos)}
-                </strong>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      <Link className="history-card__detail" href={`/orders/${order.orderId}`}>
-        View exact items
-      </Link>
-    </details>
   );
 }
 

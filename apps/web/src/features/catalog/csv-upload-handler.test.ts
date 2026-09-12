@@ -45,6 +45,7 @@ function uploadRequest(
 
 /** Creates the upload handler with an observable repository boundary. */
 function createHandler() {
+  const invalidateCatalog = vi.fn();
   const importCatalog = vi.fn(() =>
     Promise.resolve({
       itemsAdded: 1,
@@ -57,14 +58,35 @@ function createHandler() {
   return {
     handler: createImportCsvHandler({
       importCatalog,
+      invalidateCatalog,
       loadIdentity: () => identity,
       verifySession: () => session,
     }),
     importCatalog,
+    invalidateCatalog,
   };
 }
 
 describe("catalog CSV upload handler", () => {
+  it("invalidates shared catalog reads after a successful import", async () => {
+    const { handler, invalidateCatalog } = createHandler();
+    const row = CSV_REQUIRED_HEADERS.map((header) => {
+      if (header === "price_centavos") return "19900";
+      if (header === "collected_at") return "2026-09-12";
+      if (header === "is_available") return "true";
+      if (header === "source_url") return "https://food.grab.com/menu";
+      if (header === "image_url") return "";
+      return "Example";
+    }).join(",");
+
+    const response = await handler(
+      uploadRequest(`${CSV_REQUIRED_HEADERS.join(",")}\n${row}`),
+    );
+
+    expect(response.status).toBe(200);
+    expect(invalidateCatalog).toHaveBeenCalledOnce();
+  });
+
   it("returns invalid input when required headers are missing", async () => {
     const { handler, importCatalog } = createHandler();
 

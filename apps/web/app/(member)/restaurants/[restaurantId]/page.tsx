@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
-import { catalogRuntime } from "../../../../src/features/catalog/catalog-runtime";
+import { getCachedRestaurantDetail } from "../../../../src/features/catalog/catalog-cache";
 import { favoritesRuntime } from "../../../../src/features/favorites/favorites-runtime";
 import { getCurrentServerPageIdentity } from "../../../../src/auth/load-server-page-identity";
 
@@ -14,22 +14,25 @@ export default async function RestaurantDetailPage({
   params: Promise<{ restaurantId: string }>;
 }) {
   const { restaurantId } = await params;
-  const detail = await catalogRuntime.catalog.getRestaurantDetail(restaurantId);
+  const [identityResult, detail] = await Promise.all([
+    getCurrentServerPageIdentity(),
+    getCachedRestaurantDetail(restaurantId),
+  ]);
   if (!detail) {
     notFound();
   }
 
   const heroImage = detail.categories[0]?.items[0]?.imageUrl ?? null;
 
-  const identityResult = await getCurrentServerPageIdentity();
   const favoriteIdByMenuItemId = new Map<string, string>();
   if (identityResult.status === "authenticated") {
-    const favoriteRows = await favoritesRuntime.listFavoritesForUser(
+    const favoriteRows = await favoritesRuntime.listFavoritesForBranch(
       identityResult.identity.userId,
+      detail.branchId,
     );
-    for (const row of favoriteRows) {
-      if (row.branchId === detail.branchId && row.menuItemId !== null) {
-        favoriteIdByMenuItemId.set(row.menuItemId, row.favoriteId);
+    for (const favorite of favoriteRows) {
+      for (const item of favorite.items) {
+        favoriteIdByMenuItemId.set(item.menuItemId, favorite.id);
       }
     }
   }
