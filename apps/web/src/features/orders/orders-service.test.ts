@@ -52,9 +52,11 @@ function identityFor(
   };
 }
 
-function createRepositories(overrides: Partial<OrdersServiceRepositories> = {}): OrdersServiceRepositories {
+function createRepositories(
+  overrides: Partial<OrdersServiceRepositories> = {},
+): OrdersServiceRepositories {
   return {
-    auditEvents: { append: vi.fn(() => Promise.resolve(({}))) },
+    auditEvents: { append: vi.fn(() => Promise.resolve({})) },
     catalog: {
       findMenuItemContext: vi.fn(() =>
         Promise.resolve({
@@ -66,40 +68,55 @@ function createRepositories(overrides: Partial<OrdersServiceRepositories> = {}):
           name: "Zinger Combo",
         }),
       ),
-      findPublishedMenuVersion: vi.fn(() => Promise.resolve(({ id: menuVersionId }))),
-      getRestaurantDetail: vi.fn(() => Promise.resolve(({
-        branchId,
-        branchName: "Main Branch",
-        restaurantName: "Test Restaurant",
-      }))),
-      listRestaurants: vi.fn(() => Promise.resolve([
-        { branchId, restaurantId },
-        { branchId: "aaaaaaaa-0000-4000-8000-000000000003", restaurantId: "aaaaaaaa-0000-4000-8000-000000000001" },
-        { branchId: "aaaaaaaa-0000-4000-8000-000000000004", restaurantId: "aaaaaaaa-0000-4000-8000-000000000002" },
-      ])),
+      findPublishedMenuVersion: vi.fn(() =>
+        Promise.resolve({ id: menuVersionId }),
+      ),
+      getRestaurantDetail: vi.fn(() =>
+        Promise.resolve({
+          branchId,
+          branchName: "Main Branch",
+          restaurantName: "Test Restaurant",
+        }),
+      ),
+      listRestaurants: vi.fn(() =>
+        Promise.resolve([
+          { branchId, restaurantId },
+          {
+            branchId: "aaaaaaaa-0000-4000-8000-000000000003",
+            restaurantId: "aaaaaaaa-0000-4000-8000-000000000001",
+          },
+          {
+            branchId: "aaaaaaaa-0000-4000-8000-000000000004",
+            restaurantId: "aaaaaaaa-0000-4000-8000-000000000002",
+          },
+        ]),
+      ),
     },
     groupAccess: {
       findGroupAddress: vi.fn(() => Promise.resolve(undefined)),
-      listActiveMembers: vi.fn(() => Promise.resolve([
-        { displayName: "Order Manager", role: "owner", userId: managerId },
-        { displayName: "Order Member", role: "member", userId: memberId },
-        { displayName: "Group Owner", role: "owner", userId: ownerId },
-      ])),
-      upsertGroupAddress: vi.fn(() => Promise.resolve(({ id: "address-1" }))),
+      listActiveMembers: vi.fn(() =>
+        Promise.resolve([
+          { displayName: "Order Manager", role: "owner", userId: managerId },
+          { displayName: "Order Member", role: "member", userId: memberId },
+          { displayName: "Group Owner", role: "owner", userId: ownerId },
+        ]),
+      ),
+      upsertGroupAddress: vi.fn(() => Promise.resolve({ id: "address-1" })),
     },
     favorites: {
       listForUser: vi.fn(() => Promise.resolve([])),
       listForUserAndBranchWithItems: vi.fn(() => Promise.resolve([])),
     },
     orders: {
-      createOrder: vi.fn(() => Promise.resolve(({ id: orderId }))),
+      createOrder: vi.fn(() => Promise.resolve({ id: orderId })),
       findOrderDetail: vi.fn(),
       findById: vi.fn(),
       listVisibleForUser: vi.fn(() => Promise.resolve([])),
-      setState: vi.fn(() => Promise.resolve(({}))),
+      setState: vi.fn(() => Promise.resolve({})),
       upsertFoodResponse: vi.fn(() => Promise.resolve(undefined)),
       clearFoodResponse: vi.fn(() => Promise.resolve(undefined)),
       listOrderLines: vi.fn(() => Promise.resolve([])),
+      listOrderLinesForOrders: vi.fn(() => Promise.resolve([])),
     },
     ...overrides,
   } as OrdersServiceRepositories;
@@ -231,7 +248,10 @@ describe("createGroupOrder", () => {
     expect(repositories.orders.createOrder).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantDeadline: now,
-        selected: expect.objectContaining({ menuVersionId }) as Record<string, unknown>,
+        selected: expect.objectContaining({ menuVersionId }) as Record<
+          string,
+          unknown
+        >,
         state: "food_confirmation",
       }),
     );
@@ -274,7 +294,11 @@ describe("createGroupOrder", () => {
     });
     await expect(
       createGroupOrder(
-        { identity: identityFor(managerId, "manager"), now, request: votingRequest() },
+        {
+          identity: identityFor(managerId, "manager"),
+          now,
+          request: votingRequest(),
+        },
         runnerFor(repositories),
       ),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
@@ -362,12 +386,14 @@ describe("completeOrder", () => {
     const repositories = createRepositories({
       orders: {
         ...createRepositories().orders,
-        findById: vi.fn(() => Promise.resolve(({
-          completedAt: null,
-          groupId,
-          managerUserId: managerId,
-          state: "restaurant_voting" as const,
-        }))),
+        findById: vi.fn(() =>
+          Promise.resolve({
+            completedAt: null,
+            groupId,
+            managerUserId: managerId,
+            state: "restaurant_voting" as const,
+          }),
+        ),
       },
     });
     await completeOrder(
@@ -389,12 +415,14 @@ describe("completeOrder", () => {
     const repositories = createRepositories({
       orders: {
         ...createRepositories().orders,
-        findById: vi.fn(() => Promise.resolve(({
-          completedAt: null,
-          groupId,
-          managerUserId: managerId,
-          state: "food_confirmation" as const,
-        }))),
+        findById: vi.fn(() =>
+          Promise.resolve({
+            completedAt: null,
+            groupId,
+            managerUserId: managerId,
+            state: "food_confirmation" as const,
+          }),
+        ),
       },
     });
     await completeOrder(
@@ -413,12 +441,14 @@ describe("completeOrder", () => {
     const repositories = createRepositories({
       orders: {
         ...createRepositories().orders,
-        findById: vi.fn(() => Promise.resolve(({
-          completedAt: null,
-          groupId,
-          managerUserId: managerId,
-          state: "restaurant_voting" as const,
-        }))),
+        findById: vi.fn(() =>
+          Promise.resolve({
+            completedAt: null,
+            groupId,
+            managerUserId: managerId,
+            state: "restaurant_voting" as const,
+          }),
+        ),
       },
     });
     await expect(
@@ -438,12 +468,14 @@ describe("completeOrder", () => {
     const handoffRepos = createRepositories({
       orders: {
         ...createRepositories().orders,
-        findById: vi.fn(() => Promise.resolve(({
-          completedAt: null,
-          groupId,
-          managerUserId: managerId,
-          state: "ready_for_handoff" as const,
-        }))),
+        findById: vi.fn(() =>
+          Promise.resolve({
+            completedAt: null,
+            groupId,
+            managerUserId: managerId,
+            state: "ready_for_handoff" as const,
+          }),
+        ),
       },
     });
     await completeOrder(
@@ -463,12 +495,14 @@ describe("completeOrder", () => {
     const votingRepos = createRepositories({
       orders: {
         ...createRepositories().orders,
-        findById: vi.fn(() => Promise.resolve(({
-          completedAt: null,
-          groupId,
-          managerUserId: managerId,
-          state: "restaurant_voting" as const,
-        }))),
+        findById: vi.fn(() =>
+          Promise.resolve({
+            completedAt: null,
+            groupId,
+            managerUserId: managerId,
+            state: "restaurant_voting" as const,
+          }),
+        ),
       },
     });
     await expect(
@@ -496,8 +530,20 @@ describe("listOrderSummaries", () => {
     managerUserId: managerId,
     orderId,
     participants: [
-      { displayName: "Order Manager", foodResponse: "pending", restaurantResponse: "responded", role: "manager", userId: managerId } as const,
-      { displayName: "Order Member", foodResponse: "pending", restaurantResponse: "pending", role: "member", userId: memberId } as const,
+      {
+        displayName: "Order Manager",
+        foodResponse: "pending",
+        restaurantResponse: "responded",
+        role: "manager",
+        userId: managerId,
+      } as const,
+      {
+        displayName: "Order Member",
+        foodResponse: "pending",
+        restaurantResponse: "pending",
+        role: "member",
+        userId: memberId,
+      } as const,
     ],
     restaurantDeadline: new Date("2026-08-18T09:00:00.000Z"),
     selectedRestaurantName: null,
@@ -509,43 +555,78 @@ describe("listOrderSummaries", () => {
     const repositories = createRepositories({
       orders: {
         ...createRepositories().orders,
-        listVisibleForUser: vi.fn(() => Promise.resolve([
-          summaryRow({
-            orderId: orderedOrderId,
-            participants: [
-              { displayName: "Order Manager", foodResponse: "resolved", restaurantResponse: "responded", role: "manager", userId: managerId },
-              { displayName: "Order Member", foodResponse: "resolved", restaurantResponse: "responded", role: "member", userId: memberId },
-            ] as const,
-            state: "ordered" as const,
-            completedAt: new Date("2026-08-18T12:00:00.000Z"),
-          }),
-          summaryRow({
-            orderId: foodOrderId,
-            participants: [
-              { displayName: "Order Manager", foodResponse: "confirmed", restaurantResponse: "responded", role: "manager", userId: managerId },
-              { displayName: "Order Member", foodResponse: "pending", restaurantResponse: "pending", role: "member", userId: memberId } as const,
-              { displayName: "Group Owner", foodResponse: "pending", restaurantResponse: "responded", role: "member", userId: ownerId } as const,
-            ] as const,
-            state: "food_confirmation" as const,
-          }),
-          summaryRow({
-            orderId: cancelledOrderId,
-            completedAt: new Date("2026-08-17T09:00:00.000Z"),
-            state: "cancelled" as const,
-          }),
-          summaryRow({
-            orderId: votingOrderId,
-            state: "restaurant_voting" as const,
-          }),
-          summaryRow({
-            orderId: handoffOrderId,
-            state: "ready_for_handoff" as const,
-          }),
-        ])),
+        listVisibleForUser: vi.fn(() =>
+          Promise.resolve([
+            summaryRow({
+              orderId: orderedOrderId,
+              participants: [
+                {
+                  displayName: "Order Manager",
+                  foodResponse: "resolved",
+                  restaurantResponse: "responded",
+                  role: "manager",
+                  userId: managerId,
+                },
+                {
+                  displayName: "Order Member",
+                  foodResponse: "resolved",
+                  restaurantResponse: "responded",
+                  role: "member",
+                  userId: memberId,
+                },
+              ] as const,
+              state: "ordered" as const,
+              completedAt: new Date("2026-08-18T12:00:00.000Z"),
+            }),
+            summaryRow({
+              orderId: foodOrderId,
+              participants: [
+                {
+                  displayName: "Order Manager",
+                  foodResponse: "confirmed",
+                  restaurantResponse: "responded",
+                  role: "manager",
+                  userId: managerId,
+                },
+                {
+                  displayName: "Order Member",
+                  foodResponse: "pending",
+                  restaurantResponse: "pending",
+                  role: "member",
+                  userId: memberId,
+                } as const,
+                {
+                  displayName: "Group Owner",
+                  foodResponse: "pending",
+                  restaurantResponse: "responded",
+                  role: "member",
+                  userId: ownerId,
+                } as const,
+              ] as const,
+              state: "food_confirmation" as const,
+            }),
+            summaryRow({
+              orderId: cancelledOrderId,
+              completedAt: new Date("2026-08-17T09:00:00.000Z"),
+              state: "cancelled" as const,
+            }),
+            summaryRow({
+              orderId: votingOrderId,
+              state: "restaurant_voting" as const,
+            }),
+            summaryRow({
+              orderId: handoffOrderId,
+              state: "ready_for_handoff" as const,
+            }),
+          ]),
+        ),
       },
     });
 
-    const result = await listOrderSummaries({ userId: memberId }, repositories);
+    const result = await listOrderSummaries(
+      { identity: identityFor(memberId, "member") },
+      repositories,
+    );
 
     expect(result.active.map((summary) => summary.orderId)).toEqual([
       votingOrderId,
@@ -570,10 +651,155 @@ describe("listOrderSummaries", () => {
     expect(handoff.participantsVoted).toBe(1);
     expect(handoff.participantsTotal).toBe(2);
   });
+
+  it("builds the complete History read model for current group leaders", async () => {
+    const orders = {
+      ...createRepositories().orders,
+      listOrderLinesForOrders: vi.fn(() =>
+        Promise.resolve([
+          {
+            itemNameSnapshot: "Chicken meal",
+            lineSubtotalCentavos: 42000,
+            noteSnapshot: "Extra gravy",
+            orderId: orderedOrderId,
+            quantity: 2,
+            sortOrder: 0,
+            sourceMenuItemId: menuItemId,
+            unitPriceCentavos: 21000,
+            userId: managerId,
+          },
+        ]),
+      ),
+      listVisibleForUser: vi.fn(() =>
+        Promise.resolve([
+          summaryRow({
+            completedAt: new Date("2026-08-18T12:00:00.000Z"),
+            orderId: orderedOrderId,
+            participants: [
+              {
+                displayName: "Order Manager",
+                foodResponse: "confirmed",
+                restaurantResponse: "responded",
+                role: "manager",
+                userId: managerId,
+              },
+              {
+                displayName: "Order Member",
+                foodResponse: "declined",
+                restaurantResponse: "responded",
+                role: "member",
+                userId: memberId,
+              },
+            ],
+            selectedRestaurantName: "KFC",
+            state: "ordered",
+          }),
+        ]),
+      ),
+    };
+    const repositories = createRepositories({ orders });
+
+    const result = await listOrderSummaries(
+      { identity: identityFor(ownerId, "manager") },
+      repositories,
+    );
+
+    expect(result.history[0]?.participants).toEqual([
+      {
+        displayName: "Order Manager",
+        foodResponse: "confirmed",
+        itemCount: 2,
+        subtotalCentavos: 42000,
+        userId: managerId,
+      },
+      {
+        displayName: "Order Member",
+        foodResponse: "declined",
+        itemCount: 0,
+        subtotalCentavos: 0,
+        userId: memberId,
+      },
+    ]);
+    expect(orders.listOrderLinesForOrders).toHaveBeenCalledOnce();
+    expect(orders.listOrderLinesForOrders).toHaveBeenCalledWith([
+      orderedOrderId,
+    ]);
+  });
+
+  it("returns only the Member's own History row", async () => {
+    const orders = {
+      ...createRepositories().orders,
+      listOrderLinesForOrders: vi.fn(() => Promise.resolve([])),
+      listVisibleForUser: vi.fn(() =>
+        Promise.resolve([
+          summaryRow({
+            completedAt: new Date("2026-08-18T12:00:00.000Z"),
+            orderId: orderedOrderId,
+            participants: [
+              {
+                displayName: "Order Manager",
+                foodResponse: "confirmed",
+                restaurantResponse: "responded",
+                role: "manager",
+                userId: managerId,
+              },
+              {
+                displayName: "Order Member",
+                foodResponse: "pending",
+                restaurantResponse: "responded",
+                role: "member",
+                userId: memberId,
+              },
+            ],
+            state: "ordered",
+          }),
+        ]),
+      ),
+    };
+    const repositories = createRepositories({ orders });
+
+    const result = await listOrderSummaries(
+      { identity: identityFor(memberId, "member") },
+      repositories,
+    );
+
+    expect(
+      result.history[0]?.participants.map((person) => person.userId),
+    ).toEqual([memberId]);
+  });
+
+  it("omits History returned for a group outside the current identity", async () => {
+    const repositories = createRepositories({
+      orders: {
+        ...createRepositories().orders,
+        listVisibleForUser: vi.fn(() =>
+          Promise.resolve([
+            summaryRow({
+              completedAt: new Date("2026-08-18T12:00:00.000Z"),
+              orderId: orderedOrderId,
+              state: "ordered",
+            }),
+          ]),
+        ),
+      },
+    });
+
+    const result = await listOrderSummaries(
+      {
+        identity: {
+          ...identityFor(memberId, "member"),
+          memberships: [],
+        },
+      },
+      repositories,
+    );
+
+    expect(result.history).toEqual([]);
+  });
 });
 
 describe("loadOrderDetail visibility", () => {
-  const detailRow = () => ({
+  const detailRow = (overrides: Record<string, unknown> = {}) => ({
     choiceMode: "global_catalog",
     completedAt: null,
     createdAt: now,
@@ -604,9 +830,22 @@ describe("loadOrderDetail visibility", () => {
     selectedRestaurantName: null,
     state: "restaurant_voting",
     participants: [
-      { displayName: "Order Manager", foodResponse: "pending", restaurantResponse: "responded", role: "manager", userId: managerId },
-      { displayName: "Order Member", foodResponse: "pending", restaurantResponse: "pending", role: "member", userId: memberId },
+      {
+        displayName: "Order Manager",
+        foodResponse: "pending",
+        restaurantResponse: "responded",
+        role: "manager",
+        userId: managerId,
+      },
+      {
+        displayName: "Order Member",
+        foodResponse: "pending",
+        restaurantResponse: "pending",
+        role: "member",
+        userId: memberId,
+      },
     ],
+    ...overrides,
   });
 
   it("serves a participant", async () => {
@@ -647,7 +886,113 @@ describe("loadOrderDetail visibility", () => {
     });
     await expect(
       loadOrderDetail(
-        { identity: { ...identityFor(outsiderId, "member"), memberships: [] }, now, orderId },
+        {
+          identity: { ...identityFor(outsiderId, "member"), memberships: [] },
+          now,
+          orderId,
+        },
+        repositories,
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("serves a terminal order to a current non-participant Manager", async () => {
+    const repositories = createRepositories({
+      orders: {
+        ...createRepositories().orders,
+        findOrderDetail: vi.fn(() =>
+          Promise.resolve(detailRow({ completedAt: now, state: "ordered" })),
+        ),
+      },
+    });
+
+    const view = await loadOrderDetail(
+      { identity: identityFor(ownerId, "manager"), now, orderId },
+      repositories,
+    );
+
+    expect(view.participants).toHaveLength(2);
+    expect(view.viewer).toEqual({ canManage: true, kind: "group-leader" });
+  });
+
+  it("keeps a non-participant Manager out of active orders", async () => {
+    const repositories = createRepositories({
+      orders: {
+        ...createRepositories().orders,
+        findOrderDetail: vi.fn(() => Promise.resolve(detailRow())),
+      },
+    });
+
+    await expect(
+      loadOrderDetail(
+        { identity: identityFor(ownerId, "manager"), now, orderId },
+        repositories,
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("returns only a Member's own terminal row and lines", async () => {
+    const repositories = createRepositories({
+      orders: {
+        ...createRepositories().orders,
+        findOrderDetail: vi.fn(() =>
+          Promise.resolve(detailRow({ completedAt: now, state: "cancelled" })),
+        ),
+        listOrderLines: vi.fn(() =>
+          Promise.resolve([
+            {
+              itemNameSnapshot: "Manager meal",
+              lineSubtotalCentavos: 20000,
+              noteSnapshot: "",
+              quantity: 1,
+              sortOrder: 0,
+              sourceMenuItemId: menuItemId,
+              unitPriceCentavos: 20000,
+              userId: managerId,
+            },
+            {
+              itemNameSnapshot: "Member meal",
+              lineSubtotalCentavos: 22500,
+              noteSnapshot: "Extra gravy",
+              quantity: 1,
+              sortOrder: 0,
+              sourceMenuItemId: menuItemId,
+              unitPriceCentavos: 22500,
+              userId: memberId,
+            },
+          ]),
+        ),
+      },
+    });
+
+    const view = await loadOrderDetail(
+      { identity: identityFor(memberId, "member"), now, orderId },
+      repositories,
+    );
+
+    expect(view.participants.map((person) => person.userId)).toEqual([
+      memberId,
+    ]);
+    expect(view.lines.map((line) => line.userId)).toEqual([memberId]);
+  });
+
+  it("hides terminal History after the viewer leaves the group", async () => {
+    const repositories = createRepositories({
+      orders: {
+        ...createRepositories().orders,
+        findOrderDetail: vi.fn(() =>
+          Promise.resolve(detailRow({ completedAt: now, state: "ordered" })),
+        ),
+      },
+    });
+
+    await expect(
+      loadOrderDetail(
+        {
+          identity: { ...identityFor(memberId, "member"), memberships: [] },
+          now,
+          orderId,
+        },
         repositories,
       ),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -657,10 +1002,12 @@ describe("loadOrderDetail visibility", () => {
     const repositories = createRepositories({
       orders: {
         ...createRepositories().orders,
-        findOrderDetail: vi.fn(() => Promise.resolve(({
-          ...detailRow(),
-          deliveryAddressSnapshot: { city: 42 },
-        }))),
+        findOrderDetail: vi.fn(() =>
+          Promise.resolve({
+            ...detailRow(),
+            deliveryAddressSnapshot: { city: 42 },
+          }),
+        ),
       },
     });
     await expect(
@@ -685,17 +1032,15 @@ describe("submitFoodResponse", () => {
     );
     vi.mocked(
       repositories.favorites.listForUserAndBranchWithItems,
-    ).mockResolvedValue(
-      [
-        {
-          branchId,
-          id: favoriteId,
-          items: [{ menuItemId, note: "Extra gravy", quantity: 1 }],
-          name: "Zinger Combo",
-          rank: 1,
-        },
-      ] as never,
-    );
+    ).mockResolvedValue([
+      {
+        branchId,
+        id: favoriteId,
+        items: [{ menuItemId, note: "Extra gravy", quantity: 1 }],
+        name: "Zinger Combo",
+        rank: 1,
+      },
+    ] as never);
     return { ...repositories, ...overrides };
   }
 
@@ -883,9 +1228,7 @@ describe("advanceFoodDeadline", () => {
 
   function advanceRepositories(detail: Record<string, unknown>) {
     const repositories = createRepositories();
-    vi.mocked(repositories.orders.findOrderDetail).mockResolvedValue(
-      detail,
-    );
+    vi.mocked(repositories.orders.findOrderDetail).mockResolvedValue(detail);
     vi.mocked(
       repositories.favorites.listForUserAndBranchWithItems,
     ).mockImplementation((userId: string) =>

@@ -184,9 +184,8 @@ async function renderFoodPage(): Promise<string> {
 
 describe("order detail food picking", () => {
   it("shows the manager the picker, banner, and participant checklist", async () => {
-    const { ordersRuntime } = await import(
-      "../../../../src/features/orders/orders-runtime"
-    );
+    const { ordersRuntime } =
+      await import("../../../../src/features/orders/orders-runtime");
     vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce(
       foodView as never,
     );
@@ -206,9 +205,8 @@ describe("order detail food picking", () => {
   });
 
   it("marks a locked pending participant as Did not order anything", async () => {
-    const { ordersRuntime } = await import(
-      "../../../../src/features/orders/orders-runtime"
-    );
+    const { ordersRuntime } =
+      await import("../../../../src/features/orders/orders-runtime");
     vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
       ...foodView,
       order: {
@@ -222,22 +220,22 @@ describe("order detail food picking", () => {
   });
 
   it("shows the handoff placeholder once picks are locked in", async () => {
-    const { ordersRuntime } = await import(
-      "../../../../src/features/orders/orders-runtime"
-    );
+    const { ordersRuntime } =
+      await import("../../../../src/features/orders/orders-runtime");
     vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
       ...foodView,
       order: { ...foodView.order, state: "ready_for_handoff" },
     } as never);
     const html = await renderFoodPage();
-    expect(html).toContain("The handoff summary opens here in the next update.");
+    expect(html).toContain(
+      "The handoff summary opens here in the next update.",
+    );
     expect(html).toContain("Ordered · 1 choice");
   });
 
   it("shows members the ordered count instead of the checklist", async () => {
-    const { ordersRuntime } = await import(
-      "../../../../src/features/orders/orders-runtime"
-    );
+    const { ordersRuntime } =
+      await import("../../../../src/features/orders/orders-runtime");
     vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
       ...foodView,
       viewer: { canManage: false, kind: "participant" },
@@ -250,9 +248,8 @@ describe("order detail food picking", () => {
   });
 
   it("shows the manager Finish order now during food picks", async () => {
-    const { ordersRuntime } = await import(
-      "../../../../src/features/orders/orders-runtime"
-    );
+    const { ordersRuntime } =
+      await import("../../../../src/features/orders/orders-runtime");
     vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce(
       foodView as never,
     );
@@ -261,9 +258,8 @@ describe("order detail food picking", () => {
   });
 
   it("hides Finish order now outside the food-picks stage", async () => {
-    const { ordersRuntime } = await import(
-      "../../../../src/features/orders/orders-runtime"
-    );
+    const { ordersRuntime } =
+      await import("../../../../src/features/orders/orders-runtime");
     vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
       ...foodView,
       order: { ...foodView.order, state: "ready_for_handoff" },
@@ -273,14 +269,115 @@ describe("order detail food picking", () => {
   });
 
   it("hides Finish order now from members", async () => {
-    const { ordersRuntime } = await import(
-      "../../../../src/features/orders/orders-runtime"
-    );
+    const { ordersRuntime } =
+      await import("../../../../src/features/orders/orders-runtime");
     vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
       ...foodView,
       viewer: { canManage: false, kind: "participant" },
     } as never);
     const html = await renderFoodPage();
     expect(html).not.toContain("Finish order now");
+  });
+});
+
+describe("terminal order detail", () => {
+  it("shows every authorized participant and exact saved line read-only", async () => {
+    const { ordersRuntime } =
+      await import("../../../../src/features/orders/orders-runtime");
+    vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
+      ...foodView,
+      lines: [
+        {
+          itemName: "Manager meal",
+          lineSubtotalCentavos: 21000,
+          note: "No onions",
+          quantity: 1,
+          unitPriceCentavos: 21000,
+          userId: "user-1",
+        },
+        ...foodView.lines,
+      ],
+      order: {
+        ...foodView.order,
+        completedAt: new Date("2026-09-11T05:00:00.000Z"),
+        state: "ordered",
+      },
+      participants: [
+        { ...foodView.participants[0], foodResponse: "confirmed" },
+        foodView.participants[1],
+      ],
+    } as never);
+
+    const html = await renderFoodPage();
+
+    expect(html).toContain("Order log");
+    expect(html).toContain("Mia Tan");
+    expect(html).toContain("Alex Rivera");
+    expect(html).toContain("Manager meal");
+    expect(html).toContain("Zinger Combo");
+    expect(html).toContain("No onions");
+    expect(html).toContain("Extra gravy");
+    expect(html).toContain("₱225.00");
+    expect(html).not.toContain("Your favorite picks");
+    expect(html).not.toContain("Finish order now");
+    expect(html).not.toContain("Cancel order");
+  });
+
+  it("renders only the Member row returned by the service", async () => {
+    const { ordersRuntime } =
+      await import("../../../../src/features/orders/orders-runtime");
+    vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
+      ...foodView,
+      lines: [
+        {
+          itemName: "Member meal",
+          lineSubtotalCentavos: 18000,
+          note: "",
+          quantity: 1,
+          unitPriceCentavos: 18000,
+          userId: "user-1",
+        },
+      ],
+      order: {
+        ...foodView.order,
+        completedAt: new Date("2026-09-11T05:00:00.000Z"),
+        state: "ordered",
+      },
+      participants: [
+        { ...foodView.participants[0], foodResponse: "confirmed" },
+      ],
+      viewer: { canManage: false, kind: "participant" },
+      viewerFavorites: [],
+    } as never);
+
+    const html = await renderFoodPage();
+
+    expect(html).toContain("Mia Tan");
+    expect(html).toContain("Member meal");
+    expect(html).not.toContain("Alex Rivera");
+  });
+
+  it("labels incomplete and declined cancelled participants literally", async () => {
+    const { ordersRuntime } =
+      await import("../../../../src/features/orders/orders-runtime");
+    vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
+      ...foodView,
+      lines: [],
+      order: {
+        ...foodView.order,
+        completedAt: new Date("2026-09-11T05:00:00.000Z"),
+        state: "cancelled",
+      },
+      participants: [
+        { ...foodView.participants[0], foodResponse: "pending" },
+        { ...foodView.participants[1], foodResponse: "declined" },
+      ],
+      viewerFavorites: [],
+    } as never);
+
+    const html = await renderFoodPage();
+
+    expect(html).toContain("No food selected");
+    expect(html).toContain("Not eating");
   });
 });

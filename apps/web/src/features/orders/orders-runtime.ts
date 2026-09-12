@@ -54,9 +54,11 @@ export const ordersRuntime = {
   createGroupOrder: (command: Parameters<typeof createGroupOrder>[0]) =>
     createGroupOrder(command, { run: runOrdersTransaction }),
   /** Lists the viewer's active and historical orders for the Orders page. */
-  listOrderSummaries: (userId: string) =>
+  listOrderSummaries: (
+    identity: Parameters<typeof listOrderSummaries>[0]["identity"],
+  ) =>
     listOrderSummaries(
-      { userId },
+      { identity },
       { orders: createRepositories(getRuntimeDatabase()).orders },
     ),
   /** Lazily closes food picks past their deadline before reading the order. */

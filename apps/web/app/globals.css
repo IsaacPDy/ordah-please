@@ -3764,3 +3764,66 @@ body {
   font-style: italic;
   margin: 0;
 }
+
+.history-card {
+  display: block;
+  overflow: hidden;
+  padding: 0;
+}
+
+.history-card summary {
+  cursor: pointer;
+  list-style: none;
+  padding: var(--space-4);
+}
+
+.history-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.history-card summary:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: -3px;
+}
+
+.history-card__summary {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.history-card__summary small,
+.history-log small {
+  color: var(--color-text-secondary);
+  display: block;
+}
+
+.history-log {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-4);
+}
+
+.history-log li {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding: var(--space-3) 0;
+}
+
+.history-log__subtotal,
+.history-card__detail {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.history-card__detail {
+  color: var(--color-primary-strong);
+  display: block;
+  font-weight: 700;
+  padding: var(--space-3) var(--space-4);
+  text-align: center;
+}

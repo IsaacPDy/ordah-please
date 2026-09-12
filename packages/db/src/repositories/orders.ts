@@ -138,6 +138,10 @@ export interface OrderLineRow {
   readonly sortOrder: number;
 }
 
+export interface OrderLineForOrderRow extends OrderLineRow {
+  readonly orderId: string;
+}
+
 export interface OrdersRepository {
   findById(id: string): Promise<typeof orders.$inferSelect | undefined>;
   setState(
@@ -150,6 +154,9 @@ export interface OrdersRepository {
   upsertFoodResponse(input: UpsertFoodResponseInput): Promise<void>;
   clearFoodResponse(orderId: string, userId: string): Promise<void>;
   listOrderLines(orderId: string): Promise<readonly OrderLineRow[]>;
+  listOrderLinesForOrders(
+    orderIds: readonly string[],
+  ): Promise<readonly OrderLineForOrderRow[]>;
 }
 
 /** Creates order persistence operations that apply already-authorized domain outcomes. */
@@ -242,16 +249,30 @@ export function createOrdersRepository(
         .innerJoin(groups, eq(groups.id, orders.groupId))
         .where(
           or(
-            exists(
-              database
-                .select({ one: sql`1` })
-                .from(orderParticipants)
-                .where(
-                  and(
-                    eq(orderParticipants.orderId, orders.id),
-                    eq(orderParticipants.userId, userId),
+            and(
+              exists(
+                database
+                  .select({ one: sql`1` })
+                  .from(orderParticipants)
+                  .where(
+                    and(
+                      eq(orderParticipants.orderId, orders.id),
+                      eq(orderParticipants.userId, userId),
+                    ),
                   ),
-                ),
+              ),
+              exists(
+                database
+                  .select({ one: sql`1` })
+                  .from(memberships)
+                  .where(
+                    and(
+                      eq(memberships.groupId, orders.groupId),
+                      eq(memberships.userId, userId),
+                      isNull(memberships.removedAt),
+                    ),
+                  ),
+              ),
             ),
             exists(
               database
@@ -265,6 +286,22 @@ export function createOrdersRepository(
                     isNull(memberships.removedAt),
                   ),
                 ),
+            ),
+            and(
+              inArray(orders.state, ["ordered", "cancelled"]),
+              exists(
+                database
+                  .select({ one: sql`1` })
+                  .from(memberships)
+                  .where(
+                    and(
+                      eq(memberships.groupId, orders.groupId),
+                      eq(memberships.userId, userId),
+                      eq(memberships.role, "manager"),
+                      isNull(memberships.removedAt),
+                    ),
+                  ),
+              ),
             ),
           ),
         )
@@ -440,5 +477,28 @@ export function createOrdersRepository(
         .from(orderLines)
         .where(eq(orderLines.orderId, orderId))
         .orderBy(asc(orderLines.userId), asc(orderLines.sortOrder)),
+    /** Loads immutable food lines for several orders in one database query. */
+    listOrderLinesForOrders: async (orderIds) =>
+      orderIds.length === 0
+        ? []
+        : database
+            .select({
+              itemNameSnapshot: orderLines.itemNameSnapshot,
+              lineSubtotalCentavos: orderLines.lineSubtotalCentavos,
+              noteSnapshot: orderLines.noteSnapshot,
+              orderId: orderLines.orderId,
+              quantity: orderLines.quantity,
+              sortOrder: orderLines.sortOrder,
+              sourceMenuItemId: orderLines.sourceMenuItemId,
+              unitPriceCentavos: orderLines.unitPriceCentavos,
+              userId: orderLines.userId,
+            })
+            .from(orderLines)
+            .where(inArray(orderLines.orderId, [...orderIds]))
+            .orderBy(
+              asc(orderLines.orderId),
+              asc(orderLines.userId),
+              asc(orderLines.sortOrder),
+            ),
   };
 }

@@ -18,7 +18,7 @@ export default async function MemberHomePage() {
   const restaurants = await catalogRuntime.catalog.listRestaurants();
   const orderSummaries =
     hasMemberships && identityResult.status === "authenticated"
-      ? await ordersRuntime.listOrderSummaries(identityResult.identity.userId)
+      ? await ordersRuntime.listOrderSummaries(identityResult.identity)
       : { active: [], history: [] };
   const nearbyCategories = Array.from(
     new Set(restaurants.flatMap((restaurant) => restaurant.cuisines)),

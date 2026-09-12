@@ -46,6 +46,7 @@ vi.mock("../src/features/orders/orders-runtime", () => ({
             groupId: "group-alpha",
             groupName: "Alpha group",
             orderId: "order-1",
+            participants: [],
             participantsTotal: 3,
             participantsVoted: 2,
             restaurantName: null,

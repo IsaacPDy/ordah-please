@@ -94,13 +94,14 @@ export default async function OrderDetailPage({
   }
 
   const now = new Date();
-  const votingClosed =
-    now.getTime() >= view.order.restaurantDeadline.getTime();
+  const votingClosed = now.getTime() >= view.order.restaurantDeadline.getTime();
   const foodClosed = now.getTime() >= view.order.foodDeadline.getTime();
   const restaurantName =
     view.order.restaurantName ?? view.order.initialRestaurantName;
   const branchName =
     view.order.selectedBranchName ?? view.order.initialBranchName;
+  const isTerminal =
+    view.order.state === "ordered" || view.order.state === "cancelled";
   const isFoodStage = view.order.state !== "restaurant_voting";
   const pickerLocked = foodClosed || view.order.state !== "food_confirmation";
 
@@ -159,7 +160,8 @@ export default async function OrderDetailPage({
           </p>
         ) : null}
 
-        {isFoodStage &&
+        {!isTerminal &&
+        isFoodStage &&
         viewerParticipant !== undefined &&
         view.viewer.kind === "participant" ? (
           <FoodPickerSection
@@ -175,8 +177,7 @@ export default async function OrderDetailPage({
             locked={pickerLocked}
             orderId={view.order.orderId}
             restaurantId={
-              view.order.selectedRestaurantId ??
-              view.order.initialRestaurantId
+              view.order.selectedRestaurantId ?? view.order.initialRestaurantId
             }
             restaurantName={restaurantName}
           />
@@ -221,7 +222,9 @@ export default async function OrderDetailPage({
           </section>
         ) : null}
 
-        {isFoodStage && view.viewer.canManage ? (
+        {isTerminal ? <TerminalOrderLog view={view} /> : null}
+
+        {!isTerminal && isFoodStage && view.viewer.canManage ? (
           <section
             aria-labelledby="participants-heading"
             className="content-section"
@@ -274,13 +277,9 @@ export default async function OrderDetailPage({
                             key={`${participant.userId}-${line.itemName}-${line.note}`}
                           >
                             <div>
-                              <p className="pick-line__name">
-                                {line.itemName}
-                              </p>
+                              <p className="pick-line__name">{line.itemName}</p>
                               {line.note ? (
-                                <p className="pick-line__meta">
-                                  {line.note}
-                                </p>
+                                <p className="pick-line__meta">{line.note}</p>
                               ) : null}
                               <p className="pick-line__meta">{`× ${line.quantity}`}</p>
                             </div>
@@ -311,5 +310,76 @@ export default async function OrderDetailPage({
         ) : null}
       </div>
     </MemberAccessState>
+  );
+}
+
+/** Shows exact immutable food lines for the participants visible to this viewer. */
+function TerminalOrderLog({ view }: { readonly view: OrderView }) {
+  const linesByUser = new Map<string, OrderView["lines"][number][]>();
+  for (const line of view.lines) {
+    const lines = linesByUser.get(line.userId) ?? [];
+    lines.push(line);
+    linesByUser.set(line.userId, lines);
+  }
+
+  return (
+    <section aria-labelledby="order-log-heading" className="content-section">
+      <div className="section-heading-row">
+        <h2 id="order-log-heading">Order log</h2>
+        <span className="count-badge">{view.participants.length}</span>
+      </div>
+      <ul className="group-list">
+        {view.participants.map((participant) => {
+          const lines = linesByUser.get(participant.userId) ?? [];
+          const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
+          const status =
+            participant.foodResponse === "declined"
+              ? "Not eating"
+              : itemCount === 0
+                ? "No food selected"
+                : `${itemCount} ${itemCount === 1 ? "item" : "items"}`;
+          return (
+            <li className="participant-card" key={participant.userId}>
+              <div className="participant-card__head">
+                <div className="participant-card__id">
+                  <span aria-hidden="true" className="member-avatar">
+                    {participant.displayName.charAt(0)}
+                  </span>
+                  <div>
+                    <p className="participant-card__name">
+                      {participant.displayName}
+                    </p>
+                    <p className="participant-card__meta">{status}</p>
+                  </div>
+                </div>
+              </div>
+              {lines.length === 0 ? null : (
+                <ul className="participant-card__lines">
+                  {lines.map((line, index) => (
+                    <li
+                      className="pick-line"
+                      key={`${participant.userId}-${line.itemName}-${index}`}
+                    >
+                      <div>
+                        <p className="pick-line__name">{line.itemName}</p>
+                        {line.note.length === 0 ? null : (
+                          <p className="pick-line__meta">{line.note}</p>
+                        )}
+                        <p className="pick-line__meta">× {line.quantity}</p>
+                      </div>
+                      <p className="pick-line__price">
+                        {formatCentavos(
+                          parseCentavos(line.lineSubtotalCentavos),
+                        )}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

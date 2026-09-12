@@ -3,7 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { drizzle } from "drizzle-orm/node-postgres";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -1651,6 +1651,85 @@ describe("orders repository writes", () => {
       false,
     );
   });
+
+  it("lists terminal group orders for current Managers without exposing active orders", async () => {
+    const repositories = createRepositories(database);
+    const fixture = await seedOrdersFixture();
+    const now = new Date("2026-09-11T04:00:00.000Z");
+    const created = await repositories.orders.createOrder({
+      choiceMode: "global_catalog",
+      deliveryAddressSnapshot: addressSnapshot,
+      foodDeadline: new Date("2026-09-11T06:00:00.000Z"),
+      groupId: fixture.group.id,
+      initialBranchId: fixture.branch.id,
+      initialRestaurantId: fixture.restaurant.id,
+      managerUserId: fixture.manager.id,
+      now,
+      participants: [
+        {
+          displayName: fixture.manager.displayName,
+          restaurantResponse: "responded",
+          role: "manager",
+          userId: fixture.manager.id,
+        },
+        {
+          displayName: fixture.member.displayName,
+          restaurantResponse: "pending",
+          role: "member",
+          userId: fixture.member.id,
+        },
+      ],
+      restaurantDeadline: new Date("2026-09-11T05:00:00.000Z"),
+      selected: null,
+      shortlistRestaurantIds: [],
+      state: "restaurant_voting",
+    });
+    const [viewer] = await database
+      .insert(users)
+      .values({ displayName: "History Manager" })
+      .returning();
+    if (viewer === undefined) {
+      throw new Error("Expected the History Manager fixture.");
+    }
+    await database.insert(memberships).values({
+      groupId: fixture.group.id,
+      role: "manager",
+      userId: viewer.id,
+    });
+
+    const activeVisible = await repositories.orders.listVisibleForUser(
+      viewer.id,
+    );
+    expect(activeVisible.map((order) => order.orderId)).not.toContain(
+      created.id,
+    );
+
+    await repositories.orders.setState(created.id, {
+      completedAt: new Date("2026-09-11T05:00:00.000Z"),
+      state: "ordered",
+      updatedAt: new Date("2026-09-11T05:00:00.000Z"),
+    });
+
+    const historyVisible = await repositories.orders.listVisibleForUser(
+      viewer.id,
+    );
+    expect(historyVisible.map((order) => order.orderId)).toContain(created.id);
+
+    await database
+      .update(memberships)
+      .set({ removedAt: new Date("2026-09-11T05:30:00.000Z") })
+      .where(
+        and(
+          eq(memberships.groupId, fixture.group.id),
+          eq(memberships.userId, fixture.member.id),
+        ),
+      );
+    const removedParticipantVisible =
+      await repositories.orders.listVisibleForUser(fixture.member.id);
+    expect(
+      removedParticipantVisible.map((order) => order.orderId),
+    ).not.toContain(created.id);
+  });
 });
 
 describe("orders food picking", () => {
@@ -1870,6 +1949,86 @@ describe("orders food picking", () => {
       quantity: 1,
       userId: fixture.member.id,
     });
+  });
+
+  it("lists saved lines for multiple orders in one batch", async () => {
+    const fixture = await seedFoodPickingFixture();
+    const second = await fixture.ordersRepository.createOrder({
+      choiceMode: "voting_disabled",
+      deliveryAddressSnapshot: {
+        city: "Naga",
+        lineOne: "12 Sample Street",
+        lineTwo: null,
+        notes: null,
+        phoneNumber: "+63 900 000 0000",
+        postalCode: null,
+        recipientName: "Mia Tan",
+      },
+      foodDeadline: new Date("2026-08-19T10:00:00.000Z"),
+      groupId: (await fixture.ordersRepository.findOrderDetail(fixture.created.id))!
+        .groupId,
+      initialBranchId: fixture.branch.id,
+      initialRestaurantId: fixture.restaurant.id,
+      managerUserId: fixture.manager.id,
+      now: new Date("2026-08-19T08:00:00.000Z"),
+      participants: [
+        {
+          displayName: fixture.manager.displayName,
+          restaurantResponse: "responded",
+          role: "manager",
+          userId: fixture.manager.id,
+        },
+        {
+          displayName: fixture.member.displayName,
+          restaurantResponse: "responded",
+          role: "member",
+          userId: fixture.member.id,
+        },
+      ],
+      restaurantDeadline: new Date("2026-08-19T08:00:00.000Z"),
+      selected: {
+        branchId: fixture.branch.id,
+        branchName: fixture.branch.name,
+        menuVersionId: fixture.menuVersion.id,
+        restaurantId: fixture.restaurant.id,
+        restaurantName: fixture.restaurant.name,
+      },
+      shortlistRestaurantIds: [],
+      state: "food_confirmation",
+    });
+    for (const orderId of [fixture.created.id, second.id]) {
+      await fixture.ordersRepository.upsertFoodResponse({
+        favoriteId: fixture.favorite.id,
+        lines: [
+          {
+            itemNameSnapshot: "Zinger Combo",
+            lineSubtotalCentavos: 22500,
+            noteSnapshot: "Extra gravy",
+            quantity: 1,
+            sortOrder: 0,
+            sourceMenuItemId: fixture.zinger.id,
+            unitPriceCentavos: 22500,
+          },
+        ],
+        now: new Date("2026-08-19T08:30:00.000Z"),
+        orderId,
+        source: "saved_favorite",
+        status: "confirmed",
+        userId: fixture.member.id,
+      });
+    }
+
+    const rows = await fixture.ordersRepository.listOrderLinesForOrders([
+      fixture.created.id,
+      second.id,
+    ]);
+
+    expect(new Set(rows.map((row) => row.orderId))).toEqual(
+      new Set([fixture.created.id, second.id]),
+    );
+    await expect(
+      fixture.ordersRepository.listOrderLinesForOrders([]),
+    ).resolves.toEqual([]);
   });
 
   it("rewrites lines when the response is upserted again", async () => {

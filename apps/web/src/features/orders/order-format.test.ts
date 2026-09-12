@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDeadline, formatStateLabel } from "./order-format.js";
+import {
+  formatDeadline,
+  formatHistoryDate,
+  formatStateLabel,
+} from "./order-format.js";
 
 describe("order formatting", () => {
   it("formats deadlines in Philippine time with a PHT label", () => {
-    expect(
-      formatDeadline(new Date("2026-08-20T03:30:00.000Z")),
-    ).toContain("11:30");
+    expect(formatDeadline(new Date("2026-08-20T03:30:00.000Z"))).toContain(
+      "11:30",
+    );
     expect(formatDeadline(new Date("2026-08-20T03:30:00.000Z"))).toContain(
       "PHT",
     );
@@ -18,5 +22,11 @@ describe("order formatting", () => {
     expect(formatStateLabel("ready_for_handoff")).toBe("Handoff");
     expect(formatStateLabel("ordered")).toBe("Ordered");
     expect(formatStateLabel("cancelled")).toBe("Cancelled");
+  });
+
+  it("formats History completion dates in Manila time", () => {
+    expect(formatHistoryDate(new Date("2026-09-10T16:30:00.000Z"))).toBe(
+      "Sep 11, 2026",
+    );
   });
 });

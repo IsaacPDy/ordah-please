@@ -1,9 +1,12 @@
 import { ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 
+import { formatCentavos } from "@ordah-please/domain";
+
 import { getCurrentServerPageIdentity } from "../../../src/auth/load-server-page-identity";
 import {
   formatDeadline,
+  formatHistoryDate,
   formatStateLabel,
 } from "../../../src/features/orders/order-format";
 import { ordersRuntime } from "../../../src/features/orders/orders-runtime";
@@ -23,10 +26,20 @@ export default async function OrdersPage() {
         membership.role === "group-owner" || membership.role === "manager",
     );
 
-  const summaries =
-    identityResult.status === "authenticated"
-      ? await ordersRuntime.listOrderSummaries(identityResult.identity.userId)
-      : { active: [], history: [] };
+  let ordersLoadFailed = false;
+  let summaries: Readonly<{
+    active: readonly OrderSummary[];
+    history: readonly OrderSummary[];
+  }> = { active: [], history: [] };
+  if (identityResult.status === "authenticated") {
+    try {
+      summaries = await ordersRuntime.listOrderSummaries(
+        identityResult.identity,
+      );
+    } catch {
+      ordersLoadFailed = true;
+    }
+  }
 
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="orders">
@@ -50,6 +63,12 @@ export default async function OrdersPage() {
             </span>
             New order
           </Link>
+        ) : null}
+
+        {ordersLoadFailed ? (
+          <p className="restaurant-empty" role="status">
+            Couldn&apos;t load orders. Refresh this page to try again.
+          </p>
         ) : null}
 
         <section
@@ -82,30 +101,72 @@ export default async function OrdersPage() {
             </p>
           ) : (
             summaries.history.map((order) => (
-              <article className="history-card" key={order.orderId}>
-                <div>
-                  <span
-                    className={
-                      order.state === "ordered"
-                        ? "status-pill status-pill--complete"
-                        : "status-pill status-pill--muted"
-                    }
-                  >
-                    {formatStateLabel(order.state)}
-                  </span>
-                  <h3>{order.groupName}</h3>
-                  <p>
-                    {order.restaurantName ?? "Restaurant pending"} ·{" "}
-                    {order.participantsTotal}{" "}
-                    {order.participantsTotal === 1 ? "person" : "people"}
-                  </p>
-                </div>
-              </article>
+              <HistoryOrderCard key={order.orderId} order={order} />
             ))
           )}
         </section>
       </div>
     </MemberAccessState>
+  );
+}
+
+/** Shows a compact terminal order that expands into the permitted person log. */
+function HistoryOrderCard({ order }: { readonly order: OrderSummary }) {
+  const restaurant = order.restaurantName ?? "Restaurant pending";
+  return (
+    <details className="history-card">
+      <summary aria-label={`Show order log for ${restaurant}`}>
+        <span className="history-card__summary">
+          <span
+            className={
+              order.state === "ordered"
+                ? "status-pill status-pill--complete"
+                : "status-pill status-pill--muted"
+            }
+          >
+            {formatStateLabel(order.state)}
+          </span>
+          <strong>{restaurant}</strong>
+          <small>
+            {order.groupName} ·{" "}
+            {order.completedAt === null
+              ? "Completion date unavailable"
+              : formatHistoryDate(order.completedAt)}{" "}
+            · {order.participantsTotal}{" "}
+            {order.participantsTotal === 1 ? "person" : "people"}
+          </small>
+        </span>
+      </summary>
+      <ul className="history-log">
+        {order.participants.map((participant) => {
+          const hasNoSelection =
+            participant.foodResponse === "pending" &&
+            participant.itemCount === 0;
+          const status =
+            participant.foodResponse === "declined"
+              ? "Not eating"
+              : participant.itemCount === 0
+                ? "No food selected"
+                : `${participant.itemCount} ${participant.itemCount === 1 ? "item" : "items"}`;
+          return (
+            <li key={participant.userId}>
+              <span>
+                <strong>{participant.displayName}</strong>
+                <small>{status}</small>
+              </span>
+              {hasNoSelection ? null : (
+                <strong className="history-log__subtotal">
+                  {formatCentavos(participant.subtotalCentavos)}
+                </strong>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <Link className="history-card__detail" href={`/orders/${order.orderId}`}>
+        View exact items
+      </Link>
+    </details>
   );
 }
 

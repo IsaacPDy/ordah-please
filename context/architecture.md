@@ -83,9 +83,9 @@ Cache only non-secret display data and short-lived session state. The server rem
 - Authentication deletion or session revocation never erases product history.
 - Platform admins manage catalog and admin requests.
 - Group Owners and Managers manage membership actions allowed by their effective permissions.
-- Managers manage only orders they are authorized to manage.
+- Managers manage only active orders they are authorized to manage. Current Group Owners and Managers may read every terminal order in their group without gaining active-order control.
 - Members mutate only their own favorites and their own active-order responses.
-- Order data is visible only to its Manager and selected participants, except Platform Admins performing support or audit duties.
+- Active-order data is visible only to its Manager and selected participants, except Platform Admins performing support or audit duties. Terminal Ordered and Cancelled history is visible to current Group Owners and Managers in full; a current Member sees only terminal orders they joined and only their own saved response and lines. A user without active group membership sees no group history.
 
 ## Core Data Rules
 

@@ -10,6 +10,7 @@ import {
   resolveFoodDeadline,
   transitionOrderState,
   type DeliveryAddress,
+  type Centavos,
   type FavoriteId,
   type FoodDeadlineResponse,
   type FoodSelectionSnapshot,
@@ -46,9 +47,7 @@ export interface OrdersServiceRepositories {
     }) => Promise<unknown>;
   };
   readonly catalog: {
-    readonly findMenuItemContext: (
-      menuItemId: string,
-    ) => Promise<
+    readonly findMenuItemContext: (menuItemId: string) => Promise<
       | {
           readonly menuItemId: string;
           readonly name: string;
@@ -62,9 +61,7 @@ export interface OrdersServiceRepositories {
     readonly findPublishedMenuVersion: (
       branchId: string,
     ) => Promise<{ readonly id: string } | undefined>;
-    readonly getRestaurantDetail: (
-      restaurantId: string,
-    ) => Promise<{
+    readonly getRestaurantDetail: (restaurantId: string) => Promise<{
       readonly branchId: string;
       readonly branchName: string;
       readonly restaurantName: string;
@@ -96,9 +93,7 @@ export interface OrdersServiceRepositories {
     }) => Promise<unknown>;
   };
   readonly favorites: {
-    readonly listForUser: (
-      userId: string,
-    ) => Promise<
+    readonly listForUser: (userId: string) => Promise<
       readonly {
         readonly favoriteId: string;
         readonly rank: number;
@@ -176,10 +171,21 @@ export interface OrdersServiceRepositories {
       orderId: string,
       userId: string,
     ) => Promise<unknown>;
-    readonly listOrderLines: (
-      orderId: string,
-    ) => Promise<
+    readonly listOrderLines: (orderId: string) => Promise<
       readonly {
+        readonly userId: string;
+        readonly sourceMenuItemId: string | null;
+        readonly itemNameSnapshot: string;
+        readonly quantity: number;
+        readonly unitPriceCentavos: number;
+        readonly noteSnapshot: string;
+        readonly lineSubtotalCentavos: number;
+        readonly sortOrder: number;
+      }[]
+    >;
+    readonly listOrderLinesForOrders: (orderIds: readonly string[]) => Promise<
+      readonly {
+        readonly orderId: string;
         readonly userId: string;
         readonly sourceMenuItemId: string | null;
         readonly itemNameSnapshot: string;
@@ -208,7 +214,8 @@ export interface OrdersServiceRepositories {
           readonly displayName: string;
           readonly role: "manager" | "member";
           readonly restaurantResponse: "pending" | "responded";
-          readonly foodResponse: "pending" | "confirmed" | "declined" | "resolved";
+          readonly foodResponse:
+            "pending" | "confirmed" | "declined" | "resolved";
         }[];
       }[]
     >;
@@ -301,7 +308,10 @@ export async function createGroupOrder(
       ? new Date(command.request.restaurantDeadline as string)
       : command.now;
     const foodDeadline = new Date(command.request.foodDeadline);
-    if (votingEnabled && restaurantDeadline.getTime() <= command.now.getTime()) {
+    if (
+      votingEnabled &&
+      restaurantDeadline.getTime() <= command.now.getTime()
+    ) {
       throw new PublicApiError(
         "INVALID_INPUT",
         "The voting deadline must be in the future.",
@@ -322,7 +332,10 @@ export async function createGroupOrder(
     let shortlistRestaurantIds: readonly string[] = [];
     if (command.request.votingMode === "shortlist") {
       const ids = command.request.shortlistRestaurantIds;
-      if (ids.length < 2 || !ids.includes(command.request.initialRestaurantId)) {
+      if (
+        ids.length < 2 ||
+        !ids.includes(command.request.initialRestaurantId)
+      ) {
         throw new PublicApiError(
           "INVALID_INPUT",
           "The shortlist needs at least two restaurants and must include the fallback.",
@@ -344,13 +357,13 @@ export async function createGroupOrder(
       shortlistRestaurantIds = ids;
     }
 
-    let selected: Parameters<typeof repositories.orders.createOrder>[0]["selected"] =
-      null;
+    let selected: Parameters<
+      typeof repositories.orders.createOrder
+    >[0]["selected"] = null;
     if (!votingEnabled) {
-      const menuVersion =
-        await repositories.catalog.findPublishedMenuVersion(
-          command.request.initialBranchId,
-        );
+      const menuVersion = await repositories.catalog.findPublishedMenuVersion(
+        command.request.initialBranchId,
+      );
       if (menuVersion === undefined) {
         throw new PublicApiError(
           "NOT_FOUND",
@@ -455,7 +468,8 @@ export async function completeOrder(
       updatedAt: command.now,
     });
     await repositories.auditEvents.append({
-      action: command.result === "cancelled" ? "order.cancelled" : "order.ordered",
+      action:
+        command.result === "cancelled" ? "order.cancelled" : "order.ordered",
       actorUserId: command.identity.userId,
       resourceId: command.orderId,
       resourceType: "order",
@@ -480,8 +494,7 @@ async function loadOpenFoodOrder(
   repositories: Pick<OrdersServiceRepositories, "orders">,
 ): Promise<FoodOrderRow> {
   const row = (await repositories.orders.findOrderDetail(orderId)) as
-    | OrderDetailDatabaseRow
-    | undefined;
+    OrderDetailDatabaseRow | undefined;
   if (row === undefined) {
     throw new PublicApiError("NOT_FOUND", "Order not found.");
   }
@@ -601,10 +614,11 @@ export async function submitFoodResponse(
       return { ok: true } as const;
     }
 
-    const favorites = await repositories.favorites.listForUserAndBranchWithItems(
-      command.identity.userId,
-      row.selectedBranchId,
-    );
+    const favorites =
+      await repositories.favorites.listForUserAndBranchWithItems(
+        command.identity.userId,
+        row.selectedBranchId,
+      );
     const favorite = favorites.find(
       (candidate) => candidate.id === request.favoriteId,
     );
@@ -653,10 +667,11 @@ async function collectRankOneDefaults(
     { favoriteId: string; lines: readonly FoodResponseLineInput[] }
   >();
   for (const userId of pendingUserIds) {
-    const favorites = await repositories.favorites.listForUserAndBranchWithItems(
-      userId,
-      selectedBranchId,
-    );
+    const favorites =
+      await repositories.favorites.listForUserAndBranchWithItems(
+        userId,
+        selectedBranchId,
+      );
     const rankOne = favorites[0];
     if (rankOne === undefined || rankOne.items.length === 0) {
       continue;
@@ -689,9 +704,8 @@ export async function advanceFoodDeadline(
   runner: OrdersTransactionRunner,
 ): Promise<Readonly<{ advanced: boolean }>> {
   return runner.run(async (repositories) => {
-    const row = (await repositories.orders.findOrderDetail(
-      command.orderId,
-    )) as OrderDetailDatabaseRow | undefined;
+    const row = (await repositories.orders.findOrderDetail(command.orderId)) as
+      OrderDetailDatabaseRow | undefined;
     if (row === undefined) {
       throw new PublicApiError("NOT_FOUND", "Order not found.");
     }
@@ -758,19 +772,15 @@ export async function advanceFoodDeadline(
             ? null
             : {
                 items:
-                  defaults
-                    .get(participant.userId)
-                    ?.lines.map((line) => ({
-                      menuItemId: parseId<MenuItemId>(line.sourceMenuItemId),
-                      name: line.itemNameSnapshot,
-                      quantity: line.quantity,
-                      unitPriceCentavos: parseCentavos(
-                        line.unitPriceCentavos,
-                      ),
-                      variant: null,
-                      modifiers: [],
-                      note: line.noteSnapshot,
-                    })) ?? [],
+                  defaults.get(participant.userId)?.lines.map((line) => ({
+                    menuItemId: parseId<MenuItemId>(line.sourceMenuItemId),
+                    name: line.itemNameSnapshot,
+                    quantity: line.quantity,
+                    unitPriceCentavos: parseCentavos(line.unitPriceCentavos),
+                    variant: null,
+                    modifiers: [],
+                    note: line.noteSnapshot,
+                  })) ?? [],
                 source: {
                   favoriteId: parseId<FavoriteId>(
                     defaults.get(participant.userId)?.favoriteId ?? "",
@@ -833,9 +843,8 @@ export async function finishOrder(
   runner: OrdersTransactionRunner,
 ): Promise<Readonly<{ ok: true }>> {
   return runner.run(async (repositories) => {
-    const row = (await repositories.orders.findOrderDetail(
-      command.orderId,
-    )) as OrderDetailDatabaseRow | undefined;
+    const row = (await repositories.orders.findOrderDetail(command.orderId)) as
+      OrderDetailDatabaseRow | undefined;
     if (row === undefined) {
       throw new PublicApiError("NOT_FOUND", "Order not found.");
     }
@@ -911,7 +920,7 @@ export async function finishOrder(
 }
 
 export type OrderViewerRole = Readonly<{
-  readonly kind: "participant" | "owner";
+  readonly kind: "participant" | "group-leader";
   readonly canManage: boolean;
 }>;
 
@@ -1007,9 +1016,8 @@ export async function loadOrderDetail(
   }>,
   repositories: Pick<OrdersServiceRepositories, "favorites" | "orders">,
 ): Promise<OrderDetailView> {
-  const row = (await repositories.orders.findOrderDetail(
-    command.orderId,
-  )) as OrderDetailDatabaseRow | undefined;
+  const row = (await repositories.orders.findOrderDetail(command.orderId)) as
+    OrderDetailDatabaseRow | undefined;
   if (row === undefined) {
     throw new PublicApiError("NOT_FOUND", "Order not found.");
   }
@@ -1021,7 +1029,12 @@ export async function loadOrderDetail(
     (participant) => participant.userId === command.identity.userId,
   );
   const isOwner = membership?.role === "group-owner";
-  if (!isParticipant && !isOwner) {
+  const isTerminal = row.state === "ordered" || row.state === "cancelled";
+  const isGroupLeader = isOwner || membership?.role === "manager";
+  const canView = isTerminal
+    ? membership !== undefined && (isParticipant || isGroupLeader)
+    : isParticipant || isOwner;
+  if (!canView) {
     throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
   }
 
@@ -1074,7 +1087,7 @@ export async function loadOrderDetail(
   const lineRows = isFoodStage
     ? await repositories.orders.listOrderLines(row.orderId)
     : [];
-  const lines: readonly OrderLineViewRow[] = lineRows.map((line) => ({
+  const allLines: readonly OrderLineViewRow[] = lineRows.map((line) => ({
     userId: line.userId,
     itemName: line.itemNameSnapshot,
     quantity: line.quantity,
@@ -1082,6 +1095,16 @@ export async function loadOrderDetail(
     note: line.noteSnapshot,
     lineSubtotalCentavos: line.lineSubtotalCentavos,
   }));
+  const participants =
+    isTerminal && !isGroupLeader
+      ? row.participants.filter(
+          (participant) => participant.userId === command.identity.userId,
+        )
+      : row.participants;
+  const lines =
+    isTerminal && !isGroupLeader
+      ? allLines.filter((line) => line.userId === command.identity.userId)
+      : allLines;
 
   return {
     lines,
@@ -1104,13 +1127,23 @@ export async function loadOrderDetail(
       createdAt: row.createdAt,
       completedAt: row.completedAt,
     },
-    participants: row.participants,
+    participants,
     viewer: {
-      kind: isOwner && !isParticipant ? "owner" : "participant",
-      canManage: row.managerUserId === command.identity.userId || isOwner,
+      kind: isParticipant ? "participant" : "group-leader",
+      canManage: isTerminal
+        ? isGroupLeader
+        : row.managerUserId === command.identity.userId || isOwner,
     },
     viewerFavorites,
   };
+}
+
+export interface HistoryParticipantSummary {
+  readonly displayName: string;
+  readonly foodResponse: "pending" | "confirmed" | "declined" | "resolved";
+  readonly itemCount: number;
+  readonly subtotalCentavos: Centavos;
+  readonly userId: string;
 }
 
 export interface OrderSummary {
@@ -1123,35 +1156,93 @@ export interface OrderSummary {
   readonly participantsVoted: number;
   readonly participantsTotal: number;
   readonly completedAt: Date | null;
+  readonly participants: readonly HistoryParticipantSummary[];
+}
+
+/** Returns whether the viewer may inspect every person's terminal-order log. */
+function canViewGroupHistory(identity: AppIdentity, groupId: string): boolean {
+  const role = identity.memberships.find(
+    (membership) => membership.groupId === groupId,
+  )?.role;
+  return role === "group-owner" || role === "manager";
 }
 
 /** Lists the viewer's active and historical order summaries. */
 export async function listOrderSummaries(
-  command: Readonly<{ userId: string }>,
+  command: Readonly<{ identity: AppIdentity }>,
   repositories: Pick<OrdersServiceRepositories, "orders">,
-): Promise<Readonly<{ active: readonly OrderSummary[]; history: readonly OrderSummary[] }>> {
-  const rows = await repositories.orders.listVisibleForUser(command.userId);
-  const summaries = rows.map((row) => ({
-    completedAt: row.completedAt,
-    deadline:
-      row.state === "restaurant_voting"
-        ? row.restaurantDeadline
-        : row.state === "food_confirmation"
-          ? row.foodDeadline
-          : null,
-    groupId: row.groupId,
-    groupName: row.groupName,
-    orderId: row.orderId,
-    participantsTotal: row.participants.length,
-    participantsVoted: row.participants.filter(
-      (participant) => participant.restaurantResponse === "responded",
-    ).length,
-    restaurantName: row.selectedRestaurantName,
-    state: row.state,
-  }));
+): Promise<
+  Readonly<{
+    active: readonly OrderSummary[];
+    history: readonly OrderSummary[];
+  }>
+> {
+  const rows = (
+    await repositories.orders.listVisibleForUser(command.identity.userId)
+  ).filter((row) =>
+    command.identity.memberships.some(
+      (membership) => membership.groupId === row.groupId,
+    ),
+  );
+  const terminalOrderIds = rows
+    .filter((row) => row.state === "ordered" || row.state === "cancelled")
+    .map((row) => row.orderId);
+  const lineRows =
+    terminalOrderIds.length === 0
+      ? []
+      : await repositories.orders.listOrderLinesForOrders(terminalOrderIds);
+  const linesByParticipant = new Map<string, typeof lineRows>();
+  for (const line of lineRows) {
+    const key = `${line.orderId}:${line.userId}`;
+    linesByParticipant.set(key, [...(linesByParticipant.get(key) ?? []), line]);
+  }
+
+  const summaries: OrderSummary[] = rows.map((row) => {
+    const isTerminal = row.state === "ordered" || row.state === "cancelled";
+    const visibleParticipants = !isTerminal
+      ? []
+      : canViewGroupHistory(command.identity, row.groupId)
+        ? row.participants
+        : row.participants.filter(
+            (participant) => participant.userId === command.identity.userId,
+          );
+    return {
+      completedAt: row.completedAt,
+      deadline:
+        row.state === "restaurant_voting"
+          ? row.restaurantDeadline
+          : row.state === "food_confirmation"
+            ? row.foodDeadline
+            : null,
+      groupId: row.groupId,
+      groupName: row.groupName,
+      orderId: row.orderId,
+      participants: visibleParticipants.map((participant) => {
+        const lines =
+          linesByParticipant.get(`${row.orderId}:${participant.userId}`) ?? [];
+        return {
+          displayName: participant.displayName,
+          foodResponse: participant.foodResponse,
+          itemCount: lines.reduce((sum, line) => sum + line.quantity, 0),
+          subtotalCentavos: parseCentavos(
+            lines.reduce((sum, line) => sum + line.lineSubtotalCentavos, 0),
+          ),
+          userId: participant.userId,
+        };
+      }),
+      participantsTotal: row.participants.length,
+      participantsVoted: row.participants.filter(
+        (participant) => participant.restaurantResponse === "responded",
+      ).length,
+      restaurantName: row.selectedRestaurantName,
+      state: row.state,
+    };
+  });
 
   const active = summaries
-    .filter((summary) => summary.state !== "ordered" && summary.state !== "cancelled")
+    .filter(
+      (summary) => summary.state !== "ordered" && summary.state !== "cancelled",
+    )
     .sort((left, right) => {
       const leftTime = left.deadline?.getTime() ?? Number.MAX_SAFE_INTEGER;
       const rightTime = right.deadline?.getTime() ?? Number.MAX_SAFE_INTEGER;
@@ -1161,8 +1252,10 @@ export async function listOrderSummaries(
     .filter(
       (summary) => summary.state === "ordered" || summary.state === "cancelled",
     )
-    .sort((left, right) =>
-      (right.completedAt?.getTime() ?? 0) - (left.completedAt?.getTime() ?? 0),
+    .sort(
+      (left, right) =>
+        (right.completedAt?.getTime() ?? 0) -
+        (left.completedAt?.getTime() ?? 0),
     );
 
   return { active, history };

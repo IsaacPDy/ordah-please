@@ -13,6 +13,7 @@ Option 1 is the approved V1 visual direction. Its corrected reference is `contex
 - Android is touch-first and native-feeling.
 - The iPhone PWA provides equivalent ordering behavior and clear Home Screen installation guidance.
 - The desktop admin portal prioritizes dense menu comparison, validation errors, and audit information.
+- History cards show status, restaurant, group, completion date, and participant count before expansion. Expanding reveals only server-authorized participant rows, with item count and subtotal when food was saved, `Not eating` after a decline, and `No food selected` when a cancelled order has no saved food. Exact terminal details remain read-only.
 - Limited mobile admin exposes Groups, Catalog, Access Requests, and Audit Log. Desktop additionally exposes Overview, Users and Permissions, Imports, and Refresh Queue.
 - Every active-order view shows stage, deadline, participant status, and the no-response consequence.
 - Every price display identifies itself as a food subtotal and excludes Grab fees, discounts, and promotions.

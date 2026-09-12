@@ -25,3 +25,13 @@ export function formatDeadline(date: Date): string {
   }).format(date);
   return `${formatted} PHT`;
 }
+
+/** Formats a completed-order calendar date in Philippine time. */
+export function formatHistoryDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-PH", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Asia/Manila",
+    year: "numeric",
+  }).format(date);
+}

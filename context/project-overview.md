@@ -11,7 +11,7 @@ conti
 
 - Manual Ordered or Cancelled confirmation.
 - Optional receipt screenshot.
-- Permanent history containing branch, participants, selections, captured prices, subtotal, order manager, status, receipts, and timestamps.
+- Permanent history containing branch, participants, selections, captured prices, subtotal, order manager, status, receipts, and timestamps. Current Group Owners and Managers can audit the full group log; current Members can review only terminal orders they joined and only their own response and saved lines.
 
 ## Scope
 
@@ -51,6 +51,6 @@ conti
 5. Non-responders with valid favorites receive Rank 1; other unresolved members can be handled by a Manager or Group Owner.
 6. The app compiles a correct order, food subtotal, member breakdown, and Grab handoff.
 7. A Manager or Group Owner can record Ordered or Cancelled and attach a receipt; enabled members can add their own receipts.
-8. The completed order is visible in permanent history.
+8. The completed order is visible in permanent history as an expandable participant log, with full group audit access for current Group Owners and Managers and self-only access for current Members who participated.
 9. Android push and iPhone PWA web push work for invited users.
 10. The system remains inside the defined security boundaries and targeted free tiers during prototype use.

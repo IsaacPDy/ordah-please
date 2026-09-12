@@ -40,7 +40,7 @@
 - **Restaurant Vote:** Applies the 50% threshold and initial-restaurant fallback/tie rules.
 - **Food Confirmation:** Applies default Rank 1, member changes, opt-out, and Manager resolution.
 - **Handoff Summary:** Consolidates identical lines while preserving member ownership.
-- **History Viewer:** Shows immutable captured order details and optional receipt.
+- **History Viewer:** Keeps each terminal order compact by default, then expands to a participant log. Current Group Owners and Managers see every participant and may open the exact immutable saved lines; Members see only their own authorized row and lines. Cancelled rows say `Not eating` for declined participants and `No food selected` when no saved food exists.
 - **Import Reviewer:** Compares collected data with the published menu and classifies risk.
 - **Notification Center:** Mirrors push events inside the application.
 

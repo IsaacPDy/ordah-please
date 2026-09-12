@@ -9,6 +9,11 @@
 ## Journey Bundles
 
 
+## In Design
+
+- [ ] History order log — Implementation and automated verification complete; signed-in Owner, Manager, and Member browser acceptance pending. Evidence in [`history/history-order-log.md`](history/history-order-log.md). See the [design spec](../docs/superpowers/specs/2026-09-11-history-order-log-design.md) and [implementation plan](../docs/superpowers/plans/2026-09-11-history-order-log.md).
+
+
 ## Completed
 
 - [x] Finish order early — merged to `main` 2026-08-23 (squash title "Finish order early"). Evidence and decisions in [`history/finish-order-early.md`](history/finish-order-early.md). Next order-sequence stage: Restaurant voting.
