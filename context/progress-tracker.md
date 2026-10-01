@@ -16,6 +16,7 @@
 
 ## Completed
 
+- [x] V1-09 Faster page data loading — deployed and verified 2026-10-01: Singapore functions, shared connections, read-only unchanged identities, and joined session/favorite reads. Signed-in tab data loaded in 369–579 ms versus the earlier 2,810–5,848 ms; full reloads took 433–772 ms. All 625 unit tests and 44 isolated development-Neon integration tests passed, along with typecheck, lint, and web build. Evidence and measurement/role boundaries are in [`history/v1-09.md`](history/v1-09.md).
 - [x] V1-08 Progressive web performance — deployed to production 2026-09-13 and prepared for `main` as squash commit `Performance update`. Core-route shell medians are 334–344 ms, replacing the old 5.9–8.4-second wait before meaningful feedback. Evidence and the remaining multi-account acceptance boundary are in [`history/v1-08.md`](history/v1-08.md).
 - [x] Finish order early — merged to `main` 2026-08-23 (squash title "Finish order early"). Evidence and decisions in [`history/finish-order-early.md`](history/finish-order-early.md). Next order-sequence stage: Restaurant voting.
 - [x] Food confirmation picking — merged to `main` 2026-08-23 (squash title "Food confirmation picking"). Evidence and decisions in [`history/food-confirmation-picking.md`](history/food-confirmation-picking.md). Next order-sequence stage: Finish order early, then Restaurant voting, then handoff/completion and manager resolution.

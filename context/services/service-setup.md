@@ -197,7 +197,7 @@ Vercel hosts the Next.js PWA, admin portal, and trusted API boundary. It is also
 ### Setup
 
 1. Create a Vercel project linked to the repository once `apps/web` exists.
-2. Use `apps/web` as the project root if the monorepo configuration requires it.
+2. Use `apps/web` as the project root if the monorepo configuration requires it. Its committed `vercel.json` selects Singapore (`sin1`) for functions, matching production Neon in AWS `ap-southeast-1` (confirmed by the user on 2026-10-01). A new deployment is required for this region setting to take effect; changing the database region requires reviewing the function region too.
 3. In **Project Settings > Environment Variables**, add every Vercel-targeted variable from the master inventory.
 4. Assign distinct values to Development, Preview, and Production.
 5. Set `APP_BASE_URL` and `NEXT_PUBLIC_APP_URL` to the correct origin for each stable environment.

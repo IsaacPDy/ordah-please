@@ -72,6 +72,14 @@ Cache only non-secret display data and short-lived session state. The server rem
 - Identity, sessions, roles, memberships, favorites, orders, and history details are never placed in the shared catalog cache.
 - Home reads active orders only. Orders reads every active card plus ten compact terminal summaries; an authenticated, resource-authorized endpoint loads participant totals for one opened terminal order.
 
+### Runtime Database Reads
+
+- Auth and feature runtimes share one lazy pg connection pool per server instance through `getRuntimeDatabase`; standalone clients remain available for isolated tests and tooling. Pool reuse never caches identity, permissions, or private query results.
+- Better Auth 1.6 resolves sessions and auth users using Drizzle relations in one database read. Cookie session caching remains disabled, so expiry and revocation still consult the database.
+- Product identity loads the user and active memberships together. An unchanged profile performs no write; missing users use the existing atomic unique-key upsert, and changed display names synchronize before a fresh identity read. Archived users remain unavailable.
+- Favorite cards use one scoped joined read with one deterministic representative item (the last item by sort order, then item ID). Branch favorites load every line, quantity, and note together and retain favorites with no lines.
+- `apps/web/vercel.json` places Vercel functions in Singapore (`sin1`), matching the production Neon region confirmed by the user on 2026-10-01. Every future deployment reads this versioned setting.
+
 ## Auth and Access Model
 
 - Google OAuth proves control of a Google identity, and Better Auth creates and verifies the application session.

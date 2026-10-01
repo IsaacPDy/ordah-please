@@ -5,9 +5,8 @@ import {
   authSessions,
   authUsers,
   authVerifications,
-  createDatabaseClient,
+  getRuntimeDatabase,
   type Database,
-  type DatabaseClient,
 } from "@ordah-please/db";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 
@@ -40,6 +39,7 @@ export function buildServerAuthOptions(
     appName: "ordah please",
     baseURL: environment.baseUrl,
     emailAndPassword: { enabled: false },
+    experimental: { joins: true },
     plugins: [expo()],
     secret: environment.secret,
     socialProviders: {
@@ -74,11 +74,9 @@ export function createServerAuth(
 export type ServerAuth = ReturnType<typeof createServerAuth>;
 
 let runtimeAuth: ServerAuth | undefined;
-let runtimeDatabaseClient: DatabaseClient | undefined;
 
 /** Returns one lazy server auth instance so builds do not require live credentials at import time. */
 export function getServerAuth(): ServerAuth {
-  runtimeDatabaseClient ??= createDatabaseClient();
-  runtimeAuth ??= createServerAuth(runtimeDatabaseClient.database);
+  runtimeAuth ??= createServerAuth(getRuntimeDatabase());
   return runtimeAuth;
 }

@@ -1,8 +1,7 @@
 import {
   type AuditEventsRepository,
-  createDatabaseClient,
+  getRuntimeDatabase,
   createRepositories,
-  type Database,
   type GroupAccessRepository,
   type IdentityAccessRepository,
   withTransaction,
@@ -19,19 +18,11 @@ import {
   submitAdminAccessRequest,
 } from "./access-service";
 
-let runtimeDatabase: Database | undefined;
-
 type AccessRepositories = Readonly<{
   access: GroupAccessRepository &
     Pick<IdentityAccessRepository, "addMembership" | "listActiveMemberships">;
   auditEvents: AuditEventsRepository;
 }>;
-
-/** Reuses one lazy pooled database across warm authenticated access requests. */
-function getRuntimeDatabase(): Database {
-  runtimeDatabase ??= createDatabaseClient().database;
-  return runtimeDatabase;
-}
 
 /** Runs one access mutation with group and identity repositories sharing the same transaction. */
 function runAccessTransaction<Result>(

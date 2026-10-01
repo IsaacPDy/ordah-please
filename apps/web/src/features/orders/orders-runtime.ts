@@ -1,8 +1,7 @@
 import {
-  createDatabaseClient,
+  getRuntimeDatabase,
   createRepositories,
   withTransaction,
-  type Database,
 } from "@ordah-please/db";
 
 import { loadAppIdentity } from "../../auth/load-app-identity";
@@ -20,14 +19,6 @@ import {
   loadOrderDetail,
   submitFoodResponse,
 } from "./orders-service";
-
-let runtimeDatabase: Database | undefined;
-
-/** Reuses one lazy pooled database across warm authenticated order requests. */
-function getRuntimeDatabase(): Database {
-  runtimeDatabase ??= createDatabaseClient().database;
-  return runtimeDatabase;
-}
 
 /** Runs one order mutation with every repository sharing one transaction. */
 function runOrdersTransaction<Result>(
@@ -73,9 +64,7 @@ export const ordersRuntime = {
       { orders: createRepositories(getRuntimeDatabase()).orders },
     ),
   /** Lists one bounded compact Orders page. */
-  listOrderSummaryPage: (
-    command: Parameters<typeof listOrderSummaryPage>[0],
-  ) =>
+  listOrderSummaryPage: (command: Parameters<typeof listOrderSummaryPage>[0]) =>
     listOrderSummaryPage(command, {
       orders: createRepositories(getRuntimeDatabase()).orders,
     }),

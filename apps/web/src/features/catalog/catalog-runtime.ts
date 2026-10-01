@@ -1,15 +1,7 @@
-import { createDatabaseClient, createRepositories, type Database } from "@ordah-please/db";
+import { getRuntimeDatabase, createRepositories } from "@ordah-please/db";
 
 import { loadAppIdentity } from "../../auth/load-app-identity";
 import { verifySession } from "../../auth/verify-session";
-
-let runtimeDatabase: Database | undefined;
-
-/** Reuses one lazy pooled database across warm authenticated catalog requests. */
-function getRuntimeDatabase(): Database {
-  runtimeDatabase ??= createDatabaseClient().database;
-  return runtimeDatabase;
-}
 
 /** Loads the authenticated user's current product identity from Neon. */
 export function loadRuntimeIdentity(session: {

@@ -36,6 +36,7 @@ let database: Database;
 let pool: Pool;
 let schemaCreated = false;
 let testSchema = "";
+let queryCount = 0;
 
 /** Restricts and quotes the temporary schema identifier before it reaches SQL. */
 function quoteTestSchema(identifier: string): string {
@@ -100,7 +101,14 @@ beforeAll(async () => {
     await pool.query(statement);
   }
 
-  database = drizzle(pool, { schema });
+  database = drizzle(pool, {
+    schema,
+    logger: {
+      logQuery: () => {
+        queryCount++;
+      },
+    },
+  });
 }, 30_000);
 
 afterAll(async () => {
@@ -506,6 +514,60 @@ describe("focused repositories", () => {
         imageUrl: null,
       }),
     ).resolves.toMatchObject({ archivedAt, id: user.id });
+  });
+
+  it("reads fresh identity and only active memberships in one query, retaining groupless and archived users", async () => {
+    const repositories = createRepositories(database);
+    const authUserId = randomUUID();
+    await database
+      .insert(authUsers)
+      .values({
+        id: authUserId,
+        email: `identity-${authUserId}@example.test`,
+        name: "Identity member",
+      });
+    const user = await repositories.identityAccess.ensureUserForAuthIdentity({
+      authUserId,
+      displayName: "Identity member",
+      email: "identity@example.test",
+      imageUrl: null,
+    });
+    queryCount = 0;
+    await expect(
+      repositories.identityAccess.findIdentityByAuthUserId(authUserId),
+    ).resolves.toMatchObject({ user: { id: user.id }, memberships: [] });
+    expect(queryCount).toBe(1);
+    const activeGroup = await repositories.groupAccess.createGroup({
+      createdByUserId: user.id,
+      name: "Active identity group",
+    });
+    const removedGroup = await repositories.groupAccess.createGroup({
+      createdByUserId: user.id,
+      name: "Removed identity group",
+    });
+    await database.insert(memberships).values([
+      { groupId: activeGroup.id, userId: user.id, role: "manager" },
+      {
+        groupId: removedGroup.id,
+        userId: user.id,
+        role: "member",
+        removedAt: new Date(),
+      },
+    ]);
+    await repositories.identityAccess.setPlatformAdminFlag(user.id, true);
+    const archivedAt = new Date();
+    await repositories.identityAccess.archiveUser(user.id, archivedAt);
+    queryCount = 0;
+    await expect(
+      repositories.identityAccess.findIdentityByAuthUserId(authUserId),
+    ).resolves.toMatchObject({
+      user: { id: user.id, isPlatformAdmin: true, archivedAt },
+      memberships: [{ groupId: activeGroup.id, role: "manager" }],
+    });
+    expect(queryCount).toBe(1);
+    await expect(
+      repositories.identityAccess.findIdentityByAuthUserId(randomUUID()),
+    ).resolves.toBeUndefined();
   });
 
   it("creates, resolves, and consumes an invitation hash only once", async () => {
@@ -1444,12 +1506,14 @@ describe("favorites repository writes", () => {
       userId: user.id,
     });
 
-    expect(
+    queryCount = 0;
+    const branchFavorites =
       await repositories.favorites.listForUserAndBranchWithItems(
         user.id,
         branch.id,
-      ),
-    ).toStrictEqual([
+      );
+    expect(queryCount).toBe(1);
+    expect(branchFavorites).toStrictEqual([
       {
         id: first.id,
         branchId: branch.id,
@@ -1479,7 +1543,9 @@ describe("favorites repository writes", () => {
 
     await repositories.favorites.updateFavoriteRank(second.id, 1);
 
+    queryCount = 0;
     const pageRows = await repositories.favorites.listForUser(user.id);
+    expect(queryCount).toBe(1);
     expect(pageRows).toStrictEqual([
       {
         favoriteId: second.id,
@@ -1497,6 +1563,87 @@ describe("favorites repository writes", () => {
         imageUrl: null,
       },
     ]);
+  });
+
+  it("keeps empty favorites and complete combination lines while producing one owned card per favorite", async () => {
+    const repositories = createRepositories(database);
+    const { branch, item, menuVersion, secondItem, user } =
+      await seedFavoritesFixture();
+    const [empty, combination] = await database
+      .insert(favorites)
+      .values([
+        {
+          userId: user.id,
+          branchId: branch.id,
+          menuVersionId: menuVersion.id,
+          rank: 1,
+          name: "Empty favorite",
+        },
+        {
+          userId: user.id,
+          branchId: branch.id,
+          menuVersionId: menuVersion.id,
+          rank: 2,
+          name: "Combination",
+        },
+      ])
+      .returning();
+    if (empty === undefined || combination === undefined)
+      throw new Error("Expected favorite fixtures.");
+    await database.insert(favoriteItems).values([
+      {
+        favoriteId: combination.id,
+        menuItemId: secondItem.id,
+        quantity: 2,
+        note: "Extra sauce",
+        sortOrder: 1,
+      },
+      {
+        favoriteId: combination.id,
+        menuItemId: item.id,
+        quantity: 1,
+        note: "No onions",
+        sortOrder: 0,
+      },
+    ]);
+    queryCount = 0;
+    const rows = await repositories.favorites.listForUserAndBranchWithItems(
+      user.id,
+      branch.id,
+    );
+    expect(queryCount).toBe(1);
+    expect(rows).toMatchObject([
+      { id: empty.id, items: [] },
+      {
+        id: combination.id,
+        items: [
+          { menuItemId: item.id, quantity: 1, note: "No onions" },
+          { menuItemId: secondItem.id, quantity: 2, note: "Extra sauce" },
+        ],
+      },
+    ]);
+    queryCount = 0;
+    const cards = await repositories.favorites.listForUser(user.id);
+    expect(queryCount).toBe(1);
+    expect(cards).toHaveLength(2);
+    expect(cards[0]).toMatchObject({
+      favoriteId: empty.id,
+      menuItemId: null,
+      currentPriceCentavos: null,
+    });
+    expect(cards[1]).toMatchObject({
+      favoriteId: combination.id,
+      menuItemId: secondItem.id,
+    });
+    await expect(
+      repositories.favorites.listForUser(randomUUID()),
+    ).resolves.toEqual([]);
+    await expect(
+      repositories.favorites.listForUserAndBranchWithItems(
+        user.id,
+        randomUUID(),
+      ),
+    ).resolves.toEqual([]);
   });
 });
 
@@ -2308,7 +2455,9 @@ describe("orders food picking", () => {
     const fixture = await seedFoodPickingFixture();
     const favoritesRepository = fixture.favoritesRepository;
 
+    queryCount = 0;
     const forPage = await favoritesRepository.listForUser(fixture.member.id);
+    expect(queryCount).toBe(1);
     expect(forPage).toHaveLength(1);
     expect(forPage[0]).toMatchObject({
       currentPriceCentavos: 22500,

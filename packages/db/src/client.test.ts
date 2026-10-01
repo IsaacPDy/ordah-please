@@ -1,8 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createDatabaseClient, readRuntimeDatabaseConfig } from "./client.js";
+import * as databaseClient from "./client.js";
 
 describe("runtime database configuration", () => {
+  it("reuses one lazy database across independent runtime consumers", () => {
+    vi.stubEnv(
+      "DATABASE_URL",
+      "postgresql://user:secret@ep-example-pooler.us-east-2.aws.neon.tech/db?sslmode=require",
+    );
+    try {
+      expect(databaseClient).toHaveProperty("getRuntimeDatabase");
+      expect(databaseClient.getRuntimeDatabase()).toBe(
+        databaseClient.getRuntimeDatabase(),
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("requires the pooled runtime variable instead of accepting the migration variable", () => {
     expect(() => readRuntimeDatabaseConfig({})).toThrowError(
       "DATABASE_URL is required on the server.",

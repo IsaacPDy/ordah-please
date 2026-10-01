@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 
 import {
   branches,
@@ -11,7 +11,7 @@ import type { DatabaseTransaction } from "../transaction.js";
 
 type FavoritesDatabase = Pick<
   DatabaseTransaction,
-  "insert" | "select" | "update" | "delete"
+  "insert" | "select" | "selectDistinctOn" | "update" | "delete"
 >;
 
 export interface FavoriteItemRow {
@@ -84,42 +84,92 @@ export function createFavoritesRepository(
       database
         .select()
         .from(favorites)
-        .where(and(eq(favorites.userId, userId), eq(favorites.branchId, branchId)))
-        .orderBy(asc(favorites.rank)),
-
-    listForUserAndBranchWithItems: async (userId, branchId) => {
-      const favoriteRows = await database
-        .select()
-        .from(favorites)
         .where(
           and(eq(favorites.userId, userId), eq(favorites.branchId, branchId)),
         )
-        .orderBy(asc(favorites.rank));
-      // Rank is unique per user+branch, so at most 3 favorites exist here and
-      // per-favorite item queries stay bounded.
-      const withItems: FavoriteWithItemsRow[] = [];
-      for (const favorite of favoriteRows) {
-        const itemRows = await database
-          .select()
-          .from(favoriteItems)
-          .where(eq(favoriteItems.favoriteId, favorite.id));
-        withItems.push({
-          id: favorite.id,
-          branchId: favorite.branchId,
-          rank: favorite.rank,
-          name: favorite.name,
-          items: itemRows.map((row) => ({
+        .orderBy(asc(favorites.rank)),
+
+    listForUserAndBranchWithItems: async (userId, branchId) => {
+      const rows = await database
+        .select({
+          id: favorites.id,
+          branchId: favorites.branchId,
+          rank: favorites.rank,
+          name: favorites.name,
+          menuItemId: favoriteItems.menuItemId,
+          note: favoriteItems.note,
+          quantity: favoriteItems.quantity,
+        })
+        .from(favorites)
+        .leftJoin(favoriteItems, eq(favoriteItems.favoriteId, favorites.id))
+        .where(
+          and(eq(favorites.userId, userId), eq(favorites.branchId, branchId)),
+        )
+        .orderBy(
+          asc(favorites.rank),
+          asc(favoriteItems.sortOrder),
+          asc(favoriteItems.id),
+        );
+      const byFavorite = new Map<
+        string,
+        {
+          id: string;
+          branchId: string;
+          rank: number;
+          name: string;
+          items: FavoriteItemRow[];
+        }
+      >();
+      for (const row of rows) {
+        let favorite = byFavorite.get(row.id);
+        if (favorite === undefined) {
+          favorite = {
+            id: row.id,
+            branchId: row.branchId,
+            rank: row.rank,
+            name: row.name,
+            items: [],
+          };
+          byFavorite.set(row.id, favorite);
+        }
+        if (
+          row.menuItemId !== null &&
+          row.note !== null &&
+          row.quantity !== null
+        ) {
+          favorite.items.push({
             menuItemId: row.menuItemId,
             note: row.note,
             quantity: row.quantity,
-          })),
-        });
+          });
+        }
       }
-      return withItems;
+      return [...byFavorite.values()];
     },
 
     listForUser: async (userId) => {
-      const favoriteRows = await database
+      // Keep one card per favorite even for combinations; choose its last ordered item deterministically.
+      const itemPreview = database
+        .selectDistinctOn([favoriteItems.favoriteId], {
+          favoriteId: favoriteItems.favoriteId,
+          menuItemId: menuItems.id,
+          basePriceCentavos: menuItems.basePriceCentavos,
+          description: menuItems.description,
+          imageUrl: menuItems.imageUrl,
+          isAvailable: menuItems.isAvailable,
+        })
+        .from(favoriteItems)
+        .innerJoin(favorites, eq(favorites.id, favoriteItems.favoriteId))
+        .innerJoin(menuItems, eq(menuItems.id, favoriteItems.menuItemId))
+        .where(eq(favorites.userId, userId))
+        .orderBy(
+          asc(favoriteItems.favoriteId),
+          desc(favoriteItems.sortOrder),
+          desc(favoriteItems.id),
+        )
+        .as("favorite_item_preview");
+
+      return database
         .select({
           favoriteId: favorites.id,
           rank: favorites.rank,
@@ -129,51 +179,18 @@ export function createFavoritesRepository(
           restaurantName: restaurants.name,
           branchId: branches.id,
           branchName: branches.name,
+          menuItemId: itemPreview.menuItemId,
+          currentPriceCentavos: itemPreview.basePriceCentavos,
+          isCurrentlyAvailable: itemPreview.isAvailable,
+          itemDescription: itemPreview.description,
+          imageUrl: itemPreview.imageUrl,
         })
         .from(favorites)
         .innerJoin(branches, eq(branches.id, favorites.branchId))
         .innerJoin(restaurants, eq(restaurants.id, branches.restaurantId))
+        .leftJoin(itemPreview, eq(itemPreview.favoriteId, favorites.id))
         .where(eq(favorites.userId, userId))
         .orderBy(asc(branches.id), asc(favorites.rank));
-      if (favoriteRows.length === 0) return [];
-
-      const favoriteIds = favoriteRows.map((row) => row.favoriteId);
-      const itemRows = await database
-        .select({
-          favoriteId: favoriteItems.favoriteId,
-          menuItemId: menuItems.id,
-          basePriceCentavos: menuItems.basePriceCentavos,
-          description: menuItems.description,
-          imageUrl: menuItems.imageUrl,
-          isAvailable: menuItems.isAvailable,
-        })
-        .from(favoriteItems)
-        .innerJoin(menuItems, eq(menuItems.id, favoriteItems.menuItemId))
-        .where(inArray(favoriteItems.favoriteId, favoriteIds));
-
-      const itemByFavorite = new Map<string, (typeof itemRows)[number]>();
-      for (const row of itemRows) {
-        itemByFavorite.set(row.favoriteId, row);
-      }
-
-      return favoriteRows.map((row) => {
-        const item = itemByFavorite.get(row.favoriteId);
-        return {
-          favoriteId: row.favoriteId,
-          rank: row.rank,
-          name: row.name,
-          availability: row.availability,
-          restaurantId: row.restaurantId,
-          restaurantName: row.restaurantName,
-          branchId: row.branchId,
-          branchName: row.branchName,
-          menuItemId: item?.menuItemId ?? null,
-          currentPriceCentavos: item?.basePriceCentavos ?? null,
-          isCurrentlyAvailable: item?.isAvailable ?? null,
-          itemDescription: item?.description ?? null,
-          imageUrl: item?.imageUrl ?? null,
-        };
-      });
     },
 
     insertFavoriteWithItem: async (input) => {

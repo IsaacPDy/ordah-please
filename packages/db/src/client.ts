@@ -59,3 +59,11 @@ export function createDatabaseClient(
     close: async () => pool.end(),
   };
 }
+
+let runtimeDatabaseClient: DatabaseClient | undefined;
+
+/** Shares one lazy connection pool across trusted runtime consumers without caching query results. */
+export function getRuntimeDatabase(): Database {
+  runtimeDatabaseClient ??= createDatabaseClient();
+  return runtimeDatabaseClient.database;
+}

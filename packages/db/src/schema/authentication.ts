@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   pgTable,
@@ -79,3 +79,25 @@ export const authVerifications = pgTable("auth_verifications", {
   createdAt: utcTimestamp("created_at").defaultNow().notNull(),
   updatedAt: utcTimestamp("updated_at").defaultNow().notNull(),
 });
+
+/** Declares auth-only joins so Better Auth can resolve related records in a single read. */
+export const authUsersRelations = relations(authUsers, ({ many }) => ({
+  sessions: many(authSessions),
+  accounts: many(authAccounts),
+}));
+
+/** Keeps each session's trusted auth user available to the relational adapter. */
+export const authSessionsRelations = relations(authSessions, ({ one }) => ({
+  user: one(authUsers, {
+    fields: [authSessions.userId],
+    references: [authUsers.id],
+  }),
+}));
+
+/** Keeps account joins within authentication tables, separate from product permissions. */
+export const authAccountsRelations = relations(authAccounts, ({ one }) => ({
+  user: one(authUsers, {
+    fields: [authAccounts.userId],
+    references: [authUsers.id],
+  }),
+}));

@@ -7,7 +7,7 @@ import { parseId, type GroupId, type UserId } from "@ordah-please/domain";
 
 export type IdentityReader = Pick<
   IdentityAccessRepository,
-  "ensureUserForAuthIdentity" | "listActiveMemberships"
+  "ensureUserForAuthIdentity" | "findIdentityByAuthUserId"
 >;
 
 export interface GroupMembershipIdentity {
@@ -36,12 +36,20 @@ export async function loadAppIdentity(
   authIdentity: AuthIdentityInput,
   repository: IdentityReader,
 ): Promise<AppIdentity> {
-  const user = await repository.ensureUserForAuthIdentity(authIdentity);
-  if (user.archivedAt !== null) {
+  let row = await repository.findIdentityByAuthUserId(authIdentity.authUserId);
+  if (row !== undefined && row.user.archivedAt !== null) {
     throw new PublicApiError("UNAVAILABLE", "Your account is not available.");
   }
+  if (row === undefined || row.user.displayName !== authIdentity.displayName) {
+    await repository.ensureUserForAuthIdentity(authIdentity);
+    row = await repository.findIdentityByAuthUserId(authIdentity.authUserId);
+  }
+  if (row === undefined || row.user.archivedAt !== null) {
+    throw new PublicApiError("UNAVAILABLE", "Your account is not available.");
+  }
+  const { user } = row;
 
-  const memberships = (await repository.listActiveMemberships(user.id))
+  const memberships = row.memberships
     .map((membership) => ({
       groupId: parseId<GroupId>(membership.groupId),
       role: MEMBERSHIP_ROLE_MAP[membership.role],

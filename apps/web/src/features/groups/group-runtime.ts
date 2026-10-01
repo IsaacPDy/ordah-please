@@ -1,8 +1,8 @@
 import {
-  createDatabaseClient,
+  getRuntimeDatabase,
+  type Database,
   createRepositories,
   groups as groupsSchema,
-  type Database,
   type GroupAccessRepository,
   type OrdersRepository,
   type AuditEventsRepository,
@@ -128,8 +128,6 @@ async function listAllGroupRows(database: Database) {
     .orderBy(asc(groupsSchema.name));
 }
 
-let runtimeDatabase: Database | undefined;
-
 type GroupRepositories = Readonly<{
   groupAccess: GroupAccessRepository;
   auditEvents: AuditEventsRepository;
@@ -138,12 +136,6 @@ type GroupRepositories = Readonly<{
     "addMembership" | "listActiveMemberships"
   >;
 }>;
-
-/** Reuses one lazy pooled database across warm authenticated group requests. */
-function getRuntimeDatabase(): Database {
-  runtimeDatabase ??= createDatabaseClient().database;
-  return runtimeDatabase;
-}
 
 /** Runs one group mutation with group, identity, and audit repositories sharing one transaction. */
 function runGroupTransaction<Result>(

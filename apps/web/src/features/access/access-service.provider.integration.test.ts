@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { makeSignature } from "better-auth/crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
@@ -11,6 +12,8 @@ import {
   type AuditEventsRepository,
   adminAccessRequests,
   auditEvents,
+  authSessions,
+  authUsers,
   createRepositories,
   type Database,
   type GroupAccessRepository,
@@ -19,7 +22,12 @@ import {
   invitations,
   memberships,
   withTransaction,
+  users,
 } from "@ordah-please/db";
+
+import { createServerAuth } from "../../auth/server-auth";
+import { verifySession } from "../../auth/verify-session";
+import { loadAppIdentity } from "../../auth/load-app-identity";
 
 import {
   acceptGroupInvitation,
@@ -42,6 +50,7 @@ let database: Database;
 let runtimePool: Pool;
 let schemaCreated = false;
 let testSchema = "";
+let queryCount = 0;
 
 /** Restricts and quotes the temporary schema identifier before it reaches SQL. */
 function quoteTestSchema(identifier: string): string {
@@ -201,6 +210,11 @@ beforeAll(async () => {
   });
   database = drizzle(runtimePool, {
     schema: await import("@ordah-please/db"),
+    logger: {
+      logQuery: () => {
+        queryCount++;
+      },
+    },
   });
 }, 30_000);
 
@@ -217,6 +231,128 @@ afterAll(async () => {
 });
 
 describe("access service provider transactions", () => {
+  it("verifies joined sessions in one read while enforcing expiry and immediate revocation", async () => {
+    const userId = randomUUID();
+    const sessionId = randomUUID();
+    const token = randomUUID();
+    const now = new Date();
+    await database
+      .insert(authUsers)
+      .values({
+        id: userId,
+        name: "Session Member",
+        email: `session-${userId}@example.test`,
+        emailVerified: true,
+      });
+    await database
+      .insert(authSessions)
+      .values({
+        id: sessionId,
+        token,
+        userId,
+        expiresAt: new Date(now.getTime() + 7 * 86400_000),
+        updatedAt: now,
+      });
+    const environment = {
+      baseUrl: "https://auth-provider.example.test",
+      googleClientId: "provider-test-client",
+      googleClientSecret: "provider-test-secret",
+      isProduction: true,
+      secret: "provider-test-auth-secret-at-least-32-characters",
+    };
+    const auth = createServerAuth(database, environment);
+    const context = await auth.$context;
+    const signature = await makeSignature(token, environment.secret);
+    const request = new Request(environment.baseUrl, {
+      headers: {
+        cookie: `${context.authCookies.sessionToken.name}=${encodeURIComponent(`${token}.${signature}`)}`,
+      },
+    });
+    const readSession = ({ headers }: { headers: Headers }) =>
+      auth.api.getSession({ headers });
+    queryCount = 0;
+    await expect(verifySession(request, readSession)).resolves.toMatchObject({
+      authUserId: userId,
+      displayName: "Session Member",
+    });
+    expect(queryCount).toBe(1);
+
+    await database.delete(authSessions).where(eq(authSessions.id, sessionId));
+    await expect(verifySession(request, readSession)).rejects.toMatchObject({
+      code: "UNAUTHENTICATED",
+    });
+    await database
+      .insert(authSessions)
+      .values({
+        id: sessionId,
+        token,
+        userId,
+        expiresAt: new Date(now.getTime() - 1000),
+      });
+    await expect(verifySession(request, readSession)).rejects.toMatchObject({
+      code: "UNAUTHENTICATED",
+    });
+  });
+
+  it("provisions concurrent identities safely and makes subsequent identity loads read-only and fresh", async () => {
+    const authUserId = randomUUID();
+    const authIdentity = {
+      authUserId,
+      displayName: "Identity Member",
+      email: `identity-${authUserId}@example.test`,
+      imageUrl: null,
+    };
+    await database
+      .insert(authUsers)
+      .values({
+        id: authUserId,
+        name: authIdentity.displayName,
+        email: authIdentity.email,
+        emailVerified: true,
+      });
+    const repository = createRepositories(database).identityAccess;
+    const identities = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        loadAppIdentity(authIdentity, repository),
+      ),
+    );
+    expect(new Set(identities.map((identity) => identity.userId)).size).toBe(1);
+    const user = await repository.findUserByAuthUserId(authUserId);
+    if (user === undefined) throw new Error("Expected provisioned identity.");
+    queryCount = 0;
+    await expect(
+      loadAppIdentity(authIdentity, repository),
+    ).resolves.toMatchObject({ userId: user.id, memberships: [] });
+    expect(queryCount).toBe(1);
+    expect((await repository.findUserById(user.id))?.updatedAt).toEqual(
+      user.updatedAt,
+    );
+    const groupId = await createOwnedGroup(user.id, "Fresh permission group");
+    await repository.setPlatformAdminFlag(user.id, true);
+    await expect(
+      loadAppIdentity(authIdentity, repository),
+    ).resolves.toMatchObject({
+      isPlatformAdmin: true,
+      memberships: [{ groupId, role: "group-owner" }],
+    });
+    await database
+      .update(memberships)
+      .set({ removedAt: new Date() })
+      .where(
+        and(eq(memberships.userId, user.id), eq(memberships.groupId, groupId)),
+      );
+    await expect(
+      loadAppIdentity(authIdentity, repository),
+    ).resolves.toMatchObject({ memberships: [] });
+    await database
+      .update(users)
+      .set({ archivedAt: new Date() })
+      .where(eq(users.id, user.id));
+    await expect(
+      loadAppIdentity(authIdentity, repository),
+    ).rejects.toMatchObject({ code: "UNAVAILABLE" });
+  });
+
   it("rolls back invitation consumption and membership when the audit append fails", async () => {
     const ownerUserId = await createTestUser("Rollback Owner");
     const memberUserId = await createTestUser("Rollback Member");

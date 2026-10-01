@@ -1,25 +1,13 @@
 import {
-  createDatabaseClient,
+  getRuntimeDatabase,
   createRepositories,
   withTransaction,
-  type Database,
 } from "@ordah-please/db";
 
 import { loadAppIdentity } from "../../auth/load-app-identity";
 import { verifySession } from "../../auth/verify-session";
 import type { FavoritesServiceRepositories } from "./favorites-service";
-import {
-  removeFavoriteMeal,
-  saveFavoriteMeal,
-} from "./favorites-service";
-
-let runtimeDatabase: Database | undefined;
-
-/** Reuses one lazy pooled database across warm authenticated favorites requests. */
-function getRuntimeDatabase(): Database {
-  runtimeDatabase ??= createDatabaseClient().database;
-  return runtimeDatabase;
-}
+import { removeFavoriteMeal, saveFavoriteMeal } from "./favorites-service";
 
 /** Runs one favorites mutation with catalog and favorites repositories sharing one transaction. */
 function runFavoritesTransaction<Result>(
@@ -53,10 +41,9 @@ export const favoritesRuntime = {
     createRepositories(getRuntimeDatabase()).favorites.listForUser(userId),
   /** Lists only the signed-in member's bounded favorites for one restaurant branch. */
   listFavoritesForBranch: (userId: string, branchId: string) =>
-    createRepositories(getRuntimeDatabase()).favorites.listForUserAndBranchWithItems(
-      userId,
-      branchId,
-    ),
+    createRepositories(
+      getRuntimeDatabase(),
+    ).favorites.listForUserAndBranchWithItems(userId, branchId),
   loadIdentity: loadRuntimeIdentity,
   verifySession,
 } as const;

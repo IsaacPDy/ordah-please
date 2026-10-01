@@ -1,7 +1,14 @@
 import { getTableConfig } from "drizzle-orm/pg-core";
-import { describe, expect, it } from "vitest";
+import { drizzle } from "drizzle-orm/node-postgres";
+import type { Pool } from "pg";
+import { describe, expect, it, vi } from "vitest";
+import * as schema from "@ordah-please/db";
 
-import { betterAuthSchema, buildServerAuthOptions } from "./server-auth";
+import {
+  betterAuthSchema,
+  buildServerAuthOptions,
+  createServerAuth,
+} from "./server-auth";
 
 const environment = {
   baseUrl: "https://preview.example.test",
@@ -12,6 +19,51 @@ const environment = {
 } as const;
 
 describe("Better Auth server configuration", () => {
+  it("resolves a live session and its auth user in one database trip", async () => {
+    const userId = "10000000-0000-4000-8000-000000000001";
+    const now = new Date();
+    const timestamp = now.toISOString();
+    const expiresAt = new Date(now.getTime() + 60_000).toISOString();
+    const sessionRow = [
+      "20000000-0000-4000-8000-000000000001",
+      expiresAt,
+      "test-session-token",
+      timestamp,
+      timestamp,
+      null,
+      null,
+      userId,
+    ];
+    const userRow = [
+      userId,
+      "Avery",
+      "avery@example.test",
+      true,
+      null,
+      timestamp,
+      timestamp,
+    ];
+    const query = vi.fn((input: { readonly text: string }) =>
+      Promise.resolve({
+        rows: input.text.includes("json_build_array")
+          ? [[...sessionRow, userRow]]
+          : input.text.includes('"auth_sessions"')
+            ? [sessionRow]
+            : [userRow],
+      }),
+    );
+    const database = drizzle({ client: { query } as unknown as Pool, schema });
+    const auth = createServerAuth(database, environment);
+    const context = await auth.$context;
+
+    const result =
+      await context.internalAdapter.findSession("test-session-token");
+
+    expect(result?.user).toMatchObject({ id: userId, name: "Avery" });
+    expect(result?.session.expiresAt).toEqual(new Date(expiresAt));
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
   it("maps Better Auth models to the separate auth tables", () => {
     expect(
       Object.fromEntries(

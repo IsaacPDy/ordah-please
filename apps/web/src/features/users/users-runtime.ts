@@ -1,8 +1,7 @@
 import {
-  createDatabaseClient,
+  getRuntimeDatabase,
   createRepositories,
   type AuditEventsRepository,
-  type Database,
   type GroupAccessRepository,
   type IdentityAccessRepository,
   withTransaction,
@@ -14,19 +13,11 @@ import {
   suspendUserAsAdmin,
 } from "./users-admin-service";
 
-let runtimeDatabase: Database | undefined;
-
 type UsersAdminRuntimeRepositories = Readonly<{
   identityAccess: IdentityAccessRepository;
   groupAccess: GroupAccessRepository;
   auditEvents: AuditEventsRepository;
 }>;
-
-/** Reuses one lazy pooled database across warm authenticated admin requests. */
-function getRuntimeDatabase(): Database {
-  runtimeDatabase ??= createDatabaseClient().database;
-  return runtimeDatabase;
-}
 
 /** Runs one users-admin mutation with identity, group, and audit repositories sharing one transaction. */
 function runUsersAdminTransaction<Result>(
@@ -107,8 +98,7 @@ export const usersRuntime = {
   ) => addUserToGroupAsAdmin(command, { run: runUsersAdminTransaction }),
   removeUserFromGroupAsAdmin: (
     command: Parameters<typeof removeUserFromGroupAsAdmin>[0],
-  ) =>
-    removeUserFromGroupAsAdmin(command, { run: runUsersAdminTransaction }),
+  ) => removeUserFromGroupAsAdmin(command, { run: runUsersAdminTransaction }),
   suspendUserAsAdmin: (command: Parameters<typeof suspendUserAsAdmin>[0]) =>
     suspendUserAsAdmin(command, { run: runUsersAdminTransaction }),
   /** Lists every active product user with profile fields and group-name-resolved memberships, for the admin portal. */

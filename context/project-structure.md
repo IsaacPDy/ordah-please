@@ -51,7 +51,7 @@ Order App/                        # Current workspace; project slug is ordah-ple
 │   │   ├── drizzle/            # Generated SQL migrations and Drizzle metadata
 │   │   ├── drizzle.config.ts   # Direct migration connection and schema-generation paths
 │   │   └── src/
-│   │       ├── client.ts       # Validated pooled server connection composition
+│   │       ├── client.ts       # Validated pooled connections and one lazy shared runtime database
 │   │       ├── dev/            # Deterministic fixtures plus guarded seed and auth-identity-link CLIs
 │   │       ├── transaction.ts  # Atomic multi-record operation boundary
 │   │       ├── repositories/   # Catalog import/read/edit and other focused persistence interfaces
@@ -102,6 +102,7 @@ The current UI baseline replaces the original empty member shells with Home, Ord
 - Provider packages expose small interfaces so R2, OneSignal, or QStash can be replaced without rewriting the product.
 - API route handlers authenticate, validate, authorize, call one use case, and translate the result into a response.
 - Server-rendered member and admin layouts load one request-cached application identity before rendering protected navigation; child pages reuse that boundary instead of querying auth or Neon again.
+- `apps/web/vercel.json` fixes the web function region to Singapore. Auth and feature runtimes use the shared database getter in `packages/db/src/client.ts`; Drizzle auth relations are ORM metadata and do not require a database migration.
 - `context/assets/ordah-please-option-1.png` is the approved V1 member-screen visual reference; implementation should reproduce its hierarchy and visual language without treating the bitmap as application UI.
 - `context/services/service-setup.md` owns provider setup steps, variable names, environment placement, and rename/rotation checklists; it never stores real credential values. `services.md`, `service-limits.md`, and `technology-reference.md` sit alongside it under `context/services/`.
 

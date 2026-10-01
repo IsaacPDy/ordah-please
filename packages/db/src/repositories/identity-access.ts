@@ -17,6 +17,11 @@ export interface UserMembershipSummaryRow {
   readonly role: "owner" | "manager" | "member";
 }
 
+export interface ProductIdentityRow {
+  readonly user: typeof users.$inferSelect;
+  readonly memberships: readonly UserMembershipSummaryRow[];
+}
+
 export interface UserSummaryRow {
   readonly id: string;
   readonly displayName: string;
@@ -41,6 +46,9 @@ export interface IdentityAccessRepository {
   findUserByAuthUserId(
     authUserId: string,
   ): Promise<typeof users.$inferSelect | undefined>;
+  findIdentityByAuthUserId(
+    authUserId: string,
+  ): Promise<ProductIdentityRow | undefined>;
   findUserById(userId: string): Promise<typeof users.$inferSelect | undefined>;
   listActiveMemberships(
     userId: string,
@@ -106,6 +114,31 @@ export function createIdentityAccessRepository(
         .where(eq(users.authUserId, authUserId))
         .limit(1);
       return user;
+    },
+    findIdentityByAuthUserId: async (authUserId) => {
+      const rows = await database
+        .select({
+          user: users,
+          groupId: memberships.groupId,
+          role: memberships.role,
+        })
+        .from(users)
+        .leftJoin(
+          memberships,
+          and(eq(memberships.userId, users.id), isNull(memberships.removedAt)),
+        )
+        .where(eq(users.authUserId, authUserId))
+        .orderBy(asc(memberships.groupId));
+      const first = rows[0];
+      if (first === undefined) return undefined;
+      return {
+        user: first.user,
+        memberships: rows.flatMap((row) =>
+          row.groupId === null || row.role === null
+            ? []
+            : [{ groupId: row.groupId, role: row.role }],
+        ),
+      };
     },
     findUserById: async (userId) => {
       const [row] = await database
