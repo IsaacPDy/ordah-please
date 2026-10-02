@@ -3765,6 +3765,11 @@ body {
   margin: 0;
 }
 
+.history-list {
+  display: grid;
+  gap: var(--space-4);
+}
+
 .history-card {
   display: block;
   overflow: hidden;
