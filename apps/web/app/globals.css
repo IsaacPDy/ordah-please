@@ -1480,6 +1480,12 @@ button:focus-visible {
   width: 100%;
 }
 
+.admin-upload__dropzone--dragging {
+  background: var(--color-surface);
+  border-style: solid;
+  box-shadow: 0 0 0 3px var(--color-primary);
+}
+
 .admin-upload__label {
   color: var(--color-primary-strong);
   font-size: var(--font-size-title);

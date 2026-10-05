@@ -12,6 +12,7 @@ Option 1 is the approved V1 visual direction. Its corrected reference is `contex
 - A signed-in user with no memberships still sees restaurant discovery and account-owned Favorites, never sees invented active orders, and receives clear join-first empty states on Orders and Groups.
 - Android is touch-first and native-feeling.
 - The iPhone PWA provides equivalent ordering behavior and clear Home Screen installation guidance.
+- Admin Imports accepts one CSV, XLS, or XLSX file up to 5MB through the file picker or drag-and-drop. Show drag feedback and reject unsupported selections. Excel uses the first worksheet with the same catalog columns; selecting a file previews it before explicit import confirmation.
 - The desktop admin portal prioritizes dense menu comparison, validation errors, and audit information.
 - History cards have a 16px gap between entries and show status, restaurant, group, completion date, and participant count before expansion. Expanding reveals only server-authorized participant rows, with item count and subtotal when food was saved, `Not eating` after a decline, and `No food selected` when a cancelled order has no saved food. Exact terminal details remain read-only.
 - Limited mobile admin exposes Groups, Catalog, Access Requests, and Audit Log. Desktop additionally exposes Overview, Users and Permissions, Imports, and Refresh Queue.

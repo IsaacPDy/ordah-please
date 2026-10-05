@@ -2,6 +2,12 @@
 
 import { useRef, useState } from "react";
 
+import {
+  CATALOG_FILE_ACCEPT,
+  catalogFileError,
+  readCatalogFile,
+} from "../../../src/features/catalog/import-file";
+
 type UploadOutcome =
   | { kind: "idle" }
   | { kind: "uploading" }
@@ -17,29 +23,30 @@ interface SelectedFilePreview {
   readonly restaurantName: string | null;
 }
 
-/** Client component that uploads a CSV to /api/admin/catalog/import and renders the outcome. */
+/** Client component that uploads a CSV or Excel file to /api/admin/catalog/import and renders the outcome. */
 export function UploadForm() {
   const [outcome, setOutcome] = useState<UploadOutcome>({ kind: "idle" });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<SelectedFilePreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const selectionVersion = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function readRestaurantPreview(
     file: File,
   ): Promise<SelectedFilePreview> {
-    const text = await file.text();
+    const text = await readCatalogFile(file);
     const firstNewline = text.indexOf("\n");
-    const headerLine =
-      firstNewline === -1 ? text : text.slice(0, firstNewline);
+    const headerLine = firstNewline === -1 ? text : text.slice(0, firstNewline);
     const firstDataLine =
       firstNewline === -1
         ? ""
-        : text.slice(firstNewline + 1).split(/\r?\n/, 1)[0] ?? "";
+        : (text.slice(firstNewline + 1).split(/\r?\n/, 1)[0] ?? "");
     const headers = splitCsvLine(headerLine);
     const cells = splitCsvLine(firstDataLine);
     const nameIndex = headers.indexOf("restaurant_name");
-    const rawName = nameIndex >= 0 ? cells[nameIndex]?.trim() ?? "" : "";
+    const rawName = nameIndex >= 0 ? (cells[nameIndex]?.trim() ?? "") : "";
     return {
       name: file.name,
       restaurantName: rawName.length > 0 ? rawName : null,
@@ -81,24 +88,34 @@ export function UploadForm() {
     return cells;
   }
 
-  function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    setSelectedFile(file);
+  function selectFiles(files: File[]) {
+    if (outcome.kind === "uploading") return;
+    const version = ++selectionVersion.current;
+    const file = files[0] ?? null;
+    const error =
+      files.length > 1
+        ? "Please select one file at a time."
+        : file
+          ? catalogFileError(file)
+          : null;
+    setSelectedFile(error ? null : file);
     setPreview(null);
-    setPreviewError(null);
-    if (file === null) {
-      return;
-    }
+    setPreviewError(error);
+    setOutcome({ kind: "idle" });
+    if (inputRef.current) inputRef.current.value = "";
+    if (!file || error) return;
     readRestaurantPreview(file)
       .then((next) => {
-        setPreview(next);
+        if (selectionVersion.current === version) setPreview(next);
       })
       .catch(() => {
-        setPreview({ name: file.name, restaurantName: null });
+        if (selectionVersion.current === version)
+          setPreview({ name: file.name, restaurantName: null });
       });
   }
 
   function resetSelection() {
+    selectionVersion.current += 1;
     setSelectedFile(null);
     setPreview(null);
     setPreviewError(null);
@@ -110,7 +127,7 @@ export function UploadForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedFile) {
-      setOutcome({ kind: "error", message: "Pick a CSV file first." });
+      setOutcome({ kind: "error", message: "Pick a CSV or Excel file first." });
       return;
     }
     setOutcome({ kind: "uploading" });
@@ -153,19 +170,47 @@ export function UploadForm() {
     >
       <input
         ref={inputRef}
-        accept=".csv,text/csv"
-        aria-label="Upload CSV"
+        accept={CATALOG_FILE_ACCEPT}
+        disabled={outcome.kind === "uploading"}
+        aria-label="Upload CSV or Excel"
         className="admin-upload__input"
         name="file"
         onChange={(event) => {
-          void handleFileSelected(event);
+          selectFiles(Array.from(event.target.files ?? []));
         }}
         type="file"
       />
-      <div className="admin-upload__dropzone">
+      <div
+        className={`admin-upload__dropzone${dragging ? " admin-upload__dropzone--dragging" : ""}`}
+        role="region"
+        aria-label="Catalog file upload"
+        onDragEnter={(event) => {
+          event.preventDefault();
+          if (outcome.kind !== "uploading") setDragging(true);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect =
+            outcome.kind === "uploading" ? "none" : "copy";
+        }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+            setDragging(false);
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragging(false);
+          selectFiles(Array.from(event.dataTransfer.files));
+        }}
+      >
         {previewName === null ? (
           <>
-            <span className="admin-upload__label">Upload CSV</span>
+            <span className="admin-upload__label">
+              Drop a CSV or Excel file here
+            </span>
+            <span>
+              CSV, XLS, or XLSX · Maximum 5MB · Excel uses the first worksheet
+            </span>
             <button
               className="admin-primary-button admin-upload__button"
               disabled={outcome.kind === "uploading"}

@@ -1,3 +1,4 @@
+import { utils, write } from "xlsx";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./catalog-runtime", () => ({
@@ -120,4 +121,64 @@ describe("catalog CSV upload handler", () => {
     expect(response.status).toBe(400);
     expect(importCatalog).not.toHaveBeenCalled();
   });
+});
+
+describe("catalog Excel uploads", () => {
+  it.each(["xlsx", "xls"] as const)(
+    "imports a real %s workbook through existing row validation",
+    async (extension) => {
+      const row = CSV_REQUIRED_HEADERS.map((header) => {
+        if (header === "price_centavos") return 19900;
+        if (header === "collected_at") return "2026-09-12";
+        if (header === "is_available") return true;
+        if (header === "source_url") return "https://food.grab.com/menu";
+        if (header === "image_url") return "";
+        return "Example";
+      });
+      const workbook = utils.book_new();
+      utils.book_append_sheet(
+        workbook,
+        utils.aoa_to_sheet([[...CSV_REQUIRED_HEADERS], row]),
+        "Catalog",
+      );
+      const contents = write(workbook, {
+        type: "array",
+        bookType: extension === "xls" ? "biff8" : "xlsx",
+      }) as ArrayBuffer;
+      const form = new FormData();
+      form.set(
+        "file",
+        new File([contents], `catalog.${extension}`, {
+          type:
+            extension === "xls"
+              ? "application/vnd.ms-excel"
+              : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }),
+      );
+      const { handler, importCatalog } = createHandler();
+      const response = await handler(
+        new Request("https://ordah.test/api/admin/catalog/import", {
+          method: "POST",
+          body: form,
+        }),
+      );
+      expect(response.status).toBe(200);
+      expect(importCatalog).toHaveBeenCalledWith(
+        identity.userId,
+        `catalog.${extension}`,
+        [expect.objectContaining({ priceCentavos: 19900 })],
+        [],
+      );
+    },
+  );
+
+  it.each(["menu.pdf", "menu.csv.exe", "menu.xlsx"])(
+    "rejects unsupported or disguised contents in %s",
+    async (name) => {
+      const { handler, importCatalog } = createHandler();
+      const response = await handler(uploadRequest("not a workbook", { name }));
+      expect(response.status).toBe(400);
+      expect(importCatalog).not.toHaveBeenCalled();
+    },
+  );
 });

@@ -3,13 +3,13 @@ import { AdminPage } from "../../components/admin-page";
 import { RecentImportsTable } from "./recent-imports-table";
 import { UploadForm } from "./upload-form";
 
-/** Platform Admin upload entry point for catalog CSVs collected externally. */
+/** Platform Admin upload entry point for catalog CSV or Excel files collected externally. */
 export default async function ImportsPage() {
   const recentImports = await catalogRuntime.catalog.listRecentImports();
 
   return (
     <AdminPage
-      description="Upload a CSV of restaurants and menu items collected via Codex Computer Use. Restaurants go live immediately."
+      description="Upload a CSV or Excel file of restaurants and menu items collected via Codex Computer Use. Restaurants go live immediately."
       eyebrow="Restaurant data"
       title="Import catalog"
     >

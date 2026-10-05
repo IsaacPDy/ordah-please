@@ -14,12 +14,7 @@ import type { VerifiedSession } from "../../auth/verify-session";
 import { catalogRuntime } from "./catalog-runtime";
 import { invalidatePublishedCatalog } from "./catalog-cache";
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
-const CSV_CONTENT_TYPES = new Set([
-  "application/csv",
-  "application/vnd.ms-excel",
-  "text/csv",
-]);
+import { catalogFileError, readCatalogFile } from "./import-file";
 
 type MaybePromise<Value> = Value | Promise<Value>;
 
@@ -148,23 +143,14 @@ export function createImportCsvHandler(
       if (!(file instanceof File)) {
         throw new PublicApiError("INVALID_INPUT", "Missing file field.");
       }
-      if (file.size > MAX_FILE_BYTES) {
-        throw new PublicApiError(
-          "INVALID_INPUT",
-          "File too large. CSVs must be under 5MB.",
-        );
-      }
-      if (
-        !file.name.toLowerCase().endsWith(".csv") ||
-        !CSV_CONTENT_TYPES.has(file.type.toLowerCase())
-      ) {
-        throw new PublicApiError("INVALID_INPUT", "Please upload a .csv file.");
+      const fileError = catalogFileError(file);
+      if (fileError) {
+        throw new PublicApiError("INVALID_INPUT", fileError);
       }
 
-      const text = await file.text();
       let parsed: ParsedCsv;
       try {
-        parsed = parseCsvText(text);
+        parsed = parseCsvText(await readCatalogFile(file));
       } catch (error) {
         if (error instanceof PublicApiError) throw error;
         throw new PublicApiError(
