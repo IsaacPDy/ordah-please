@@ -1,3 +1,40 @@
+# Web/PWA reference UI visual QA
+
+Date: 2026-10-05
+
+## References and comparison
+
+Supplied composites are preserved in `context/assets/web-pwa-screen-references-2026-10-05.png` and `context/assets/web-pwa-order-setup-reference-2026-10-05.png`. Compare content rectangles at phone width, excluding screenshot labels, device borders, and operating-system chrome. Real account content replaces sample people, restaurants, counts, and images.
+
+| Reference region | Implemented route and observation |
+| --- | --- |
+| Session-First Home | `/`: same greeting/action/active/usuals/recent hierarchy, compact green brand, rounded cards and bottom tabs; catalog discovery retained below. |
+| Sessions / History | `/orders`: functional Active/Past selection, stage/progress cards, month groups, group selector and existing authorized lazy detail expansion. |
+| Groups | `/groups` and group detail: green membership emphasis, initials, Overview/History/Members, current and recent orders. |
+| Favorites | `/favorites`: food previews, rank tags, prices, restaurant chips; existing removal action retained. |
+| Social-Session / History detail | Order detail: progress, real photo when available, actions and participants; terminal saved-item disclosure and Details tab. |
+| Order workflow | Three screens reproduce member selection, saved/manual delivery, fallback/voting/deadline, and inline review with sticky footer. Four milestone labels follow the source without inventing a separate existing Review screen. |
+
+## Iteration and evidence
+
+1. Matched shared colors, system typography, white surfaces, borders, cards, tabs and footer hierarchy to the supplied source. Compared full phone captures and focused group/workflow regions.
+2. Fixed centered group heading and clipped rename button found in visual comparison.
+3. Fixed Favorites server/client helper boundary found during connected navigation; reload and restaurant filters then worked.
+4. Saved Home, wizard screens, groups, sessions, history and details, Favorites, active session, and desktop Home captures in `/tmp/order-ui-qa/`. Some captures precede small subsequent fixes and serve as iteration evidence. Home and active detail width measurements showed no document horizontal overflow at phone and desktop widths.
+5. Final catalog navigation encountered a new concurrent `desktop-ui.css` import whose file was not yet present. That final capture records the build overlay, not a passing catalog check. After the stylesheet arrived, a reload confirmed the signed-in Home rendered normally again. Catalog visual acceptance remains unverified in this pass.
+
+## Accepted differences and acceptance boundary
+
+Reference sample people/photos/counts are not fabricated. Group covers absent from the model use icons/initials; older selected menu versions can have no food image. Longer exact imported names and extra preserved fields require more vertical space than the reference. The source's OS status bar is omitted from web content. Existing backend authorization, food selection and submission behavior are retained.
+
+Automated unit/type/lint/build checks passed for the reference redesign. Separate authorized admin and multi-account live acceptance and production deployment are unverified. Final status: reference redesign implemented and localhost Home confirmed running. Git integration deferred during the separate active desktop edit. Desktop changes have their own acceptance pass.
+
+---
+
+## Previous reference QA (historical)
+
+The following report describes the earlier reference implementation and is retained as historical evidence.
+
 # Member PWA Reference Redesign — Design QA
 
 ## Comparison target
@@ -86,3 +123,7 @@
 Final automated evidence: 94 test files / 520 tests passed; full workspace typecheck passed; web production build passed; lint passed with one pre-existing mobile hook dependency warning outside this redesign.
 
 final result: passed
+
+## October 5 desktop extension
+
+Desktop sizing uses the supplied computer-browser references. From 900px, the member shell expands to a 1200px maximum with top navigation and multi-column compositions. Mobile remains below that breakpoint. An isolated component preview verified Home, Groups, Favorites filtering, Sessions/History, active detail and setup at 1280px, then the desktop breakpoint at 900px and mobile at 393px/899px. No horizontal overflow was observed. Sticky header/setup actions were repaired after inspection exposed the phone shell's overflow ancestor. The final setup screenshot is `/private/tmp/order-desktop-qa/setup-desktop.png`. This preview uses sample data, not authenticated acceptance; connected desktop data and catalog screenshots remain unverified. The desktop affected suite, web typecheck, scoped lint, and production build passed.

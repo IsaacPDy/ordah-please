@@ -23,7 +23,7 @@ export type ShellNavigationItem = Readonly<{
 /** Defines the member destinations used by the iPhone PWA shell. */
 export const memberNavigation: readonly ShellNavigationItem[] = [
   { href: "/", icon: House, label: "Home" },
-  { href: "/orders", icon: ShoppingBag, label: "Orders" },
+  { href: "/orders", icon: ShoppingBag, label: "Sessions" },
   { href: "/favorites", icon: Heart, label: "Favorites" },
   { href: "/groups", icon: Users, label: "Groups" },
 ];

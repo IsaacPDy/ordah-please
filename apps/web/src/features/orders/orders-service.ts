@@ -209,10 +209,12 @@ export interface OrdersServiceRepositories {
         cursor: OrderHistoryCursor | null;
         limit: number;
       }>,
-    ) => Promise<Readonly<{
-      rows: readonly TerminalOrderSummaryRow[];
-      nextCursorRow: TerminalOrderSummaryRow | null;
-    }>>;
+    ) => Promise<
+      Readonly<{
+        rows: readonly TerminalOrderSummaryRow[];
+        nextCursorRow: TerminalOrderSummaryRow | null;
+      }>
+    >;
     readonly listVisibleForUser: (userId: string) => Promise<
       readonly {
         readonly orderId: string;
@@ -968,6 +970,7 @@ export interface OrderDetailView {
     readonly state: OrderState;
     readonly choiceMode: "voting_disabled" | "shortlist" | "global_catalog";
     readonly restaurantName: string | null;
+    readonly restaurantImageUrl?: string | null;
     readonly selectedRestaurantId: string | null;
     readonly selectedBranchId: string | null;
     readonly selectedBranchName: string | null;
@@ -1002,6 +1005,7 @@ interface OrderDetailDatabaseRow {
   readonly initialRestaurantName: string;
   readonly initialBranchName: string;
   readonly selectedRestaurantName: string | null;
+  readonly restaurantImageUrl?: string | null;
   readonly selectedRestaurantId: string | null;
   readonly selectedBranchId: string | null;
   readonly selectedBranchName: string | null;
@@ -1138,6 +1142,9 @@ export async function loadOrderDetail(
       initialRestaurantId: row.initialRestaurantId,
       initialRestaurantName: row.initialRestaurantName,
       initialBranchName: row.initialBranchName,
+      ...(row.restaurantImageUrl !== undefined
+        ? { restaurantImageUrl: row.restaurantImageUrl }
+        : {}),
       deliveryAddress,
       restaurantDeadline: row.restaurantDeadline,
       foodDeadline: row.foodDeadline,
@@ -1168,7 +1175,10 @@ export interface OrderHistoryCursor {
   readonly sortTime: Date;
 }
 
-export interface CompactOrderSummary extends Omit<OrderSummary, "participants"> {
+export interface CompactOrderSummary extends Omit<
+  OrderSummary,
+  "participants"
+> {
   readonly participants: readonly [];
 }
 
@@ -1222,6 +1232,7 @@ export interface OrderSummary {
   readonly groupName: string;
   readonly state: OrderState;
   readonly restaurantName: string | null;
+  readonly restaurantImageUrl?: string | null;
   readonly deadline: Date | null;
   readonly participantsVoted: number;
   readonly participantsTotal: number;
@@ -1256,6 +1267,9 @@ function mapActiveOrderSummary(row: OrderListItemRow): CompactOrderSummary {
       (participant) => participant.restaurantResponse === "responded",
     ).length,
     restaurantName: row.selectedRestaurantName,
+    ...(row.restaurantImageUrl !== undefined
+      ? { restaurantImageUrl: row.restaurantImageUrl }
+      : {}),
     state: row.state,
   };
 }
@@ -1274,6 +1288,9 @@ function mapTerminalOrderSummary(
     participantsTotal: row.participantCount,
     participantsVoted: 0,
     restaurantName: row.selectedRestaurantName,
+    ...(row.restaurantImageUrl !== undefined
+      ? { restaurantImageUrl: row.restaurantImageUrl }
+      : {}),
     state: row.state,
   };
 }
@@ -1302,7 +1319,11 @@ export async function listOrderSummaryPage(
   }>,
   repositories: Pick<OrdersServiceRepositories, "orders">,
 ): Promise<OrderSummaryPage> {
-  if (!Number.isInteger(command.limit) || command.limit < 1 || command.limit > 25) {
+  if (
+    !Number.isInteger(command.limit) ||
+    command.limit < 1 ||
+    command.limit > 25
+  ) {
     throw new PublicApiError(
       "INVALID_INPUT",
       "History page size must be between 1 and 25.",
@@ -1339,8 +1360,7 @@ export async function loadOrderHistoryDetail(
   repositories: Pick<OrdersServiceRepositories, "orders">,
 ): Promise<OrderHistoryDetail> {
   const row = (await repositories.orders.findOrderDetail(command.orderId)) as
-    | OrderDetailDatabaseRow
-    | undefined;
+    OrderDetailDatabaseRow | undefined;
   if (row === undefined) {
     throw new PublicApiError("NOT_FOUND", "Order not found.");
   }
@@ -1356,7 +1376,10 @@ export async function loadOrderHistoryDetail(
   const isParticipant = row.participants.some(
     (participant) => participant.userId === command.identity.userId,
   );
-  if (membership === undefined || (!isParticipant && !canViewGroupHistory(command.identity, row.groupId))) {
+  if (
+    membership === undefined ||
+    (!isParticipant && !canViewGroupHistory(command.identity, row.groupId))
+  ) {
     throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
   }
   const visibleParticipants = canViewGroupHistory(command.identity, row.groupId)

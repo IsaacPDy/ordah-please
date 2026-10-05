@@ -1,4 +1,7 @@
-import { Check, Clock3, MapPin } from "lucide-react";
+import { Check, ChevronRight, Clock3, MapPin } from "lucide-react";
+import Link from "next/link";
+import { OrderDetailSections } from "./order-detail-sections";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { PublicApiError } from "@ordah-please/contracts";
@@ -126,27 +129,118 @@ export default async function OrderDetailPage({
 
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="orders">
-      <div className="member-page">
-        <header className="page-intro">
+      <div
+        className={`member-page order-detail-page${isTerminal ? " order-detail-page--terminal" : ""}`}
+      >
+        {!isTerminal ? (
+          <ol className="order-stage-track" aria-label="Session progress">
+            {["Restaurant", "Food", "Review"].map((label, index) => (
+              <li
+                key={label}
+                aria-current={
+                  (view.order.state === "restaurant_voting"
+                    ? 0
+                    : view.order.state === "food_confirmation"
+                      ? 1
+                      : 2) === index
+                    ? "step"
+                    : undefined
+                }
+              >
+                {label}
+              </li>
+            ))}
+          </ol>
+        ) : null}
+        {isTerminal && view.order.restaurantImageUrl ? (
+          <Image
+            alt=""
+            className="order-detail-hero"
+            src={view.order.restaurantImageUrl}
+            width={430}
+            height={180}
+          />
+        ) : null}
+        <header
+          className={`page-intro order-detail-header${!isTerminal ? " order-detail-header--active" : ""}`}
+        >
+          {!isTerminal && view.order.restaurantImageUrl ? (
+            <Image
+              className="active-session-photo"
+              src={view.order.restaurantImageUrl}
+              alt=""
+              width={393}
+              height={220}
+            />
+          ) : null}
+          <span className="status-pill status-pill--complete">
+            {formatStateLabel(view.order.state)}
+          </span>
           <p className="eyebrow">{view.order.groupName}</p>
-          <h1>
-            {`${restaurantName} – ${branchName}`}{" "}
-            <span className="status-pill status-pill--soft">
-              {formatStateLabel(view.order.state)}
-            </span>
-          </h1>
-          <p className="deadline">
-            <Clock3 aria-hidden="true" size={16} />{" "}
-            {`Voting ${votingClosed ? "closed" : "ends"} · ${formatDeadline(view.order.restaurantDeadline)}`}
-          </p>
-          <p className="deadline">
-            <Clock3 aria-hidden="true" size={16} />{" "}
-            {`Food picks ${foodClosed ? "ended" : "end"} · ${formatDeadline(view.order.foodDeadline)}`}
-          </p>
-          <p className="deadline">
-            <MapPin aria-hidden="true" size={16} />{" "}
-            {`${view.order.deliveryAddress.lineOne}, ${view.order.deliveryAddress.city}`}
-          </p>
+          <h1>{`${restaurantName} – ${branchName}`} </h1>
+          {isTerminal ? (
+            <div className="terminal-order-meta">
+              <p>
+                {view.order.completedAt
+                  ? new Intl.DateTimeFormat("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      timeZone: "Asia/Manila",
+                    }).format(view.order.completedAt)
+                  : "Completion date unavailable"}{" "}
+                · {view.participants.length} people
+              </p>
+              <div>
+                <strong>
+                  {formatCentavos(
+                    parseCentavos(
+                      view.lines.reduce(
+                        (sum, line) => sum + line.lineSubtotalCentavos,
+                        0,
+                      ),
+                    ),
+                  )}
+                </strong>
+                <small>
+                  {view.viewer.canManage
+                    ? "Food subtotal"
+                    : "Your food subtotal"}
+                </small>
+              </div>
+            </div>
+          ) : (
+            <>
+              {" "}
+              <p className="deadline">
+                <Clock3 aria-hidden="true" size={16} />{" "}
+                {`Voting ${votingClosed ? "closed" : "ends"} · ${formatDeadline(view.order.restaurantDeadline)}`}
+              </p>
+              <p className="deadline">
+                <Clock3 aria-hidden="true" size={16} />{" "}
+                {`Food picks ${foodClosed ? "ended" : "end"} · ${formatDeadline(view.order.foodDeadline)}`}
+              </p>
+              <p className="deadline">
+                <MapPin aria-hidden="true" size={16} />{" "}
+                {`${view.order.deliveryAddress.lineOne}, ${view.order.deliveryAddress.city}`}
+              </p>
+            </>
+          )}
+          {!isTerminal ? (
+            <div className="session-quick-actions">
+              <Link
+                className="secondary-action"
+                href={`/restaurants/${view.order.selectedRestaurantId ?? view.order.initialRestaurantId}`}
+              >
+                View restaurant
+              </Link>
+              {view.viewer.canManage && isFoodStage ? (
+                <a className="primary-action" href="#participants-heading">
+                  Manage order
+                </a>
+              ) : null}
+            </div>
+          ) : null}
         </header>
 
         {view.order.state === "restaurant_voting" ? (
@@ -222,7 +316,29 @@ export default async function OrderDetailPage({
           </section>
         ) : null}
 
-        {isTerminal ? <TerminalOrderLog view={view} /> : null}
+        {isTerminal ? (
+          <OrderDetailSections
+            participants={<TerminalOrderLog view={view} />}
+            details={
+              <section className="order-saved-details">
+                <h2>Order details</h2>{" "}
+                <p className="deadline">
+                  <Clock3 aria-hidden="true" size={16} />{" "}
+                  {`Voting ${votingClosed ? "closed" : "ends"} · ${formatDeadline(view.order.restaurantDeadline)}`}
+                </p>
+                <p className="deadline">
+                  <Clock3 aria-hidden="true" size={16} />{" "}
+                  {`Food picks ${foodClosed ? "ended" : "end"} · ${formatDeadline(view.order.foodDeadline)}`}
+                </p>
+                <p className="deadline">
+                  <MapPin aria-hidden="true" size={16} />{" "}
+                  {`${view.order.deliveryAddress.lineOne}, ${view.order.deliveryAddress.city}`}
+                </p>
+                <p>These saved details are read-only.</p>
+              </section>
+            }
+          />
+        ) : null}
 
         {!isTerminal && isFoodStage && view.viewer.canManage ? (
           <section
@@ -340,42 +456,61 @@ function TerminalOrderLog({ view }: { readonly view: OrderView }) {
                 : `${itemCount} ${itemCount === 1 ? "item" : "items"}`;
           return (
             <li className="participant-card" key={participant.userId}>
-              <div className="participant-card__head">
-                <div className="participant-card__id">
-                  <span aria-hidden="true" className="member-avatar">
-                    {participant.displayName.charAt(0)}
-                  </span>
-                  <div>
-                    <p className="participant-card__name">
-                      {participant.displayName}
-                    </p>
-                    <p className="participant-card__meta">{status}</p>
-                  </div>
-                </div>
-              </div>
-              {lines.length === 0 ? null : (
-                <ul className="participant-card__lines">
-                  {lines.map((line, index) => (
-                    <li
-                      className="pick-line"
-                      key={`${participant.userId}-${line.itemName}-${index}`}
-                    >
-                      <div>
-                        <p className="pick-line__name">{line.itemName}</p>
-                        {line.note.length === 0 ? null : (
-                          <p className="pick-line__meta">{line.note}</p>
-                        )}
-                        <p className="pick-line__meta">× {line.quantity}</p>
-                      </div>
-                      <p className="pick-line__price">
-                        {formatCentavos(
-                          parseCentavos(line.lineSubtotalCentavos),
-                        )}
+              <details className="terminal-participant">
+                <summary className="participant-card__head">
+                  <div className="participant-card__id">
+                    <span aria-hidden="true" className="member-avatar">
+                      {participant.displayName.charAt(0)}
+                    </span>
+                    <div>
+                      <p className="participant-card__name">
+                        {participant.displayName}
                       </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                      <p className="participant-card__meta">{status}</p>
+                    </div>
+                  </div>
+                  {lines.length ? (
+                    <strong className="participant-subtotal">
+                      {formatCentavos(
+                        parseCentavos(
+                          lines.reduce(
+                            (sum, line) => sum + line.lineSubtotalCentavos,
+                            0,
+                          ),
+                        ),
+                      )}
+                    </strong>
+                  ) : null}
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="terminal-participant__chevron"
+                    size={18}
+                  />
+                </summary>
+                {lines.length === 0 ? null : (
+                  <ul className="participant-card__lines">
+                    {lines.map((line, index) => (
+                      <li
+                        className="pick-line"
+                        key={`${participant.userId}-${line.itemName}-${index}`}
+                      >
+                        <div>
+                          <p className="pick-line__name">{line.itemName}</p>
+                          {line.note.length === 0 ? null : (
+                            <p className="pick-line__meta">{line.note}</p>
+                          )}
+                          <p className="pick-line__meta">× {line.quantity}</p>
+                        </div>
+                        <p className="pick-line__price">
+                          {formatCentavos(
+                            parseCentavos(line.lineSubtotalCentavos),
+                          )}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </details>
             </li>
           );
         })}

@@ -10,10 +10,15 @@ export function MemberNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Member navigation" className="member-navigation">
+    <nav
+      aria-label="Member navigation"
+      className={`member-navigation${pathname.startsWith("/orders/") ? " member-navigation--desktop-only" : ""}`}
+    >
       {memberNavigation.map((item) => {
         const Icon = item.icon;
-        const isCurrent = pathname === item.href;
+        const isCurrent =
+          pathname === item.href ||
+          (item.href !== "/" && pathname.startsWith(`${item.href}/`));
 
         return (
           <Link

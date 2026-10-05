@@ -61,7 +61,11 @@
 
 ## Approved Visual System
 
-The August 22 member-screen reference set is the current PWA visual source of truth. Its implementation contract is stored at `docs/superpowers/specs/2026-08-22-member-pwa-reference-redesign.md`; the older Option 1 image remains historical direction at `context/assets/ordah-please-option-1.png`.
+The October 5 screenshots are the current web/PWA source of truth, with the distributed screen mapping and three-screen setup specified in `docs/superpowers/specs/2026-10-05-web-pwa-reference-ui.md`. The August 22 PWA reference and older Option 1 image are historical web directions. Android keeps its existing shared tokens and implementation.
+
+Web/PWA uses forest-green actions (`#367B45`), strong brand text (`#276B37`), pale green support (`#EEF7F0`), white surfaces, gray-green borders (`#DFE7E2`), near-black text (`#101810`), native system sans-serif typography, a centered 393–430px content canvas below 900px and a member canvas up to 1200px from 900px, 20px mobile margins, rounded compact cards, and four root tabs: Home, Sessions, Favorites, Groups. Home follows Session-First. Nested order screens omit root navigation; setup has its own fixed Back/Next/Start actions. Groups has Overview/History/Members; terminal orders have Participants/Details. Remaining screens retain their behavior and use this visual style.
+
+The original shared/Android token system remains:
 
 - **Personality:** Bright, friendly, food-first, calm, and easy to scan.
 - **Theme:** Light theme for V1. Dark theme is deliberately out of scope until the core flow is proven.
@@ -78,14 +82,14 @@ The August 22 member-screen reference set is the current PWA visual source of tr
 - **Icons:** Lucide icons on Android and web for a consistent outlined style. Icons support text; they do not replace unclear labels.
 - **Components:** React Native Paper primitives adapted to shared tokens on Android; shadcn/ui primitives adapted to the same tokens on web and admin.
 - **Photography:** Real food imagery with consistent rectangular crops. Never use copied promotional art or restaurant logos as decorative UI.
-- **Member composition:** Use a centered 393–430px mobile canvas, compact 18px side margins, restrained headings, quiet rounded cards, and a fixed four-tab bar with one floating new-order action. Nested pages use only the shell back button. Restaurant menu rows use 68px real food images and 84–85px rows so more items remain visible. Suppress the floating action on Group details and Restaurant details where it duplicates or covers page actions.
+- **Previous member composition (Android/shared history):** Use a centered 393–430px mobile canvas, compact 18px side margins, restrained headings, quiet rounded cards, and a fixed four-tab bar with one floating new-order action. Nested pages use only the shell back button. Restaurant menu rows use 68px real food images and 84–85px rows so more items remain visible. Suppress the floating action on Group details and Restaurant details where it duplicates or covers page actions.
 - **Brand protection:** Reproduce only the product owner's approved ordah please references. Do not reproduce Grab's logo, custom illustrations, or promotion treatments.
 
 ## Responsive Structure
 
-- Member mobile uses bottom navigation for Home, Orders, Favorites, and Groups.
+- Web/PWA root tabs use bottom navigation below 900px and top navigation on desktop for Home, Sessions, Favorites, and Groups. Nested order screens use page actions and Back; other nested pages retain the tab bar. Android retains its existing navigation.
 - Nested member routes use one circular shell back control while keeping the brand, notification, and profile controls in the same shell; page-local duplicate back links are not shown.
-- Member pages remain centered and phone-like on wide screens instead of stretching their content across the desktop.
+- Member pages switch at 900px to a centered desktop canvas up to 1200px with 32px margins and sticky top navigation. Home, Sessions, Groups, catalog, and restaurant menus use card grids; Favorites uses an introduction beside ranked restaurant cards. Order setup uses two participant columns, saved-address/details panels, and settings beside Review. Order details keep session information beside picking and participant content. Below 900px, retain the phone canvas and bottom tabs; nested orders keep their own mobile actions.
 - Manager actions remain inside the active order rather than a separate global dashboard.
 - Desktop admin uses persistent navigation and table/detail split views.
 - Mobile admin exposes Groups, Catalog, Access Requests, and Audit Log.

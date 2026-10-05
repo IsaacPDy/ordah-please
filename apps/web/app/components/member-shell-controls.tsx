@@ -36,7 +36,8 @@ export function FloatingNewOrderButton({
   const pathname = usePathname();
 
   const pageAlreadyHasNewOrderAction =
-    pathname.startsWith("/orders/new") ||
+    ROOT_MEMBER_ROUTES.has(pathname) ||
+    pathname.startsWith("/orders/") ||
     pathname.startsWith("/groups/") ||
     pathname.startsWith("/restaurants/");
 

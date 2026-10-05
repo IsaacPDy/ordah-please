@@ -87,17 +87,12 @@ export default async function NewOrderPage({
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="orders">
       <div className="member-page">
-        <header className="page-intro">
-          <p className="eyebrow">Order setup</p>
-          <h1>New group order</h1>
-          <p>Four quick steps. You can review everything before sending.</p>
-        </header>
-        <div aria-label="Order setup progress" className="setup-progress">
-          <span className="setup-progress__active" />
-          <span />
-          <span />
-          <span />
-        </div>
+        {wizard === null ? (
+          <header className="page-intro">
+            <h1>Start a group order</h1>
+            <p>Choose a group to get started.</p>
+          </header>
+        ) : null}
 
         {eligible.length === 0 ? (
           <p className="restaurant-empty">

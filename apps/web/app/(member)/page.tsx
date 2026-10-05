@@ -1,104 +1,218 @@
-import { ArrowRight, ChevronRight, Clock3, Users } from "lucide-react";
+import { ArrowRight, ChevronRight, Heart, Plus, Store } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-
 import { listCachedRestaurantPreviews } from "../../src/features/catalog/catalog-cache";
 import { ordersRuntime } from "../../src/features/orders/orders-runtime";
-import { formatStateLabel } from "../../src/features/orders/order-format";
-import type { OrderSummary } from "../../src/features/orders/orders-service";
+import { favoritesRuntime } from "../../src/features/favorites/favorites-runtime";
+import { formatHistoryDate } from "../../src/features/orders/order-format";
 import { getCurrentServerPageIdentity } from "../../src/auth/load-server-page-identity";
 import { MemberAccessState } from "../components/member-access-state";
+import { SessionCard } from "../components/session-card";
 import { loadMemberHomeData } from "./home-data";
 
-/** Shows the approved member Home experience with urgent order work, group context, and restaurant discovery. */
+/** Session-first Home uses the viewer's real orders and personal ranked usuals. */
 export default async function MemberHomePage() {
   const identityResult = await getCurrentServerPageIdentity();
-  const hasMemberships =
-    identityResult.status === "authenticated" &&
-    identityResult.identity.memberships.length > 0;
-  const { errors, orderSummaries, restaurants } =
-    identityResult.status === "authenticated"
-      ? await loadMemberHomeData(identityResult.identity, {
-          listActiveOrderSummaries: ordersRuntime.listActiveOrderSummaries,
-          listRestaurantPreviews: (options) =>
-            listCachedRestaurantPreviews(options),
+  const identity =
+    identityResult.status === "authenticated" ? identityResult.identity : null;
+  const hasMemberships = !!identity?.memberships.length;
+  const canStartOrder =
+    identity?.memberships.some(
+      (membership) =>
+        membership.role === "group-owner" || membership.role === "manager",
+    ) ?? false;
+  const [homeResult, favoritesResult] = await Promise.allSettled([
+    identity
+      ? loadMemberHomeData(identity, {
+          listOrderSummaryPage: (viewer) =>
+            ordersRuntime.listOrderSummaryPage({
+              identity: viewer,
+              cursor: null,
+              limit: 3,
+            }),
+          listRestaurantPreviews: listCachedRestaurantPreviews,
         })
-      : {
+      : Promise.resolve({
           errors: { orders: false, restaurants: false },
-          orderSummaries: { active: [], history: [] },
-          restaurants: await listCachedRestaurantPreviews({
-            limit: 6,
-          }),
+          orderSummaries: { active: [], history: [], nextCursor: null },
+          restaurants: await listCachedRestaurantPreviews({ limit: 6 }),
+        }),
+    identity
+      ? favoritesRuntime.listFavoritesForUser(identity.userId)
+      : Promise.resolve([]),
+  ]);
+  const data =
+    homeResult.status === "fulfilled"
+      ? homeResult.value
+      : {
+          errors: { orders: true, restaurants: true },
+          orderSummaries: { active: [], history: [], nextCursor: null },
+          restaurants: [],
         };
-  const nearbyCategories = Array.from(
-    new Set(restaurants.flatMap((restaurant) => restaurant.cuisines)),
-  ).slice(0, 3);
-  const firstName =
-    identityResult.status === "authenticated"
-      ? identityResult.identity.displayName.trim().split(/\s+/)[0] || "there"
-      : "there";
+  const favorites =
+    favoritesResult.status === "fulfilled" ? favoritesResult.value : [];
+  const firstName = identity?.displayName.trim().split(/\s+/)[0] || "there";
 
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="home">
       <div className="member-page home-page">
         <header className="home-intro">
           <h1>Good morning, {firstName}</h1>
-          <p>
-            {orderSummaries.active.length === 1
-              ? "One group order needs your food choice."
-              : orderSummaries.active.length > 1
-                ? `${orderSummaries.active.length} group orders need your attention.`
-                : "Find something good for your next group order."}
-          </p>
+          <p>Time for a group order?</p>
         </header>
-
-        {hasMemberships && orderSummaries.active[0] !== undefined ? (
-          <ActiveOrderSection
-            more={orderSummaries.active.length - 1}
-            order={orderSummaries.active[0]}
-          />
+        {canStartOrder ? (
+          <Link className="home-start-order" href="/orders/new">
+            <span className="home-start-order__icon">
+              <Plus size={25} aria-hidden="true" />
+            </span>
+            <div>
+              <strong>Start a group order</strong>
+              <small>Choose a group and set it up</small>
+            </div>
+            <ArrowRight size={20} aria-hidden="true" />
+          </Link>
         ) : null}
-        {errors.orders ? (
-          <p className="restaurant-empty" role="status">
-            Couldn’t load active orders. Refresh to try again.
-          </p>
+        {hasMemberships ? (
+          <section className="content-section" aria-labelledby="home-sessions">
+            <div className="section-heading-row">
+              <h2 id="home-sessions">Active sessions</h2>
+              <Link href="/orders">See all</Link>
+            </div>
+            <div className="session-list">
+              {data.orderSummaries.active.slice(0, 2).map((order) => (
+                <SessionCard order={order} key={order.orderId} />
+              ))}
+            </div>
+            {data.errors.orders ? (
+              <p role="status" className="restaurant-empty">
+                Couldn’t load active sessions. Refresh to try again.
+              </p>
+            ) : data.orderSummaries.active.length === 0 ? (
+              <p className="restaurant-empty">No active sessions right now.</p>
+            ) : null}
+          </section>
         ) : null}
-
+        <section className="content-section" aria-labelledby="home-usuals">
+          <div className="section-heading-row">
+            <h2 id="home-usuals">Your usuals</h2>
+            <Link href="/favorites">See all</Link>
+          </div>
+          {favorites.length > 0 ? (
+            <div className="home-usuals">
+              {favorites.slice(0, 3).map((favorite) => (
+                <Link
+                  className="home-usual-card"
+                  href="/favorites"
+                  key={favorite.favoriteId}
+                >
+                  <div className="usual-order-card__image">
+                    {favorite.imageUrl ? (
+                      <Image
+                        src={favorite.imageUrl}
+                        alt=""
+                        height={64}
+                        width={64}
+                      />
+                    ) : (
+                      <Heart size={25} aria-hidden="true" />
+                    )}
+                    <span className="rank-badge">#{favorite.rank}</span>
+                  </div>
+                  <div>
+                    <strong>{favorite.name}</strong>
+                    <small>
+                      {favorite.restaurantName} · {favorite.branchName}
+                    </small>
+                    {favorite.currentPriceCentavos !== null ? (
+                      <span>
+                        ₱{(favorite.currentPriceCentavos / 100).toFixed(2)}
+                      </span>
+                    ) : null}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p
+              className="restaurant-empty"
+              role={
+                favoritesResult.status === "rejected" ? "status" : undefined
+              }
+            >
+              {favoritesResult.status === "rejected"
+                ? "Couldn’t load your usuals. Refresh to try again."
+                : "Save your favorite meals for a quicker next order."}
+            </p>
+          )}
+        </section>
+        {hasMemberships ? (
+          <section className="content-section" aria-labelledby="home-recent">
+            <div className="section-heading-row">
+              <h2 id="home-recent">Recent group orders</h2>
+              <Link href="/orders?tab=past">See all</Link>
+            </div>
+            <div className="recent-orders">
+              {data.orderSummaries.history.map((order) => (
+                <Link
+                  className="recent-order-card"
+                  href={`/orders/${order.orderId}`}
+                  key={order.orderId}
+                >
+                  <span className="recent-order-image">
+                    {order.restaurantImageUrl ? (
+                      <Image
+                        src={order.restaurantImageUrl}
+                        alt=""
+                        width={52}
+                        height={52}
+                      />
+                    ) : (
+                      <Store size={26} aria-hidden="true" />
+                    )}
+                  </span>
+                  <div>
+                    <strong>
+                      {order.restaurantName ?? "Restaurant pending"}
+                    </strong>
+                    <small>
+                      {order.groupName}
+                      {order.completedAt
+                        ? ` · ${formatHistoryDate(order.completedAt)}`
+                        : ""}
+                    </small>
+                    <small>{order.participantsTotal} people</small>
+                  </div>
+                  <ChevronRight size={18} aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+            {data.orderSummaries.history.length === 0 ? (
+              <p className="restaurant-empty">
+                Completed orders will appear here.
+              </p>
+            ) : null}
+          </section>
+        ) : null}
         <section
           aria-labelledby="restaurants-title"
           className="restaurant-section"
           id="restaurants"
         >
           <div className="section-heading-row">
-            <h2 id="restaurants-title">Nearby restaurants</h2>
+            <h2 id="restaurants-title">Browse restaurants</h2>
             <Link href="/restaurants">See all</Link>
           </div>
-          {restaurants.length === 0 ? null : (
-            <div
-              aria-label="Nearby restaurant categories"
-              className="category-chips"
-            >
-              <span className="category-chip category-chip--active">
-                All nearby
-              </span>
-              {nearbyCategories.map((category) => (
-                <span className="category-chip" key={category}>
-                  {category}
-                </span>
-              ))}
-            </div>
-          )}
-          {errors.restaurants ? (
-            <p className="restaurant-empty" role="status">
+          {data.errors.restaurants ? (
+            <p role="status">
               Couldn’t load restaurants. Refresh to try again.
             </p>
-          ) : restaurants.length === 0 ? (
+          ) : data.restaurants.length === 0 ? (
             <p className="restaurant-empty">
               No restaurants published yet. Check back soon.
             </p>
           ) : (
-            <div className="restaurant-list" id="restaurant-list">
-              {restaurants.map((restaurant) => (
+            <div className="restaurant-list">
+              {data.restaurants.slice(0, 3).map((restaurant) => (
                 <Link
                   className="restaurant-card"
                   href={`/restaurants/${restaurant.restaurantId}`}
@@ -108,32 +222,18 @@ export default async function MemberHomePage() {
                     <Image
                       alt=""
                       className="restaurant-card__image"
-                      height={108}
+                      height={68}
+                      width={68}
                       src={restaurant.heroImageUrl}
-                      width={240}
                     />
                   ) : (
-                    <div className="restaurant-card__image restaurant-card__image--placeholder">
-                      {restaurant.restaurantName.charAt(0)}
-                    </div>
+                    <Store size={28} aria-hidden="true" />
                   )}
                   <div className="restaurant-card__body">
-                    <div>
-                      <h3>{restaurant.restaurantName}</h3>
-                      <p>
-                        {restaurant.cuisines.join(" · ") ||
-                          restaurant.branchName}
-                      </p>
-                    </div>
-                    <span className="restaurant-meta">
-                      {restaurant.branchName}
-                    </span>
+                    <h3>{restaurant.restaurantName}</h3>
+                    <p>{restaurant.branchName}</p>
                   </div>
-                  <ChevronRight
-                    aria-hidden="true"
-                    className="restaurant-card__chevron"
-                    size={21}
-                  />
+                  <ChevronRight size={18} aria-hidden="true" />
                 </Link>
               ))}
             </div>
@@ -142,75 +242,4 @@ export default async function MemberHomePage() {
       </div>
     </MemberAccessState>
   );
-}
-
-function ActiveOrderSection({
-  order,
-  more,
-}: {
-  readonly order: OrderSummary;
-  readonly more: number;
-}) {
-  const callToAction =
-    order.state === "restaurant_voting"
-      ? "Choose restaurant"
-      : order.state === "food_confirmation"
-        ? "Confirm your food"
-        : "Review handoff";
-  return (
-    <section aria-labelledby="active-order-title" className="active-order-card">
-      <div className="active-order-card__topline">
-        <p className="eyebrow">Active group order</p>
-        <span className="member-count">
-          {order.participantsVoted} of {order.participantsTotal} ready
-        </span>
-      </div>
-      <h2 id="active-order-title">
-        {order.restaurantName ?? formatStateLabel(order.state)}
-      </h2>
-      <p className="active-order-card__context">
-        <Users aria-hidden="true" size={18} /> {order.groupName}
-        <span aria-hidden="true">·</span>
-        <Clock3 aria-hidden="true" size={18} />
-        {order.deadline === null
-          ? "Waiting for the order manager"
-          : `ends ${formatHomeDeadline(order.deadline)}`}
-      </p>
-      <p className="vote-count">
-        {order.participantsVoted} of {order.participantsTotal} responded
-      </p>
-      <div
-        aria-label={`${order.participantsVoted} of ${order.participantsTotal} members responded`}
-        aria-valuemax={order.participantsTotal}
-        aria-valuemin={0}
-        aria-valuenow={order.participantsVoted}
-        className="progress-track"
-        role="progressbar"
-      >
-        <span
-          style={{
-            width: `${(order.participantsVoted / order.participantsTotal) * 100}%`,
-          }}
-        />
-      </div>
-      <Link className="primary-action" href={`/orders/${order.orderId}`}>
-        {callToAction}
-        <ArrowRight aria-hidden="true" size={20} />
-      </Link>
-      {more > 0 ? (
-        <p className="fallback-note">
-          <Link href="/orders">+{more} more in Orders</Link>
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
-/** Keeps the compact Home card readable while preserving the full deadline on Orders. */
-function formatHomeDeadline(deadline: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "Asia/Manila",
-  }).format(deadline);
 }

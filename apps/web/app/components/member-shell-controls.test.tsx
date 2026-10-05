@@ -17,6 +17,7 @@ import {
   FloatingNewOrderButton,
   MemberBackButton,
 } from "./member-shell-controls";
+import { MemberNavigation } from "./member-navigation";
 
 describe("member shell controls", () => {
   afterEach(() => {
@@ -41,6 +42,7 @@ describe("member shell controls", () => {
   });
 
   it("shows the permitted new-order action when the page has no equivalent action", () => {
+    navigation.pathname = "/restaurants";
     const { rerender } = render(<FloatingNewOrderButton visible />);
     expect(
       screen
@@ -73,5 +75,22 @@ describe("member shell controls", () => {
     expect(
       screen.queryByRole("link", { name: "Start a new order" }),
     ).toBeNull();
+  });
+
+  it("keeps desktop destinations available with Sessions current inside an order", () => {
+    navigation.pathname = "/orders/order-1";
+    render(<MemberNavigation />);
+
+    expect(
+      screen.getByRole("navigation", { name: "Member navigation" }),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("link", { name: "Sessions" })
+        .getAttribute("aria-current"),
+    ).toBe("page");
+    expect(
+      screen.getByRole("link", { name: "Home" }).getAttribute("href"),
+    ).toBe("/");
   });
 });

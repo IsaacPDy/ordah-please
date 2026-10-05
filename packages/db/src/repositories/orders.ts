@@ -16,6 +16,8 @@ import {
   foodSelections,
   groups,
   memberships,
+  menuItems,
+  menuCategories,
   orderLines,
   orderParticipants,
   orderShortlistRestaurants,
@@ -76,6 +78,7 @@ export interface OrderListItemRow {
   readonly state: typeof orders.$inferSelect.state;
   readonly managerUserId: string;
   readonly selectedRestaurantName: string | null;
+  readonly restaurantImageUrl?: string | null;
   readonly initialRestaurantId: string;
   readonly restaurantDeadline: Date;
   readonly foodDeadline: Date;
@@ -110,6 +113,7 @@ export interface OrderDetailRow {
   readonly initialBranchGrabUrl: string | null;
   readonly selectedRestaurantId: string | null;
   readonly selectedRestaurantName: string | null;
+  readonly restaurantImageUrl?: string | null;
   readonly selectedBranchId: string | null;
   readonly selectedBranchName: string | null;
   readonly selectedMenuVersionId: string | null;
@@ -254,6 +258,17 @@ export function createOrdersRepository(
       ),
     );
 
+  // A single image from the selected immutable menu keeps compact order cards visual.
+  const restaurantImageUrl = sql<string | null>`(
+    select ${menuItems.imageUrl}
+    from ${menuItems}
+    inner join ${menuCategories} on ${menuCategories.id} = ${menuItems.categoryId}
+    where ${menuCategories.menuVersionId} = ${orders.selectedMenuVersionId}
+      and ${menuItems.imageUrl} is not null
+    order by ${menuCategories.sortOrder}, ${menuItems.sortOrder}
+    limit 1
+  )`;
+
   const orderListSelection = {
     completedAt: orders.completedAt,
     createdAt: orders.createdAt,
@@ -264,6 +279,7 @@ export function createOrdersRepository(
     managerUserId: orders.managerUserId,
     orderId: orders.id,
     restaurantDeadline: orders.restaurantDeadline,
+    restaurantImageUrl,
     selectedRestaurantName: orders.selectedRestaurantNameSnapshot,
     state: orders.state,
   } as const;
@@ -470,6 +486,7 @@ export function createOrdersRepository(
           selectedMenuVersionId: orders.selectedMenuVersionId,
           selectedRestaurantId: orders.selectedRestaurantId,
           selectedRestaurantName: orders.selectedRestaurantNameSnapshot,
+          restaurantImageUrl,
           state: orders.state,
         })
         .from(orders)

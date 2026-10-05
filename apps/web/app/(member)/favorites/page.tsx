@@ -1,7 +1,8 @@
 import { getCurrentServerPageIdentity } from "../../../src/auth/load-server-page-identity";
 import { favoritesRuntime } from "../../../src/features/favorites/favorites-runtime";
 import { MemberAccessState } from "../../components/member-access-state";
-import { FavoritesView, groupFavoritesByBranch } from "./favorites-view";
+import { FavoritesView } from "./favorites-view";
+import { groupFavoritesByBranch } from "./favorites-data";
 
 /** Favorites tab: the member's saved favorite meals, ranked per restaurant. */
 export default async function FavoritesPage() {
@@ -21,11 +22,10 @@ export default async function FavoritesPage() {
 
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="favorites">
-      <div className="member-page">
+      <div className="member-page favorites-page">
         <header className="page-intro">
-          <p className="eyebrow">Your usual orders</p>
-          <h1>Favorites</h1>
-          <p>Save combinations you want ready when a group order starts.</p>
+          <h1>Your usual orders</h1>
+          <p>Quick picks when a group order starts.</p>
         </header>
         <FavoritesView groups={groups} />
       </div>

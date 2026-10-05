@@ -3,7 +3,7 @@ import { parseId, type GroupId, type UserId } from "@ordah-please/domain";
 import { describe, expect, it, vi } from "vitest";
 
 import type { AppIdentity } from "../../src/auth/load-app-identity";
-import type { OrderSummary } from "../../src/features/orders/orders-service";
+import type { OrderSummaryPage } from "../../src/features/orders/orders-service";
 import { loadMemberHomeData } from "./home-data";
 
 function deferred<Value>() {
@@ -17,7 +17,7 @@ function deferred<Value>() {
 describe("member Home data", () => {
   it("starts bounded restaurant and order reads together", async () => {
     const catalog = deferred<readonly RestaurantSummaryRow[]>();
-    const orders = deferred<readonly OrderSummary[]>();
+    const orders = deferred<OrderSummaryPage>();
     const identity = {
       authUserId: "auth-user-1",
       displayName: "Mia Tan",
@@ -28,7 +28,7 @@ describe("member Home data", () => {
       userId: parseId<UserId>("user-1"),
     } satisfies AppIdentity;
     const dependencies = {
-      listActiveOrderSummaries: vi.fn(() => orders.promise),
+      listOrderSummaryPage: vi.fn(() => orders.promise),
       listRestaurantPreviews: vi.fn(() => catalog.promise),
     };
 
@@ -37,15 +37,13 @@ describe("member Home data", () => {
     expect(dependencies.listRestaurantPreviews).toHaveBeenCalledWith({
       limit: 6,
     });
-    expect(dependencies.listActiveOrderSummaries).toHaveBeenCalledWith(
-      identity,
-    );
+    expect(dependencies.listOrderSummaryPage).toHaveBeenCalledWith(identity);
 
     catalog.resolve([]);
-    orders.resolve([]);
+    orders.resolve({ active: [], history: [], nextCursor: null });
     await expect(resultPromise).resolves.toEqual({
       errors: { orders: false, restaurants: false },
-      orderSummaries: { active: [], history: [] },
+      orderSummaries: { active: [], history: [], nextCursor: null },
       restaurants: [],
     });
   });
@@ -57,21 +55,23 @@ describe("member Home data", () => {
       email: "mia@example.com",
       imageUrl: null,
       isPlatformAdmin: false,
-      memberships: [
-        { groupId: parseId<GroupId>("group-1"), role: "member" },
-      ],
+      memberships: [{ groupId: parseId<GroupId>("group-1"), role: "member" }],
       userId: parseId<UserId>("user-1"),
     } satisfies AppIdentity;
-    const active = [] as readonly OrderSummary[];
+    const summaries: OrderSummaryPage = {
+      active: [],
+      history: [],
+      nextCursor: null,
+    };
 
     await expect(
       loadMemberHomeData(identity, {
-        listActiveOrderSummaries: () => Promise.resolve(active),
+        listOrderSummaryPage: () => Promise.resolve(summaries),
         listRestaurantPreviews: () => Promise.reject(new Error("catalog")),
       }),
     ).resolves.toEqual({
       errors: { orders: false, restaurants: true },
-      orderSummaries: { active, history: [] },
+      orderSummaries: summaries,
       restaurants: [],
     });
   });

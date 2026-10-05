@@ -21,17 +21,16 @@ export default async function GroupsPage() {
 
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="groups">
-      <section className="member-page">
+      <section className="member-page groups-page">
         <header className="page-intro">
-          <p className="eyebrow">Memberships</p>
           <h1>Your groups</h1>
-          <p>Order with different circles without mixing their details.</p>
+          <p>Pick a group to continue.</p>
         </header>
         <ul className="group-list">
           {groupSummaries.map((group) => (
             <li key={group.groupId}>
               <Link
-                className="group-card group-card--link"
+                className={`group-card group-card--link${group.role === "group-owner" ? " group-card--featured" : ""}`}
                 href={`/groups/${group.groupId}`}
               >
                 <span className="group-card__icon" aria-hidden="true">

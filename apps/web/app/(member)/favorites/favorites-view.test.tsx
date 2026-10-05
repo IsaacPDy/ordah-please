@@ -20,7 +20,8 @@ vi.mock("next/navigation", () => ({
 
 vi.stubGlobal("fetch", mockFetch);
 
-import { FavoritesView, groupFavoritesByBranch } from "./favorites-view";
+import { FavoritesView } from "./favorites-view";
+import { groupFavoritesByBranch } from "./favorites-data";
 
 describe("groupFavoritesByBranch", () => {
   it("groups page rows by branch preserving rank order", () => {
@@ -100,6 +101,45 @@ describe("groupFavoritesByBranch", () => {
 });
 
 describe("FavoritesView", () => {
+  it("filters usual orders by restaurant and restores the complete list", () => {
+    render(
+      <FavoritesView
+        groups={[
+          {
+            branchId: "one",
+            branchName: "North",
+            restaurantName: "KFC",
+            favorites: [
+              {
+                favoriteId: "one",
+                name: "Chicken",
+                priceCentavos: 15000,
+                rank: 1,
+              },
+            ],
+          },
+          {
+            branchId: "two",
+            branchName: "South",
+            restaurantName: "Burger King",
+            favorites: [
+              {
+                favoriteId: "two",
+                name: "Burger",
+                priceCentavos: 20000,
+                rank: 1,
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^KFC$/ }));
+    expect(screen.getByText("Chicken")).toBeTruthy();
+    expect(screen.queryByText("Burger")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^All$/ }));
+    expect(screen.getByText("Burger")).toBeTruthy();
+  });
   beforeEach(() => {
     mockRefresh.mockReset();
     mockFetch.mockReset();
@@ -116,7 +156,7 @@ describe("FavoritesView", () => {
       screen
         .getByRole("link", { name: "Browse restaurants" })
         .getAttribute("href"),
-    ).toBe("/#restaurants");
+    ).toBe("/restaurants");
   });
 
   it("lists favorites grouped by restaurant with rank badges, prices, and remove buttons", () => {

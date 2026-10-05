@@ -1,6 +1,12 @@
 # UI Context
 
-## Approved Direction
+## Current Web/PWA Direction
+
+The October 5 supplied screenshots supersede earlier web/PWA visual references. See `docs/superpowers/specs/2026-10-05-web-pwa-reference-ui.md`. Use Session-First for Home and apply the Groups, History, Favorites, and Social-Session detail references to their matching routes. Use native system sans-serif typography, forest green actions, white surfaces, pale green selections, quiet borders, compact rounded cards, and Home/Sessions/Favorites/Groups root tabs. Android remains unchanged. At widths of 900px and above, use a centered canvas up to 1200px, sticky top navigation (including nested orders), card grids, and split Favorites/order/setup panels. Below 900px, retain the phone composition, bottom tabs, and setup footer.
+
+Order setup uses three screens (Group, Delivery, Restaurant & voting) with inline Review and Start order on the third; the four reference milestone labels remain. Preserve all existing validation, delivery fields, voting/shortlist controls, and permission checks. Favorites filters, group sections, and terminal Participants/Details sections work. Unpictured web/admin/access screens retain their fields and behavior in the same visual style.
+
+## Previous Direction (Web Superseded; Android Unchanged)
 
 Option 1 is the approved V1 visual direction. Its corrected reference is `context/assets/ordah-please-option-1.png`. It uses an original `ordah please` identity with a bright light canvas, emerald actions, pale mint support surfaces, rounded cards, restrained shadows, clear food photography, and a friendly high-legibility type system. Grab is a usability reference only; its logo, exact layout, branded art, and promotional treatments must not be copied.
 
@@ -35,9 +41,9 @@ Option 1 is the approved V1 visual direction. Its corrected reference is `contex
 
 - Light theme only for V1.
 - Use the semantic colors, spacing, radii, and elevation rules in `design-structure.md`.
-- Use Nunito Sans with tabular numerals for operational values.
+- Web/PWA uses native system sans-serif with tabular numerals; Android retains Nunito Sans.
 - Use Lucide icons.
 - Use React Native Paper as adapted Android primitives and shadcn/ui as adapted web/admin primitives.
 - Treat the approved Option 1 active-order home screen as the representative member layout.
-- Home shows active orders, group summaries, and a short restaurant preview. Orders contains Active Orders and Order History. Favorites groups ranked combinations by exact branch. Groups owns full membership details.
+- Web/PWA Home shows active sessions, personal usuals, recent group orders, and retained restaurant discovery. Sessions switches between Active and Past; Favorites filters ranked combinations by restaurant while preserving exact branch labels. Groups owns Overview, History, and Members.
 - Extend the same tokens to the iPhone PWA and use denser table/detail compositions in the desktop admin without changing the brand language.

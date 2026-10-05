@@ -40,6 +40,7 @@ async function AuthenticatedMemberShell({ children }: { children: ReactNode }) {
         <header className="member-header">
           <MemberBackButton />
           <span className="brand">ordah please</span>
+          <MemberNavigation />
           <div className="member-header__actions">
             <button
               aria-label="Open notifications"
@@ -62,7 +63,6 @@ async function AuthenticatedMemberShell({ children }: { children: ReactNode }) {
           {children}
         </main>
         <FloatingNewOrderButton visible={canStartOrder} />
-        <MemberNavigation />
       </div>
     </MemberPageAccessView>
   );
@@ -74,10 +74,10 @@ export function MemberShellAccessLoading() {
     <div className="member-shell member-shell--compact">
       <header className="member-header">
         <span className="brand">ordah please</span>
+        <MemberNavigation />
         <span role="status">Checking your access…</span>
       </header>
       <main className="member-content" />
-      <MemberNavigation />
     </div>
   );
 }

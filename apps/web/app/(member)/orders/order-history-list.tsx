@@ -1,5 +1,7 @@
 "use client";
 
+import { ChevronRight, Store } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState } from "react";
 
@@ -23,6 +25,7 @@ interface ApiSuccess<Value> {
 interface OrderHistoryListProps {
   readonly initialHistory: readonly CompactOrderSummary[];
   readonly initialNextCursor: string | null;
+  readonly groupId?: string;
 }
 
 type WireCompactOrderSummary = Omit<CompactOrderSummary, "completedAt"> & {
@@ -56,7 +59,9 @@ function restoreHistoryDates(
 export function OrderHistoryList({
   initialHistory,
   initialNextCursor,
+  groupId,
 }: OrderHistoryListProps) {
+  const [selectedGroup, setSelectedGroup] = useState(groupId ?? "");
   const [history, setHistory] = useState(initialHistory);
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [openIds, setOpenIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -149,70 +154,125 @@ export function OrderHistoryList({
     }
   }
 
+  const groups = Array.from(
+    new Map(history.map((order) => [order.groupId, order.groupName])).entries(),
+  );
+  const visibleHistory = selectedGroup
+    ? history.filter((order) => order.groupId === selectedGroup)
+    : history;
+  const monthOf = (date: Date | null) =>
+    date === null
+      ? "Date unavailable"
+      : new Intl.DateTimeFormat("en-US", {
+          month: "long",
+          year: "numeric",
+          timeZone: "Asia/Manila",
+        }).format(date);
   return (
     <div className="history-list">
-      {history.map((order) => {
+      {!groupId && groups.length > 0 ? (
+        <label className="history-filter">
+          <span className="sr-only">Filter history by group</span>
+          <select
+            value={selectedGroup}
+            onChange={(event) => setSelectedGroup(event.target.value)}
+          >
+            <option value="">All groups</option>
+            {groups.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {visibleHistory.map((order, index) => {
         const restaurant = order.restaurantName ?? "Restaurant pending";
         const isOpen = openIds.has(order.orderId);
         const detail = detailByOrderId[order.orderId];
         return (
-          <article className="history-card" key={order.orderId}>
-            <button
-              aria-expanded={isOpen}
-              aria-label={`${isOpen ? "Hide" : "Show"} order log for ${restaurant}`}
-              className="history-card__toggle"
-              onClick={() => toggleOrder(order.orderId)}
-              type="button"
-            >
-              <span className="history-card__summary">
-                <span
-                  className={
-                    order.state === "ordered"
-                      ? "status-pill status-pill--complete"
-                      : "status-pill status-pill--muted"
-                  }
-                >
-                  {formatStateLabel(order.state)}
-                </span>
-                <strong>{restaurant}</strong>
-                <small>
-                  {order.groupName} ·{" "}
-                  {order.completedAt === null
-                    ? "Completion date unavailable"
-                    : formatHistoryDate(order.completedAt)}{" "}
-                  · {order.participantsTotal}{" "}
-                  {order.participantsTotal === 1 ? "person" : "people"}
-                </small>
-              </span>
-            </button>
-            {isOpen ? (
-              <div className="history-card__content">
-                {loadingDetailIds.has(order.orderId) ? (
-                  <p role="status">Loading order log…</p>
-                ) : detailErrorIds.has(order.orderId) ? (
-                  <p role="status">
-                    Couldn’t load this order log.{" "}
-                    <button
-                      onClick={() => void loadDetail(order.orderId)}
-                      type="button"
-                    >
-                      Retry
-                    </button>
-                  </p>
-                ) : detail !== undefined ? (
-                  <HistoryLog detail={detail} />
-                ) : null}
-                <Link
-                  className="history-card__detail"
-                  href={`/orders/${order.orderId}`}
-                >
-                  View exact items
-                </Link>
-              </div>
+          <div key={order.orderId}>
+            {index === 0 ||
+            monthOf(visibleHistory[index - 1]!.completedAt) !==
+              monthOf(order.completedAt) ? (
+              <h2 className="history-month">{monthOf(order.completedAt)}</h2>
             ) : null}
-          </article>
+            <article className="history-card">
+              <button
+                aria-expanded={isOpen}
+                aria-label={`${isOpen ? "Hide" : "Show"} order log for ${restaurant}`}
+                className="history-card__toggle"
+                onClick={() => toggleOrder(order.orderId)}
+                type="button"
+              >
+                <span className="history-card__thumbnail" aria-hidden="true">
+                  {order.restaurantImageUrl ? (
+                    <Image
+                      src={order.restaurantImageUrl}
+                      alt=""
+                      width={72}
+                      height={82}
+                    />
+                  ) : (
+                    <Store size={28} />
+                  )}
+                </span>
+                <span className="history-card__summary">
+                  <span
+                    className={
+                      order.state === "ordered"
+                        ? "status-pill status-pill--complete"
+                        : "status-pill status-pill--muted"
+                    }
+                  >
+                    {formatStateLabel(order.state)}
+                  </span>
+                  <strong>{restaurant}</strong>
+                  <small>
+                    {order.groupName} ·{" "}
+                    {order.completedAt === null
+                      ? "Completion date unavailable"
+                      : formatHistoryDate(order.completedAt)}{" "}
+                    · {order.participantsTotal}{" "}
+                    {order.participantsTotal === 1 ? "person" : "people"}
+                  </small>
+                </span>
+                <ChevronRight size={18} aria-hidden="true" />
+              </button>
+              {isOpen ? (
+                <div className="history-card__content">
+                  {loadingDetailIds.has(order.orderId) ? (
+                    <p role="status">Loading order log…</p>
+                  ) : detailErrorIds.has(order.orderId) ? (
+                    <p role="status">
+                      Couldn’t load this order log.{" "}
+                      <button
+                        onClick={() => void loadDetail(order.orderId)}
+                        type="button"
+                      >
+                        Retry
+                      </button>
+                    </p>
+                  ) : detail !== undefined ? (
+                    <HistoryLog detail={detail} />
+                  ) : null}
+                  <Link
+                    className="history-card__detail"
+                    href={`/orders/${order.orderId}`}
+                  >
+                    View exact items
+                  </Link>
+                </div>
+              ) : null}
+            </article>
+          </div>
         );
       })}
+      {visibleHistory.length === 0 ? (
+        <p className="restaurant-empty">
+          No orders in this group on the loaded pages.
+        </p>
+      ) : null}
       {nextCursor !== null ? (
         <button
           className="secondary-action"

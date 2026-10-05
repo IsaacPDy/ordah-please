@@ -150,7 +150,7 @@ describe("web navigation shells", () => {
   it("keeps member and admin navigation separate", () => {
     expect(memberNavigation.map((item) => item.label)).toEqual([
       "Home",
-      "Orders",
+      "Sessions",
       "Favorites",
       "Groups",
     ]);
@@ -179,12 +179,12 @@ describe("web navigation shells", () => {
     const html = await renderAsync(layout);
     const textHtml = html.replaceAll("<!-- -->", "");
 
-    expect(html).toContain("Active group order");
+    expect(html).toContain("Active sessions");
     expect(html).toContain("Alpha group");
-    expect(html).toContain("Choose restaurant");
+    expect(html).toContain("Restaurant voting");
     expect(textHtml).toContain("2 of 3 responded");
     expect(textHtml).toContain("Good morning, Mia");
-    expect(html).toContain("Nearby restaurants");
+    expect(html).toContain("Browse restaurants");
     expect(html).not.toContain("Friday lunch");
   });
 
@@ -216,11 +216,11 @@ describe("web navigation shells", () => {
     const textHtml = html.replaceAll("<!-- -->", "");
 
     expect(html).toContain("Alpha group");
-    expect(html).toContain("Voting");
+    expect(html).toContain("Restaurant voting");
     expect(textHtml).toContain("2 of 3 responded");
-    expect(html).toContain("Needs action");
-    expect(html).toContain("History");
-    expect(html).toContain("revisit past meals");
+    expect(html).toContain("Active");
+    expect(html).toContain("Past");
+    expect(html).toContain("check past sessions");
     expect(html).not.toContain('href="#orders-top"');
     expect(html).not.toContain(">Filter<");
     expect(html).not.toContain("Friday lunch");
@@ -238,9 +238,7 @@ describe("web navigation shells", () => {
     const html = renderToStaticMarkup(await GroupsPage());
 
     expect(html).toContain("Your groups");
-    expect(html).toContain(
-      "Order with different circles without mixing their details.",
-    );
+    expect(html).toContain("Pick a group to continue.");
     expect(html).toContain("group-alpha");
     expect(html).toContain("group-beta");
     expect(html).toContain("Group Owner");

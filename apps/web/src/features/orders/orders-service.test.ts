@@ -1015,6 +1015,28 @@ describe("progressive order history", () => {
     expect(result).toHaveLength(1);
     expect(orders.listTerminalVisibleForUser).not.toHaveBeenCalled();
   });
+
+  it("carries the selected menu photo into compact cards without loading food lines", async () => {
+    const orders = {
+      ...createRepositories().orders,
+      listActiveVisibleForUser: vi.fn(() =>
+        Promise.resolve([
+          {
+            ...activeRow(),
+            restaurantImageUrl: "https://example.test/food.jpg",
+          },
+        ]),
+      ),
+    };
+    const result = await listActiveOrderSummaries(
+      { identity: identityFor(memberId, "member") },
+      { orders },
+    );
+    expect(result[0]).toMatchObject({
+      restaurantImageUrl: "https://example.test/food.jpg",
+    });
+    expect(orders.listOrderLines).not.toHaveBeenCalled();
+  });
 });
 
 describe("loadOrderDetail visibility", () => {

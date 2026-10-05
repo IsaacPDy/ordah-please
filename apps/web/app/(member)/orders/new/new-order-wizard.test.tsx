@@ -56,32 +56,52 @@ describe("NewOrderWizard", () => {
     mockPush.mockReset();
   });
 
-  it("renders participants, restaurants, voting modes, and deadlines", () => {
-    const html = renderToStaticMarkup(<NewOrderWizard {...wizardProps()} />);
-    expect(html).toContain("Alex Rivera");
-    expect(html).toContain("KFC");
-    expect(html).toContain("McDonald&#x27;s");
-    expect(html).toContain("Voting off");
-    expect(html).toContain("Shortlist");
-    expect(html).toContain("Whole catalog");
-    expect(html).toContain("Start order");
-    expect(html).toContain("Who’s joining?");
-    expect(html).toContain("Where should it go?");
-    expect(html).toContain("How do we choose?");
-    expect(html).toContain('class="participant-option');
+  it("keeps selections when moving back and searches members without losing them", () => {
+    render(<NewOrderWizard {...wizardProps()} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: /Alex Rivera/i }));
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "Mia" },
+    });
+    expect(screen.queryByText("Alex Rivera")).toBeNull();
+    expect(screen.getByText("2 members selected")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Next/i }));
+    expect(
+      screen.getByRole("heading", { name: "Where should it go?" }),
+    ).toBeTruthy();
+    expect(document.activeElement).toBe(
+      screen.getByRole("heading", { name: "Where should it go?" }),
+    );
+    expect(screen.queryByRole("button", { name: "Start order" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Back/i }));
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "" } });
+    expect(
+      screen.getByRole<HTMLInputElement>("checkbox", {
+        name: /Alex Rivera/i,
+      }).checked,
+    ).toBe(true);
+  });
+
+  it("blocks incomplete delivery details and does not submit on an earlier step", () => {
+    const mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+    const { container } = render(<NewOrderWizard {...wizardProps()} />);
+    fireEvent.submit(container.querySelector("form")!);
+    expect(mockFetch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /Next/i }));
+    expect(
+      screen.getByRole("button", { name: /Next/i }).hasAttribute("disabled"),
+    ).toBe(true);
   });
 
   it("shows the manager as a required participant who cannot be toggled", () => {
     const html = renderToStaticMarkup(<NewOrderWizard {...wizardProps()} />);
     expect(html).toContain("Mia Tan");
-    expect(html).toContain("Order manager · required");
+    expect(html).toContain("Order manager (required)");
     expect(html).toContain(
       'disabled="" readOnly="" type="checkbox" checked=""',
     );
     expect(html).toContain("Alex Rivera");
-    expect(html).toContain(
-      "You are included automatically as the order manager.",
-    );
+    expect(html).toContain("You’ll be the order manager automatically.");
   });
 
   it("posts the expected body with voting off and null normalization", async () => {
@@ -101,6 +121,8 @@ describe("NewOrderWizard", () => {
 
     const { container } = render(<NewOrderWizard {...wizardProps()} />);
 
+    fireEvent.click(screen.getByRole("button", { name: /Next/i }));
+
     fireEvent.change(screen.getByLabelText(/recipient name/i), {
       target: { value: "Mia Tan" },
     });
@@ -113,6 +135,7 @@ describe("NewOrderWizard", () => {
     fireEvent.change(screen.getByLabelText(/city/i), {
       target: { value: "Quezon City" },
     });
+    fireEvent.click(screen.getByRole("button", { name: /Next/i }));
     fireEvent.change(screen.getByLabelText(/^restaurant/i), {
       target: { value: "restaurant-1" },
     });

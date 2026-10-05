@@ -1,21 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, UserPlus } from "lucide-react";
+import { Pencil, UserPlus, Plus, Users } from "lucide-react";
 import Link from "next/link";
 
+import { SessionCard } from "./session-card";
+import { OrderHistoryList } from "../(member)/orders/order-history-list";
+import type { OrderSummaryPage } from "../../src/features/orders/orders-service";
 import type { GroupDetails } from "@ordah-please/domain";
 
 export interface GroupDetailsViewProps {
   readonly details: GroupDetails;
   readonly canManage: boolean;
+  readonly canStartOrder?: boolean;
+  readonly summaries?: OrderSummaryPage;
 }
 
 /** Renders one group's name, a single roster with the owner pinned first, and management actions. */
 export function GroupDetailsView({
   details,
   canManage,
+  canStartOrder = canManage,
+  summaries = { active: [], history: [], nextCursor: null },
 }: GroupDetailsViewProps) {
+  const [tab, setTab] = useState("overview");
   const [name, setName] = useState(details.name);
   const [editing, setEditing] = useState(false);
   const [savingRename, setSavingRename] = useState(false);
@@ -109,7 +117,10 @@ export function GroupDetailsView({
   const totalPeople = details.members.length;
 
   return (
-    <section className="member-page">
+    <section className="member-page group-detail-page">
+      <div className="group-cover" aria-hidden="true">
+        <Users size={54} strokeWidth={1.5} />
+      </div>
       <header className="page-intro group-details-header">
         <span className="group-details-header__icon" aria-hidden="true">
           {initialsOf(details.name)}
@@ -149,7 +160,8 @@ export function GroupDetailsView({
         ) : (
           <div className="group-details-header__title">
             <p className="eyebrow">
-              {totalPeople} {totalPeople === 1 ? "member" : "members"}
+              {totalPeople} {totalPeople === 1 ? "member" : "members"} · You’re
+              a {roleLabel(details.viewerRole)}
             </p>
             <h1>{details.name}</h1>
             {canManage ? (
@@ -171,81 +183,152 @@ export function GroupDetailsView({
         ) : null}
       </header>
 
-      <ul className="group-roster">
-        <li className="group-roster__item group-roster__item--owner">
-          <span className="group-roster__avatar" aria-hidden="true">
-            {initialsOf(details.owner.displayName)}
-          </span>
-          <span className="group-roster__identity">
-            <span className="group-roster__name">
-              {details.owner.displayName}
-            </span>
-            <small>Order manager</small>
-          </span>
-          <span className="role-pill role-pill--owner">Owner</span>
-        </li>
-        {nonOwnerMembers.map((member) => (
-          <li key={member.userId} className="group-roster__item">
+      <div className="segmented-control" aria-label="Group sections">
+        {["overview", "history", "members"].map((value) => (
+          <button
+            type="button"
+            aria-pressed={tab === value}
+            key={value}
+            onClick={() => setTab(value)}
+          >
+            {value.charAt(0).toUpperCase() + value.slice(1)}
+          </button>
+        ))}
+      </div>
+      {tab === "overview" ? (
+        <>
+          <section className="content-section">
+            <div className="section-heading-row">
+              <h2>Current order</h2>
+            </div>
+            {summaries.active[0] ? (
+              <SessionCard order={summaries.active[0]} />
+            ) : (
+              <p className="restaurant-empty">
+                No active order for this group.
+              </p>
+            )}
+          </section>
+          {canStartOrder ? (
+            <Link
+              className="primary-action"
+              href={`/orders/new?groupId=${encodeURIComponent(details.groupId)}`}
+            >
+              <Plus size={18} aria-hidden="true" />
+              Start a new order
+            </Link>
+          ) : null}
+          <section className="content-section">
+            <div className="section-heading-row">
+              <h2>Recent orders</h2>
+              <button
+                className="text-action"
+                type="button"
+                onClick={() => setTab("history")}
+              >
+                See all
+              </button>
+            </div>
+            {summaries.history.length ? (
+              <OrderHistoryList
+                groupId={details.groupId}
+                initialHistory={summaries.history.slice(0, 3)}
+                initialNextCursor={null}
+              />
+            ) : (
+              <p className="restaurant-empty">
+                Completed orders will appear here.
+              </p>
+            )}
+          </section>
+        </>
+      ) : null}
+      {tab === "history" ? (
+        <section aria-label="Group order history">
+          {summaries.history.length || summaries.nextCursor ? (
+            <OrderHistoryList
+              initialHistory={summaries.history}
+              initialNextCursor={summaries.nextCursor}
+              groupId={details.groupId}
+            />
+          ) : (
+            <p className="restaurant-empty">
+              Completed orders will appear here.
+            </p>
+          )}
+        </section>
+      ) : null}
+      <div hidden={tab !== "members"}>
+        <ul className="group-roster">
+          <li className="group-roster__item group-roster__item--owner">
             <span className="group-roster__avatar" aria-hidden="true">
-              {initialsOf(member.displayName)}
+              {initialsOf(details.owner.displayName)}
             </span>
             <span className="group-roster__identity">
-              <span className="group-roster__name">{member.displayName}</span>
-              <small>Joined this group</small>
+              <span className="group-roster__name">
+                {details.owner.displayName}
+              </span>
+              <small>Group Owner</small>
             </span>
-            <span
-              className={
-                member.role === "manager"
-                  ? "role-pill"
-                  : "role-pill role-pill--member"
-              }
-            >
-              {roleLabel(member.role)}
-            </span>
+            <span className="role-pill role-pill--owner">Owner</span>
           </li>
-        ))}
-      </ul>
+          {nonOwnerMembers.map((member) => (
+            <li key={member.userId} className="group-roster__item">
+              <span className="group-roster__avatar" aria-hidden="true">
+                {initialsOf(member.displayName)}
+              </span>
+              <span className="group-roster__identity">
+                <span className="group-roster__name">{member.displayName}</span>
+                <small>Joined this group</small>
+              </span>
+              <span
+                className={
+                  member.role === "manager"
+                    ? "role-pill"
+                    : "role-pill role-pill--member"
+                }
+              >
+                {roleLabel(member.role)}
+              </span>
+            </li>
+          ))}
+        </ul>
 
-      {canManage && inviteLink !== undefined ? (
-        <div className="group-details-manage">
-          <h2>Group actions</h2>
-          <Link
-            className="primary-action group-details-manage__start"
-            href={`/orders/new?groupId=${encodeURIComponent(details.groupId)}`}
-          >
-            Start an order
-          </Link>
-          <button
-            className="add-people-button"
-            onClick={() => {
-              void copyLink();
-            }}
-            type="button"
-          >
-            <UserPlus aria-hidden="true" size={16} />
-            {copied ? "Link copied" : "Copy invite link"}
-          </button>
-          <p className="group-details-manage__hint">
-            Anyone with the link can join. Link ends in{" "}
-            <code>{inviteLink.tokenPrefix}…</code>
-          </p>
-          <button
-            className="secondary-button group-details-manage__rotate"
-            disabled={rotating}
-            onClick={() => {
-              void rotateLink();
-            }}
-            type="button"
-          >
-            {rotating ? "Rotating…" : "Rotate link"}
-          </button>
-          {rotateError !== null ? (
-            <p role="alert" className="form-error">
-              {rotateError}
+        {canManage && inviteLink !== undefined ? (
+          <div className="group-details-manage">
+            <h2>Group actions</h2>
+            <button
+              className="add-people-button"
+              onClick={() => {
+                void copyLink();
+              }}
+              type="button"
+            >
+              <UserPlus aria-hidden="true" size={16} />
+              {copied ? "Link copied" : "Copy invite link"}
+            </button>
+            <p className="group-details-manage__hint">
+              Anyone with the link can join. Link ends in{" "}
+              <code>{inviteLink.tokenPrefix}…</code>
             </p>
-          ) : null}
-        </div>
-      ) : null}
+            <button
+              className="secondary-button group-details-manage__rotate"
+              disabled={rotating}
+              onClick={() => {
+                void rotateLink();
+              }}
+              type="button"
+            >
+              {rotating ? "Rotating…" : "Rotate link"}
+            </button>
+            {rotateError !== null ? (
+              <p role="alert" className="form-error">
+                {rotateError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }

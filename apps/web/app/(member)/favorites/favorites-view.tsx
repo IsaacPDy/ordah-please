@@ -1,62 +1,12 @@
-import type { FavoritePageRow } from "@ordah-please/db";
+"use client";
+
+import type { FavoriteGroup } from "./favorites-data";
+import { useState } from "react";
+import Image from "next/image";
 import { Heart } from "lucide-react";
 import Link from "next/link";
 
 import { FavoriteRemoveButton } from "./favorite-remove-button";
-
-export interface FavoriteGroup {
-  readonly branchId: string;
-  readonly branchName: string;
-  readonly restaurantName: string;
-  readonly favorites: readonly {
-    favoriteId: string;
-    name: string;
-    priceCentavos: number | null;
-    rank: number;
-  }[];
-}
-
-type MutableFavoriteGroup = {
-  branchId: string;
-  branchName: string;
-  restaurantName: string;
-  favorites: {
-    favoriteId: string;
-    name: string;
-    priceCentavos: number | null;
-    rank: number;
-  }[];
-};
-
-/** Groups favorites page rows by branch, preserving rank order inside each group. */
-export function groupFavoritesByBranch(
-  rows: readonly FavoritePageRow[],
-): readonly FavoriteGroup[] {
-  const groups: MutableFavoriteGroup[] = [];
-  const groupByBranchId = new Map<string, MutableFavoriteGroup>();
-
-  for (const row of [...rows].sort((left, right) => left.rank - right.rank)) {
-    let group = groupByBranchId.get(row.branchId);
-    if (group === undefined) {
-      group = {
-        branchId: row.branchId,
-        branchName: row.branchName,
-        favorites: [],
-        restaurantName: row.restaurantName,
-      };
-      groupByBranchId.set(row.branchId, group);
-      groups.push(group);
-    }
-    group.favorites.push({
-      favoriteId: row.favoriteId,
-      name: row.name,
-      priceCentavos: row.currentPriceCentavos,
-      rank: row.rank,
-    });
-  }
-
-  return groups;
-}
 
 /** Presents the member's favorites grouped by restaurant branch. */
 export function FavoritesView({
@@ -64,6 +14,16 @@ export function FavoritesView({
 }: {
   readonly groups: readonly FavoriteGroup[];
 }) {
+  const [selectedRestaurant, setSelectedRestaurant] = useState<string | null>(
+    null,
+  );
+  const restaurantNames = Array.from(
+    new Set(groups.map((group) => group.restaurantName)),
+  );
+  const visibleGroups =
+    selectedRestaurant === null
+      ? groups
+      : groups.filter((group) => group.restaurantName === selectedRestaurant);
   if (groups.length === 0) {
     return (
       <section className="favorites-empty">
@@ -77,7 +37,7 @@ export function FavoritesView({
             group order.
           </p>
         </div>
-        <Link className="primary-action" href="/#restaurants">
+        <Link className="primary-action" href="/restaurants">
           Browse restaurants
         </Link>
       </section>
@@ -86,25 +46,60 @@ export function FavoritesView({
 
   return (
     <div className="favorites-list">
-      {groups.map((group) => (
+      <div
+        className="filter-chips"
+        aria-label="Filter usual orders by restaurant"
+      >
+        <button
+          type="button"
+          aria-pressed={selectedRestaurant === null}
+          onClick={() => setSelectedRestaurant(null)}
+        >
+          All
+        </button>
+        {restaurantNames.map((name) => (
+          <button
+            type="button"
+            key={name}
+            aria-pressed={selectedRestaurant === name}
+            onClick={() => setSelectedRestaurant(name)}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+      {visibleGroups.map((group) => (
         <section className="favorites-group" key={group.branchId}>
-          <h2 className="favorites-group__title">
+          <h2 className="sr-only">
             {group.restaurantName} — {group.branchName}
           </h2>
           <ul>
             {group.favorites.map((favorite) => (
-              <li className="favorites-favorite" key={favorite.favoriteId}>
-                <span className="favorites-favorite__rank">
-                  #{favorite.rank}
-                </span>
-                <span className="favorites-favorite__name">
-                  {favorite.name}
-                </span>
-                {favorite.priceCentavos !== null ? (
-                  <span className="favorites-favorite__price">
-                    ₱{(favorite.priceCentavos / 100).toFixed(2)}
-                  </span>
-                ) : null}
+              <li className="usual-order-card" key={favorite.favoriteId}>
+                <div className="usual-order-card__image">
+                  {favorite.imageUrl ? (
+                    <Image
+                      src={favorite.imageUrl}
+                      width={72}
+                      height={72}
+                      alt=""
+                    />
+                  ) : (
+                    <Heart size={28} aria-hidden="true" />
+                  )}
+                  <span className="rank-badge">#{favorite.rank}</span>
+                </div>
+                <div className="usual-order-card__body">
+                  <strong>{favorite.name}</strong>
+                  <small>
+                    {group.restaurantName} · {group.branchName}
+                  </small>
+                  {favorite.priceCentavos !== null ? (
+                    <span>₱{(favorite.priceCentavos / 100).toFixed(2)}</span>
+                  ) : (
+                    <small>Price unavailable</small>
+                  )}
+                </div>
                 <FavoriteRemoveButton
                   favoriteId={favorite.favoriteId}
                   mealName={favorite.name}
@@ -114,6 +109,9 @@ export function FavoritesView({
           </ul>
         </section>
       ))}
+      <Link className="secondary-action" href="/restaurants">
+        Browse restaurants
+      </Link>
     </div>
   );
 }

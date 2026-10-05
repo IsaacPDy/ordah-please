@@ -1,0 +1,412 @@
+/* Member desktop compositions extend the phone UI without changing app behavior. */
+.member-navigation--desktop-only,
+.desktop-heading {
+  display: none;
+}
+
+.wizard-delivery-choice,
+.wizard-delivery-fields {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.wizard-delivery-fields > label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (min-width: 900px) {
+  .member-shell--compact {
+    max-width: 1200px;
+    background: #f8fbf9;
+    border-inline: 1px solid var(--color-border);
+    overflow: visible;
+  }
+
+  .member-shell--compact .member-header,
+  .member-shell--compact .member-header:has(.member-header__spacer) {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    min-height: 84px;
+    padding: 14px 32px;
+    gap: 18px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .member-shell--compact .member-header__spacer {
+    display: none;
+  }
+
+  .member-shell--compact .member-header .brand {
+    white-space: nowrap;
+    font-size: 25px;
+    margin-right: auto;
+  }
+
+  .member-shell--compact .member-navigation {
+    display: flex;
+    position: static;
+    transform: none;
+    width: auto;
+    max-width: none;
+    padding: 0;
+    gap: 12px;
+    border: 0;
+    background: transparent;
+  }
+
+  .member-shell--compact .member-navigation__link {
+    flex-direction: row;
+    gap: 8px;
+    padding: 10px 14px;
+    min-height: 44px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+
+  .member-shell--compact .member-content {
+    padding: 32px 32px 48px;
+    min-width: 0;
+  }
+
+  .member-shell--compact .member-page {
+    gap: 24px;
+    min-width: 0;
+  }
+
+  .member-shell--compact h1,
+  .member-shell--compact [id] {
+    scroll-margin-top: 108px;
+  }
+
+  .member-shell--compact .page-intro h1,
+  .member-shell--compact .home-intro h1 {
+    font-size: 34px;
+  }
+
+  .member-shell--compact .home-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .home-page > .home-intro,
+  .home-page > .home-start-order,
+  .home-page > .restaurant-section {
+    grid-column: 1 / -1;
+  }
+
+  .home-page > .home-start-order {
+    max-width: 480px;
+    padding: 20px 24px;
+  }
+
+  .home-page > .content-section[aria-labelledby="home-sessions"] {
+    grid-column: 1 / -1;
+  }
+
+  .member-shell--compact .session-list,
+  .member-shell--compact .restaurant-list,
+  .member-shell--compact .groups-page > .group-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .member-shell--compact .restaurant-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .member-shell--compact .session-card {
+    padding: 22px;
+    min-height: 170px;
+  }
+
+  .member-shell--compact .groups-page .group-card {
+    min-height: 132px;
+    padding: 24px;
+    height: 100%;
+  }
+
+  .member-shell--compact .home-usuals {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .member-shell--compact .home-usual-card {
+    min-width: 0;
+    width: auto;
+  }
+
+  .member-shell--compact .favorites-page {
+    display: grid;
+    grid-template-columns: minmax(200px, 0.7fr) minmax(0, 2fr);
+    align-items: start;
+  }
+
+  .favorites-page > .page-intro {
+    position: sticky;
+    top: 116px;
+  }
+
+  .member-shell--compact .favorites-group {
+    padding: 18px;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    background: white;
+  }
+
+  .member-shell--compact .favorites-group > h2 {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+    white-space: normal;
+    overflow: visible;
+    margin: 0 0 14px;
+    font-size: 16px;
+  }
+
+  .member-shell--compact .favorites-group > ul {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .member-shell--compact .usual-order-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0 0 10px;
+    overflow: hidden;
+    min-width: 0;
+    height: 100%;
+  }
+
+  .usual-order-card > .usual-order-card__image {
+    width: 100%;
+    height: 128px;
+    border-radius: 0;
+  }
+
+  .usual-order-card > .usual-order-card__body {
+    padding: 0 10px;
+    flex: 1;
+  }
+
+  .usual-order-card > button {
+    align-self: flex-end;
+    margin-right: 6px;
+  }
+
+  .member-shell--compact .filter-chips,
+  .member-shell--compact .restaurant-detail__chips {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .member-shell--compact .history-filter {
+    max-width: 300px;
+  }
+
+  .member-shell--compact .history-card__toggle {
+    padding: 18px 22px;
+    gap: 20px;
+  }
+
+  .member-shell--compact .history-card__summary > strong {
+    font-size: 16px;
+  }
+
+  .member-shell--compact .history-log {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 12px 22px 22px;
+  }
+
+  .member-shell--compact .setup-wizard {
+    width: 100%;
+    max-width: 960px;
+    margin-inline: auto;
+  }
+
+  .wizard-progress {
+    max-width: 720px;
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  .member-shell--compact .participant-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .member-shell--compact .wizard-delivery {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+  }
+
+  .wizard-delivery-choice,
+  .wizard-delivery-fields {
+    border: 1px solid var(--color-border);
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .desktop-heading {
+    display: block;
+    font-size: 18px;
+    margin: 0 0 8px;
+  }
+
+  .wizard-delivery-fields .divider-caption {
+    display: none;
+  }
+
+  .wizard-settings {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 24px;
+  }
+
+  .wizard-settings > .wizard-setting-card {
+    grid-column: 1;
+    padding: 20px;
+    background: white;
+  }
+
+  .wizard-settings > .wizard-review {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    position: sticky;
+    top: 108px;
+    padding: 24px;
+  }
+
+  .member-shell--compact .wizard-footer {
+    position: sticky;
+    left: auto;
+    bottom: 0;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-top: 8px;
+  }
+
+  .wizard-footer .primary-action {
+    flex: 0 1 360px;
+    margin-left: auto;
+  }
+
+  .member-shell--compact .group-detail-page {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .group-detail-page > .group-cover,
+  .group-detail-page > .group-details-header,
+  .group-detail-page > .segmented-control,
+  .group-detail-page > .history-list,
+  .group-detail-page > .group-roster,
+  .group-detail-page > .group-details-manage,
+  .group-detail-page > .restaurant-empty {
+    grid-column: 1 / -1;
+  }
+
+  .member-shell--compact .group-details-header {
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .group-detail-page > .primary-action {
+    grid-column: 1;
+  }
+
+  .group-detail-page > .content-section:last-of-type {
+    grid-column: 2;
+    grid-row: 4 / span 2;
+  }
+
+  .member-shell--compact .group-roster {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .member-shell--compact .order-detail-page {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.4fr);
+    align-items: start;
+  }
+
+  .order-detail-page > * {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .order-detail-page > .order-stage-track {
+    grid-column: 1 / -1;
+  }
+
+  .member-shell--compact .order-detail-page > .order-detail-header {
+    grid-column: 1;
+    grid-row: 2 / span 8;
+    position: sticky;
+    top: 108px;
+    margin: 0;
+    padding: 24px;
+    border-radius: 18px;
+    border: 1px solid var(--color-border);
+  }
+
+  .order-detail-page > .order-detail-hero {
+    grid-column: 1 / -1;
+    width: 100%;
+    height: 240px;
+    margin: 0;
+    border-radius: 18px;
+  }
+
+  .member-shell--compact .order-detail-header--active > p.deadline {
+    color: white;
+  }
+
+  .order-detail-page--terminal:not(:has(.order-detail-hero))
+    > .order-detail-header {
+    grid-row: 1 / span 8;
+  }
+
+  .member-shell--compact .restaurant-detail__hero {
+    height: 280px;
+    border-radius: 18px;
+  }
+
+  .member-shell--compact .restaurant-detail__items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .member-shell--compact .restaurant-detail__item {
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    background: white;
+    padding: 16px;
+  }
+
+  .member-shell--compact .floating-new-order {
+    right: max(32px, calc((100vw - 1200px) / 2 + 32px));
+    bottom: 24px;
+  }
+}
