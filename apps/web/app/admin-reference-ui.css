@@ -1,10 +1,11 @@
 /* Admin shares the approved web visual system and retains its own navigation. */
 .admin-shell {
-  max-width: 1440px;
-  margin-inline: auto;
+  max-width: none;
+  width: 100%;
+  margin-inline: 0;
   grid-template-columns: 224px minmax(0, 1fr);
   background: #f8fbf9;
-  border-inline: 1px solid var(--color-border);
+  border-inline: 0;
 }
 
 .admin-sidebar {

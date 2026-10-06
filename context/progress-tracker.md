@@ -14,10 +14,13 @@
 
 
 
+
 - [ ] History order log — Implementation and automated verification complete; signed-in Owner, Manager, and Member browser acceptance pending. Evidence in [`history/history-order-log.md`](history/history-order-log.md). See the [design spec](../docs/superpowers/specs/2026-09-11-history-order-log-design.md) and [implementation plan](../docs/superpowers/plans/2026-09-11-history-order-log.md).
 
 
 ## Completed
+
+- [x] V1-13 Full-width browser shell — implemented 2026-10-06. Desktop member and admin shells fill the browser, without outer box borders; floating desktop actions align to the window edge. Phone composition retained. Signed-in member/admin layout checks, formatting, build, and whitespace checks passed. Production unverified. Evidence in [`history/v1-13.md`](history/v1-13.md).
 
 - [x] V1-12 Member reference layout fidelity — implemented 2026-10-06. Rich membership cards, monthly History rows, restaurant/All favorites layouts, and social-session sidebar, participant disclosures, progress, and subtotal panels on desktop and mobile. 98 affected tests, web typecheck, scoped lint, build, and signed-in local browser checks passed. Production and separate-role acceptance remain unverified. Evidence in [`history/v1-12.md`](history/v1-12.md).
 

@@ -20,9 +20,12 @@
 
 @media (min-width: 900px) {
   .member-shell--compact {
-    max-width: 1200px;
+    max-width: none;
+    width: 100%;
+    margin: 0;
     background: #f8fbf9;
-    border-inline: 1px solid var(--color-border);
+    border-inline: 0;
+    box-shadow: none;
     overflow: visible;
   }
 
@@ -406,7 +409,7 @@
   }
 
   .member-shell--compact .floating-new-order {
-    right: max(32px, calc((100vw - 1200px) / 2 + 32px));
+    right: 32px;
     bottom: 24px;
   }
 }
