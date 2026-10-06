@@ -1,3 +1,10 @@
+import { PublicApiError } from "@ordah-please/contracts";
+import { linkPreAddedMember, MemberLinkConflict } from "@ordah-please/db";
+import {
+  createMemberAsAdmin,
+  linkMemberAsAdmin,
+  type MemberLinkOperations,
+} from "./member-link-service";
 import {
   getRuntimeDatabase,
   createRepositories,
@@ -92,7 +99,54 @@ export async function listUsersForAdminWith(
   }));
 }
 
+async function runMemberLinkOperation<Result>(
+  operation: (operations: MemberLinkOperations) => Promise<Result>,
+): Promise<Result> {
+  try {
+    return await withTransaction(getRuntimeDatabase(), (transaction) => {
+      const repositories = createRepositories(transaction);
+      return operation({
+        requireAdmin: async (actorUserId) => {
+          const actor =
+            await repositories.identityAccess.findUserById(actorUserId);
+          if (!actor?.isPlatformAdmin || actor.archivedAt !== null)
+            throw new PublicApiError("FORBIDDEN", "Access denied.");
+        },
+        createMember: (displayName) =>
+          repositories.identityAccess.createUser({ displayName }),
+        linkMember: (memberUserId, accountUserId) =>
+          linkPreAddedMember(transaction, memberUserId, accountUserId),
+        appendAudit: async (actorUserId, action, resourceId, details) => {
+          await repositories.auditEvents.append({
+            actorUserId,
+            action,
+            resourceId,
+            resourceType: "user",
+            details,
+          });
+        },
+      });
+    });
+  } catch (error) {
+    if (error instanceof MemberLinkConflict)
+      throw new PublicApiError("CONFLICT", error.message);
+    throw error;
+  }
+}
+
 export const usersRuntime = {
+  createMemberAsAdmin: (actorUserId: string, displayName: string) =>
+    runMemberLinkOperation((operations) =>
+      createMemberAsAdmin(actorUserId, displayName, operations),
+    ),
+  linkMemberAsAdmin: (
+    actorUserId: string,
+    memberUserId: string,
+    accountUserId: string,
+  ) =>
+    runMemberLinkOperation((operations) =>
+      linkMemberAsAdmin(actorUserId, memberUserId, accountUserId, operations),
+    ),
   addUserToGroupAsAdmin: (
     command: Parameters<typeof addUserToGroupAsAdmin>[0],
   ) => addUserToGroupAsAdmin(command, { run: runUsersAdminTransaction }),

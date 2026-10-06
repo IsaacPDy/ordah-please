@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UsersAdminView } from "./users-admin-view";
@@ -163,9 +170,7 @@ describe("UsersAdminView", () => {
   it("opens the add-user-to-group dialog when the trigger is clicked", () => {
     render(<UsersAdminView users={users} groups={groups} />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add user to group" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Add user to group" }));
 
     expect(
       screen.getByRole("heading", { name: "Add user to group" }),
@@ -173,7 +178,10 @@ describe("UsersAdminView", () => {
   });
 
   it("removes a membership and refreshes on confirm", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({}),
+    });
     render(<UsersAdminView users={users} groups={groups} />);
 
     fireEvent.click(
@@ -204,18 +212,14 @@ describe("UsersAdminView", () => {
     );
     fireEvent.click(await screen.findByRole("button", { name: "Remove" }));
 
-    expect(
-      await screen.findByText("Reassign ownership first."),
-    ).toBeTruthy();
+    expect(await screen.findByText("Reassign ownership first.")).toBeTruthy();
     expect(mockRefresh).not.toHaveBeenCalled();
   });
 
   it("opens the confirm-suspend dialog when Suspend is clicked", () => {
     render(<UsersAdminView users={users} groups={groups} />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /Suspend account/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /Suspend account/i }));
 
     expect(
       screen.getByRole("heading", { name: /Suspend Alice Admin\?/i }),
@@ -227,5 +231,59 @@ describe("UsersAdminView", () => {
 
     expect(screen.getByText("No users yet.")).toBeTruthy();
     expect(screen.getByText("Select a user.")).toBeTruthy();
+  });
+});
+
+describe("pre-added members", () => {
+  it("adds a member by name without an email", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { userId: "new" } }),
+    });
+    render(<UsersAdminView users={users} groups={groups} />);
+    fireEvent.click(screen.getByRole("button", { name: "Add member" }));
+    fireEvent.change(screen.getByLabelText("Member name"), {
+      target: { value: "Sam Friend" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save member" }));
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/admin/users",
+        expect.objectContaining({
+          body: JSON.stringify({ displayName: "Sam Friend" }),
+        }),
+      ),
+    );
+    await waitFor(() => expect(mockRefresh).toHaveBeenCalled());
+  });
+  it("only offers signed-in accounts when linking a pre-added member", async () => {
+    const member = {
+      ...users[1]!,
+      id: "pre-added",
+      displayName: "Sam Friend",
+      email: null,
+      imageUrl: null,
+    };
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { userId: "user-mia" } }),
+    });
+    render(<UsersAdminView users={[member, ...users]} groups={groups} />);
+    fireEvent.click(screen.getByRole("button", { name: "Link login account" }));
+    const select = screen.getByLabelText("Signed-in account");
+    expect(
+      within(select).queryByRole("option", { name: /Sam Friend/ }),
+    ).toBeNull();
+    fireEvent.change(select, { target: { value: "user-mia" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm link" }));
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/admin/users/pre-added/link",
+        expect.objectContaining({
+          body: JSON.stringify({ accountUserId: "user-mia" }),
+        }),
+      ),
+    );
+    await waitFor(() => expect(mockRefresh).toHaveBeenCalled());
   });
 });

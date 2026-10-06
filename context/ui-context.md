@@ -75,3 +75,7 @@ Group Overview places Recent orders, its date selector, and See all in one toolb
 - Current owners have an Edit or delete session link on session detail, including finished sessions. The editor uses the existing fields and cards; dates use Philippine time and food subtotals are recomputed server-side.
 - Keep session and group deletion warnings explicit: describe who loses the record, what is removed, and that deletion cannot be undone. Cancel/Keep remains available before submitting deletion.
 - Remove the redundant View participants link and use Ready to finish for legacy handoff records.
+
+## V1-18 Admin member creation and linking
+
+Users & permissions includes Add member with a required name (1–120 characters), and labels members without authentication as Not linked to a login. Those members retain normal Add user to group controls. Link login account opens a native modal listing signed-in account names and emails, with no default account selection. Confirm link combines the records only after explicit selection; ordinary sign-in requires no assignment. Native modals isolate background interaction, trap focus, support Escape/outside dismissal and Cancel, and restore trigger focus. Mutations disable duplicate submission and display safe retryable errors.

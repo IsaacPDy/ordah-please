@@ -20,6 +20,8 @@
 
 ## Completed
 
+- [x] V1-18 Pre-added members and optional account linking — implemented 2026-10-06. Admins can create named members before first login, use them in groups and sessions, and explicitly combine them with a signed-in account. Normal login remains independent. Focused tests (61), isolated development database linking tests (3), web typecheck, scoped lint, production build, and signed-in create/link browser checks passed. Evidence in [`history/v1-18.md`](history/v1-18.md). No migration required; production unverified.
+
 - [x] V1-17 Browser tab icon — implemented 2026-10-06. Supplied image replaces the web browser icon, preserving its original framing. Local browser metadata and exact served-file comparison passed. Evidence in [`history/v1-17.md`](history/v1-17.md). Production unverified.
 
 - [x] V1-16 Editable session history and permanent group deletion — implemented 2026-10-06. Participant-first History logs, restaurant-free manual completion, owner editing/deletion, permanent admin group deletion with caution, archived-profile filtering, and removal of handoff/View participants. Full unit suite (663), isolated development database integration tests (41), typecheck, scoped lint, production build, and signed-in control checks passed. Development migration applied; production unverified. Evidence in [`history/v1-16.md`](history/v1-16.md).

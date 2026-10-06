@@ -6,6 +6,7 @@ import { parseId, type GroupId, type UserId } from "@ordah-please/domain";
 import type { AppIdentity } from "../../auth/load-app-identity";
 
 import {
+  createMemberAccountHandler,
   createAddUserToGroupHandler,
   createRemoveUserFromGroupHandler,
   createSuspendUserHandler,
@@ -105,7 +106,10 @@ describe("createSuspendUserHandler", () => {
 describe("createAddUserToGroupHandler", () => {
   it("returns 200 on the happy path and parses the body", async () => {
     const addUserToGroupAsAdmin = vi.fn(() =>
-      Promise.resolve({ groupId: parseId<GroupId>("group-1"), userId: parseId<UserId>("user-2") }),
+      Promise.resolve({
+        groupId: parseId<GroupId>("group-1"),
+        userId: parseId<UserId>("user-2"),
+      }),
     );
     const handler = createAddUserToGroupHandler(
       { ...baseDeps, addUserToGroupAsAdmin },
@@ -127,7 +131,10 @@ describe("createAddUserToGroupHandler", () => {
 
   it("returns 400 when the body is missing groupId", async () => {
     const addUserToGroupAsAdmin = vi.fn(() =>
-      Promise.resolve({ groupId: parseId<GroupId>("group-1"), userId: parseId<UserId>("user-2") }),
+      Promise.resolve({
+        groupId: parseId<GroupId>("group-1"),
+        userId: parseId<UserId>("user-2"),
+      }),
     );
     const handler = createAddUserToGroupHandler(
       { ...baseDeps, addUserToGroupAsAdmin },
@@ -147,7 +154,10 @@ describe("createAddUserToGroupHandler", () => {
 describe("createRemoveUserFromGroupHandler", () => {
   it("returns 200 on the happy path", async () => {
     const removeUserFromGroupAsAdmin = vi.fn(() =>
-      Promise.resolve({ groupId: parseId<GroupId>("group-1"), userId: parseId<UserId>("user-2") }),
+      Promise.resolve({
+        groupId: parseId<GroupId>("group-1"),
+        userId: parseId<UserId>("user-2"),
+      }),
     );
     const handler = createRemoveUserFromGroupHandler(
       { ...baseDeps, removeUserFromGroupAsAdmin },
@@ -187,5 +197,119 @@ describe("createRemoveUserFromGroupHandler", () => {
       ),
     );
     expect(response.status).toBe(409);
+  });
+});
+
+describe("member account routes", () => {
+  function deps() {
+    return {
+      ...baseDeps,
+      createMemberAsAdmin: vi.fn(() =>
+        Promise.resolve({ userId: "new-member" }),
+      ),
+      linkMemberAsAdmin: vi.fn(() => Promise.resolve({ userId: "account" })),
+    };
+  }
+  const request = (body: unknown, headers = {}) =>
+    new Request("https://example.test/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify(body),
+    });
+  it("creates a member and links only the explicit selected pair", async () => {
+    const d = deps();
+    expect(
+      (await createMemberAccountHandler(d)(request({ displayName: "Sam" })))
+        .status,
+    ).toBe(200);
+    expect(d.createMemberAsAdmin).toHaveBeenCalledWith("admin-1", "Sam");
+    expect(
+      (
+        await createMemberAccountHandler(
+          d,
+          "member",
+        )(request({ accountUserId: "account" }))
+      ).status,
+    ).toBe(200);
+    expect(d.linkMemberAsAdmin).toHaveBeenCalledWith(
+      "admin-1",
+      "member",
+      "account",
+    );
+  });
+  it("rejects non-admins, unauthenticated callers, and cross-origin requests before mutations", async () => {
+    const d = deps();
+    const cases = [
+      { ...d, loadIdentity: () => createIdentity({ isPlatformAdmin: false }) },
+      {
+        ...d,
+        verifySession: () => {
+          throw new PublicApiError("UNAUTHENTICATED", "Sign in.");
+        },
+      },
+    ];
+    expect(
+      (
+        await createMemberAccountHandler(cases[0]!)(
+          request({ displayName: "Sam" }),
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await createMemberAccountHandler(cases[1]!)(
+          request({ displayName: "Sam" }),
+        )
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await createMemberAccountHandler(d)(
+          request({ displayName: "Sam" }, { origin: "https://evil.test" }),
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await createMemberAccountHandler(
+          d,
+          "member",
+        )(
+          request(
+            { accountUserId: "account" },
+            { "sec-fetch-site": "cross-site" },
+          ),
+        )
+      ).status,
+    ).toBe(403);
+    expect(d.createMemberAsAdmin).not.toHaveBeenCalled();
+    expect(d.linkMemberAsAdmin).not.toHaveBeenCalled();
+  });
+  it.each([null, {}, { displayName: 12 }])(
+    "rejects malformed creation bodies",
+    async (body) => {
+      const d = deps();
+      expect((await createMemberAccountHandler(d)(request(body))).status).toBe(
+        400,
+      );
+      expect(d.createMemberAsAdmin).not.toHaveBeenCalled();
+    },
+  );
+  it("rejects missing link selection and surfaces a safe conflict", async () => {
+    const d = deps();
+    expect(
+      (await createMemberAccountHandler(d, "member")(request({}))).status,
+    ).toBe(400);
+    d.linkMemberAsAdmin.mockRejectedValueOnce(
+      new PublicApiError("CONFLICT", "Duplicate session."),
+    );
+    const response = await createMemberAccountHandler(
+      d,
+      "member",
+    )(request({ accountUserId: "account" }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: { message: "Duplicate session." },
+    });
   });
 });

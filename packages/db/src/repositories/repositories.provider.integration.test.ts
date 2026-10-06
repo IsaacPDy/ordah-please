@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { drizzle } from "drizzle-orm/node-postgres";
+import { linkPreAddedMember } from "./member-link.js";
 import { and, eq } from "drizzle-orm";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -2726,5 +2727,151 @@ describe("manual session log persistence", () => {
     expect(
       await f.repositories.identityAccess.findUserById(f.user.id),
     ).toBeDefined();
+  });
+});
+
+describe("pre-added member linking", () => {
+  async function fixture() {
+    const authId = randomUUID(),
+      memberId = randomUUID(),
+      accountId = randomUUID(),
+      groupId = randomUUID(),
+      orderId = randomUUID();
+    await pool.query(
+      "INSERT INTO auth_users (id, name, email, email_verified) VALUES ($1, 'Signed In', $2, true)",
+      [authId, `${authId}@example.test`],
+    );
+    await pool.query(
+      "INSERT INTO users (id, display_name, auth_user_id) VALUES ($1, 'Pre-added', NULL), ($2, 'Signed In', $3)",
+      [memberId, accountId, authId],
+    );
+    await pool.query(
+      "INSERT INTO groups (id, name, created_by_user_id) VALUES ($1, 'Link Test', $2)",
+      [groupId, memberId],
+    );
+    await pool.query(
+      "INSERT INTO memberships (group_id, user_id, role) VALUES ($1, $2, 'owner'), ($1, $3, 'member')",
+      [groupId, memberId, accountId],
+    );
+    await pool.query(
+      "INSERT INTO orders (id, group_id, manager_user_id, state, choice_mode, delivery_address_snapshot, restaurant_deadline, food_deadline, completed_at) VALUES ($1, $2, $3, 'ordered', 'voting_disabled', '{}'::jsonb, now(), now() + interval '1 hour', now())",
+      [orderId, groupId, memberId],
+    );
+    await pool.query(
+      "INSERT INTO order_participants (order_id, user_id, display_name_snapshot, role) VALUES ($1, $2, 'Original Name', 'manager')",
+      [orderId, memberId],
+    );
+    await pool.query(
+      "INSERT INTO food_selections (order_id, user_id, source, resolved_by_user_id) VALUES ($1, $2, 'manager_resolution', $2)",
+      [orderId, memberId],
+    );
+    await pool.query(
+      "INSERT INTO order_lines (order_id, user_id, item_name_snapshot, quantity, unit_price_centavos, line_subtotal_centavos, sort_order) VALUES ($1, $2, 'Saved Meal', 1, 10000, 10000, 0)",
+      [orderId, memberId],
+    );
+    return { authId, memberId, accountId, groupId, orderId };
+  }
+  it("combines ownership and history while preserving login identity, snapshots, and food children", async () => {
+    const f = await fixture();
+    await withTransaction(database, (tx) =>
+      linkPreAddedMember(tx, f.memberId, f.accountId),
+    );
+    const identity = await createRepositories(
+      database,
+    ).identityAccess.findIdentityByAuthUserId(f.authId);
+    expect(identity?.user.id).toBe(f.accountId);
+    expect(identity?.memberships).toContainEqual({
+      groupId: f.groupId,
+      role: "owner",
+    });
+    expect(
+      (
+        await pool.query(
+          "SELECT user_id, display_name_snapshot FROM order_participants WHERE order_id = $1",
+          [f.orderId],
+        )
+      ).rows,
+    ).toEqual([
+      { user_id: f.accountId, display_name_snapshot: "Original Name" },
+    ]);
+    expect(
+      (
+        await pool.query(
+          "SELECT user_id, resolved_by_user_id FROM food_selections WHERE order_id = $1",
+          [f.orderId],
+        )
+      ).rows,
+    ).toEqual([{ user_id: f.accountId, resolved_by_user_id: f.accountId }]);
+    expect(
+      (
+        await pool.query(
+          "SELECT user_id, item_name_snapshot FROM order_lines WHERE order_id = $1",
+          [f.orderId],
+        )
+      ).rows,
+    ).toEqual([{ user_id: f.accountId, item_name_snapshot: "Saved Meal" }]);
+    expect(
+      (
+        await pool.query<{ manager_user_id: string }>(
+          "SELECT manager_user_id FROM orders WHERE id = $1",
+          [f.orderId],
+        )
+      ).rows[0].manager_user_id,
+    ).toBe(f.accountId);
+    expect(
+      (
+        await createRepositories(database).identityAccess.findUserById(
+          f.memberId,
+        )
+      )?.archivedAt,
+    ).not.toBeNull();
+    await expect(
+      withTransaction(database, (tx) =>
+        linkPreAddedMember(tx, f.memberId, f.accountId),
+      ),
+    ).rejects.toThrow("active member");
+  });
+  it("rolls back without losing data if both records participate in the same order", async () => {
+    const f = await fixture();
+    await pool.query(
+      "INSERT INTO order_participants (order_id, user_id, display_name_snapshot, role) VALUES ($1, $2, 'Signed In', 'member')",
+      [f.orderId, f.accountId],
+    );
+    await expect(
+      withTransaction(database, (tx) =>
+        linkPreAddedMember(tx, f.memberId, f.accountId),
+      ),
+    ).rejects.toThrow("same session");
+    expect(
+      (
+        await createRepositories(database).identityAccess.findUserById(
+          f.memberId,
+        )
+      )?.archivedAt,
+    ).toBeNull();
+    expect(
+      (
+        await pool.query(
+          "SELECT user_id FROM order_participants WHERE order_id = $1",
+          [f.orderId],
+        )
+      ).rows,
+    ).toHaveLength(2);
+  });
+  it("rejects existing login identities, suspended accounts, and accounts without a login", async () => {
+    const f = await fixture();
+    await expect(
+      withTransaction(database, (tx) =>
+        linkPreAddedMember(tx, f.accountId, f.memberId),
+      ),
+    ).rejects.toThrow("without a login");
+    await pool.query("UPDATE users SET archived_at = now() WHERE id = $1", [
+      f.accountId,
+    ]);
+    await expect(
+      withTransaction(database, (tx) =>
+        linkPreAddedMember(tx, f.memberId, f.accountId),
+      ),
+    ).rejects.toThrow("active");
   });
 });

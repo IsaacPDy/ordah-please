@@ -159,3 +159,7 @@ Target required infrastructure cost is USD 0 per month using self-hosted Better 
 8. Only selected participants influence that order's vote threshold.
 9. No service automatically places, pays for, or confirms a Grab order.
 10. Computer Use never bypasses access controls, CAPTCHAs, or other safeguards.
+
+## V1-18 Explicit member linking
+
+Admin-created members use existing nullable `users.auth_user_id`. New authenticated accounts continue through normal provisioning. Admin-only creation and explicit linking run authorization, writes, and audit in one transaction. Linking locks both product identities and moves the unlinked member's memberships, participant/food/vote records, and operational references into the existing authenticated product user. Duplicate session participation and favorite ranks fail before mutation. Active memberships keep the stronger role; removed memberships do not elevate an active role. The old unlinked row is archived for audit provenance. Auth users and sessions are unchanged; the next identity read resolves the combined memberships without any cookie rewrite. No schema migration is needed.

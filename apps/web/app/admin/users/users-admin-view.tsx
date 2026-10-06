@@ -8,11 +8,17 @@ import type {
   AdminUserSummary,
 } from "../../../src/features/users/users-runtime";
 
-import { AddUserToGroupDialog, type AdminGroupOption } from "./add-user-to-group-dialog";
+import {
+  AddUserToGroupDialog,
+  type AdminGroupOption,
+} from "./add-user-to-group-dialog";
 import { ConfirmRemoveMembershipDialog } from "./confirm-remove-membership-dialog";
+import { MemberAccountDialog } from "./member-account-dialog";
 import { ConfirmSuspendDialog } from "./confirm-suspend-dialog";
 
-const ROLE_LABELS: Readonly<Record<AdminUserSummary["memberships"][number]["role"], string>> = {
+const ROLE_LABELS: Readonly<
+  Record<AdminUserSummary["memberships"][number]["role"], string>
+> = {
   "group-owner": "Group Owner",
   manager: "Manager",
   member: "Member",
@@ -48,11 +54,13 @@ export function UsersAdminView({ users, groups }: UsersAdminViewProps) {
     selectedId !== null && visibleUsers.some((user) => user.id === selectedId)
       ? selectedId
       : (visibleUsers[0]?.id ?? null);
-  const selected = users.find((user) => user.id === effectiveSelectedId) ?? null;
+  const selected =
+    users.find((user) => user.id === effectiveSelectedId) ?? null;
 
   return (
     <>
       <section className="admin-panel admin-list-panel">
+        <MemberAccountDialog users={users} />
         <label className="admin-search">
           <input
             aria-label="Search users"
@@ -88,7 +96,8 @@ export function UsersAdminView({ users, groups }: UsersAdminViewProps) {
                 <div>
                   <strong>{user.displayName}</strong>
                   <p>
-                    {user.email ?? "—"} · {user.memberships.length}{" "}
+                    {user.email ?? "Not linked to a login"} ·{" "}
+                    {user.memberships.length}{" "}
                     {user.memberships.length === 1 ? "group" : "groups"}
                   </p>
                 </div>
@@ -113,10 +122,17 @@ export function UsersAdminView({ users, groups }: UsersAdminViewProps) {
             />
             <div>
               <h2>{selected.displayName}</h2>
-              <p>{selected.email ?? "—"} · App active</p>
+              <p>{selected.email ?? "Not linked to a login"}</p>
             </div>
             {selected.isPlatformAdmin ? (
               <span className="status-pill">Platform Admin</span>
+            ) : null}
+            {selected.email === null ? (
+              <MemberAccountDialog
+                key={selected.id}
+                member={selected}
+                users={users}
+              />
             ) : null}
             <AddUserToGroupDialog
               defaultUserId={selected.id}
@@ -189,8 +205,6 @@ function Avatar({ displayName, imageUrl }: AvatarProps) {
     );
   }
   const initial =
-    displayName.length === 0
-      ? "?"
-      : displayName.charAt(0).toUpperCase();
+    displayName.length === 0 ? "?" : displayName.charAt(0).toUpperCase();
   return <span className="member-avatar">{initial}</span>;
 }

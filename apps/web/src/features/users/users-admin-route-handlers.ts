@@ -18,8 +18,7 @@ interface UsersAdminHandlerDependencies {
   readonly verifySession: (request: Request) => MaybePromise<VerifiedSession>;
 }
 
-export interface SuspendUserHandlerDependencies
-  extends UsersAdminHandlerDependencies {
+export interface SuspendUserHandlerDependencies extends UsersAdminHandlerDependencies {
   readonly suspendUserAsAdmin: (
     command: Parameters<
       typeof import("./users-admin-service").suspendUserAsAdmin
@@ -28,8 +27,7 @@ export interface SuspendUserHandlerDependencies
   readonly now: () => Date;
 }
 
-export interface AddUserToGroupHandlerDependencies
-  extends UsersAdminHandlerDependencies {
+export interface AddUserToGroupHandlerDependencies extends UsersAdminHandlerDependencies {
   readonly addUserToGroupAsAdmin: (
     command: Parameters<
       typeof import("./users-admin-service").addUserToGroupAsAdmin
@@ -37,8 +35,7 @@ export interface AddUserToGroupHandlerDependencies
   ) => Promise<{ readonly groupId: GroupId; readonly userId: UserId }>;
 }
 
-export interface RemoveUserFromGroupHandlerDependencies
-  extends UsersAdminHandlerDependencies {
+export interface RemoveUserFromGroupHandlerDependencies extends UsersAdminHandlerDependencies {
   readonly removeUserFromGroupAsAdmin: (
     command: Parameters<
       typeof import("./users-admin-service").removeUserFromGroupAsAdmin
@@ -74,7 +71,10 @@ async function parseRequestBody<Value>(
 /** Rejects browser cross-site mutations while allowing native requests without Origin. */
 function verifyTrustedMutationRequest(request: Request): void {
   if (request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site") {
-    throw new PublicApiError("FORBIDDEN", "You do not have access to this action.");
+    throw new PublicApiError(
+      "FORBIDDEN",
+      "You do not have access to this action.",
+    );
   }
   const origin = request.headers.get("origin");
   if (origin === null) {
@@ -87,7 +87,10 @@ function verifyTrustedMutationRequest(request: Request): void {
   } catch {
     // Invalid or opaque browser origins fail closed below.
   }
-  throw new PublicApiError("FORBIDDEN", "You do not have access to this action.");
+  throw new PublicApiError(
+    "FORBIDDEN",
+    "You do not have access to this action.",
+  );
 }
 
 /** Parses and brands the userId URL parameter. */
@@ -203,6 +206,79 @@ export function createRemoveUserFromGroupHandler(
           groupId: parseGroupIdParam(getGroupId(incomingRequest)),
         }),
         verifyRequest: verifyTrustedMutationRequest,
+      },
+      {
+        loadIdentity: dependencies.loadIdentity,
+        verifySession: () => dependencies.verifySession(request),
+      },
+    );
+}
+
+export interface MemberAccountHandlerDependencies extends UsersAdminHandlerDependencies {
+  readonly createMemberAsAdmin: (
+    actorUserId: string,
+    displayName: string,
+  ) => Promise<{ userId: string }>;
+  readonly linkMemberAsAdmin: (
+    actorUserId: string,
+    memberUserId: string,
+    accountUserId: string,
+  ) => Promise<{ userId: string }>;
+}
+
+/** Admin-only, same-origin creation and explicit account linking. */
+export function createMemberAccountHandler(
+  dependencies: MemberAccountHandlerDependencies,
+  memberUserId?: string,
+) {
+  return (request: Request) =>
+    executeRoute<
+      { displayName: string | undefined; accountUserId: string | undefined },
+      { userId: string }
+    >(
+      request,
+      {
+        authorize: ({ identity }) => identity.isPlatformAdmin,
+        verifyRequest: verifyTrustedMutationRequest,
+        validate: async (incomingRequest) => {
+          const body = await parseJsonRequest(incomingRequest);
+          if (typeof body !== "object" || body === null)
+            throw new PublicApiError("INVALID_INPUT", "Invalid request body.");
+          if (memberUserId === undefined) {
+            if (
+              !("displayName" in body) ||
+              typeof body.displayName !== "string"
+            )
+              throw new PublicApiError(
+                "INVALID_INPUT",
+                "Member name is required.",
+              );
+            return { displayName: body.displayName, accountUserId: undefined };
+          }
+          if (
+            !("accountUserId" in body) ||
+            typeof body.accountUserId !== "string"
+          )
+            throw new PublicApiError(
+              "INVALID_INPUT",
+              "Choose a signed-in account.",
+            );
+          return {
+            displayName: undefined,
+            accountUserId: parseUserIdParam(body.accountUserId),
+          };
+        },
+        execute: ({ identity, input }) =>
+          memberUserId === undefined
+            ? dependencies.createMemberAsAdmin(
+                identity.userId,
+                input.displayName!,
+              )
+            : dependencies.linkMemberAsAdmin(
+                identity.userId,
+                parseUserIdParam(memberUserId),
+                input.accountUserId!,
+              ),
       },
       {
         loadIdentity: dependencies.loadIdentity,
