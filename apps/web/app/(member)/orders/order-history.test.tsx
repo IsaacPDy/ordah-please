@@ -54,6 +54,76 @@ const compactOrder = {
 afterEach(cleanup);
 
 describe("progressive Orders History", () => {
+  it("combines restaurant, status, and date filters within group history", () => {
+    render(
+      <OrderHistoryList
+        groupId="group-1"
+        initialNextCursor={null}
+        initialHistory={[
+          compactOrder,
+          {
+            ...compactOrder,
+            orderId: "cancelled",
+            state: "cancelled",
+            restaurantName: "Pancake House",
+            completedAt: new Date("2026-08-10T00:00:00Z"),
+          },
+          {
+            ...compactOrder,
+            orderId: "other-group",
+            groupId: "group-2",
+            restaurantName: "Other group restaurant",
+          },
+        ]}
+      />,
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter history by status" }),
+      { target: { value: "cancelled" } },
+    );
+    expect(
+      screen.getByRole("button", { name: "Show order log for Pancake House" }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", {
+        name: "Show order log for KFC – Magsaysay",
+      }),
+    ).toBeNull();
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter history by restaurant" }),
+      { target: { value: "KFC – Magsaysay" } },
+    );
+    expect(
+      screen.getByText("No orders match these filters on the loaded pages."),
+    ).toBeTruthy();
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter history by status" }),
+      { target: { value: "" } },
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter history by month" }),
+      { target: { value: "August 2026" } },
+    );
+    expect(
+      screen.queryByRole("button", {
+        name: "Show order log for KFC – Magsaysay",
+      }),
+    ).toBeNull();
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter history by month" }),
+      { target: { value: "" } },
+    );
+    expect(
+      screen.getByRole("button", {
+        name: "Show order log for KFC – Magsaysay",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", {
+        name: "Show order log for Other group restaurant",
+      }),
+    ).toBeNull();
+  });
   beforeEach(() => {
     vi.restoreAllMocks();
     listOrderSummaryPage.mockReset();

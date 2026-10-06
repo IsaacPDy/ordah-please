@@ -24,6 +24,7 @@ describe("loadGroupDetails", () => {
         Promise.resolve([
           {
             displayName: "Owner Riley",
+            imageUrl: "https://example.test/riley.jpg",
             role: "owner" as const,
             userId: "owner-1",
           },
@@ -56,24 +57,28 @@ describe("loadGroupDetails", () => {
       groupId: "group-1",
       name: "Phoenix",
       viewerRole: "member",
-      owner: { userId: "owner-1", displayName: "Owner Riley" },
+      owner: {
+        userId: "owner-1",
+        displayName: "Owner Riley",
+        imageUrl: "https://example.test/riley.jpg",
+      },
       members: [
         {
           userId: "owner-1",
           displayName: "Owner Riley",
+          imageUrl: "https://example.test/riley.jpg",
           role: "group-owner",
         },
         {
           userId: "member-1",
           displayName: "Member Sam",
+          imageUrl: null,
           role: "member",
         },
       ],
     });
     expect(result.inviteLink).toBeUndefined();
-    expect(
-      groupAccess.findActiveInviteLinkForGroup,
-    ).not.toHaveBeenCalled();
+    expect(groupAccess.findActiveInviteLinkForGroup).not.toHaveBeenCalled();
   });
 
   it("includes the active invite link when the viewer is the group owner", async () => {
@@ -126,14 +131,15 @@ describe("loadGroupDetails", () => {
     expect(result.owner).toEqual({
       userId: "owner-1",
       displayName: "Owner Riley",
+      imageUrl: null,
     });
     expect(result.inviteLink).toEqual({
       publicValue: "stored-hash",
       tokenPrefix: "abcdef12",
     });
-    expect(
-      groupAccess.findActiveInviteLinkForGroup,
-    ).toHaveBeenCalledWith("group-1");
+    expect(groupAccess.findActiveInviteLinkForGroup).toHaveBeenCalledWith(
+      "group-1",
+    );
   });
 
   it("fails with NOT_FOUND when the group does not exist", async () => {

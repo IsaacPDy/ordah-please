@@ -3,7 +3,7 @@
 import { ChevronDown, Store } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { formatCentavos, parseCentavos } from "@ordah-please/domain";
 
@@ -23,6 +23,9 @@ interface ApiSuccess<Value> {
 }
 
 interface OrderHistoryListProps {
+  readonly heading?: string;
+  readonly headingAction?: ReactNode;
+  readonly extendedFilters?: boolean;
   readonly initialHistory: readonly CompactOrderSummary[];
   readonly initialNextCursor: string | null;
   readonly groupId?: string;
@@ -60,7 +63,12 @@ export function OrderHistoryList({
   initialHistory,
   initialNextCursor,
   groupId,
+  heading,
+  headingAction,
+  extendedFilters = Boolean(groupId),
 }: OrderHistoryListProps) {
+  const [selectedRestaurant, setSelectedRestaurant] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedGroup, setSelectedGroup] = useState(groupId ?? "");
   const [history, setHistory] = useState(initialHistory);
@@ -172,41 +180,93 @@ export function OrderHistoryList({
   const visibleHistory = history.filter(
     (order) =>
       (!selectedGroup || order.groupId === selectedGroup) &&
-      (!selectedMonth || monthOf(order.completedAt) === selectedMonth),
+      (!selectedMonth || monthOf(order.completedAt) === selectedMonth) &&
+      (!selectedRestaurant ||
+        (order.restaurantName ?? "Restaurant pending") ===
+          selectedRestaurant) &&
+      (!selectedStatus || order.state === selectedStatus),
   );
   return (
     <div className="history-list history-reference">
-      <div className="history-filters">
-        {!groupId && groups.length > 0 ? (
+      <div className="history-toolbar">
+        {heading ? <h2>{heading}</h2> : null}
+        <div className="history-filters">
+          {extendedFilters ? (
+            <>
+              <label className="history-filter">
+                <span className="sr-only">Filter history by restaurant</span>
+                <select
+                  value={selectedRestaurant}
+                  onChange={(event) =>
+                    setSelectedRestaurant(event.target.value)
+                  }
+                >
+                  <option value="">All restaurants</option>
+                  {Array.from(
+                    new Set(
+                      history.map(
+                        (order) => order.restaurantName ?? "Restaurant pending",
+                      ),
+                    ),
+                  )
+                    .sort()
+                    .map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="history-filter">
+                <span className="sr-only">Filter history by status</span>
+                <select
+                  value={selectedStatus}
+                  onChange={(event) => setSelectedStatus(event.target.value)}
+                >
+                  <option value="">All statuses</option>
+                  {Array.from(new Set(history.map((order) => order.state)))
+                    .sort()
+                    .map((state) => (
+                      <option key={state} value={state}>
+                        {formatStateLabel(state)}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </>
+          ) : null}
+          {!groupId && groups.length > 0 ? (
+            <label className="history-filter">
+              <span className="sr-only">Filter history by group</span>
+              <select
+                value={selectedGroup}
+                onChange={(event) => setSelectedGroup(event.target.value)}
+              >
+                <option value="">All groups</option>
+                {groups.map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label className="history-filter">
-            <span className="sr-only">Filter history by group</span>
+            <span className="sr-only">Filter history by month</span>
             <select
-              value={selectedGroup}
-              onChange={(event) => setSelectedGroup(event.target.value)}
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
             >
-              <option value="">All groups</option>
-              {groups.map(([id, name]) => (
-                <option key={id} value={id}>
-                  {name}
+              <option value="">All time</option>
+              {months.map((month) => (
+                <option key={month} value={month}>
+                  {month}
                 </option>
               ))}
             </select>
           </label>
-        ) : null}
-        <label className="history-filter">
-          <span className="sr-only">Filter history by month</span>
-          <select
-            value={selectedMonth}
-            onChange={(event) => setSelectedMonth(event.target.value)}
-          >
-            <option value="">All time</option>
-            {months.map((month) => (
-              <option key={month} value={month}>
-                {month}
-              </option>
-            ))}
-          </select>
-        </label>
+        </div>
+        {headingAction}
       </div>
       {visibleHistory.map((order, index) => {
         const restaurant = order.restaurantName ?? "Restaurant pending";
@@ -355,7 +415,7 @@ export function OrderHistoryList({
       })}
       {visibleHistory.length === 0 ? (
         <p className="restaurant-empty">
-          No orders in this group on the loaded pages.
+          No orders match these filters on the loaded pages.
         </p>
       ) : null}
       {nextCursor !== null ? (

@@ -22,6 +22,25 @@ const details: GroupDetails = {
 };
 afterEach(cleanup);
 describe("group reference sections", () => {
+  it("uses profile photos and falls back to initials when a photo fails", () => {
+    render(
+      <GroupDetailsView
+        details={{
+          ...details,
+          owner: { ...details.owner, imageUrl: "https://example.test/mia.jpg" },
+        }}
+        canManage={false}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Members" }));
+    const photo = screen.getByRole("img", { name: "Mia's profile photo" });
+    expect(photo.getAttribute("src")).toBe("https://example.test/mia.jpg");
+    fireEvent.error(photo);
+    expect(
+      screen.queryByRole("img", { name: "Mia's profile photo" }),
+    ).toBeNull();
+    expect(screen.getByText("MI")).toBeTruthy();
+  });
   it("keeps owner management actions hidden from members in every section", () => {
     render(
       <GroupDetailsView

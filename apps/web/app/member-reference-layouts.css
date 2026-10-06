@@ -115,6 +115,77 @@
   justify-content: flex-end;
   margin-bottom: 12px;
 }
+.history-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.history-toolbar > h2 {
+  margin: 0;
+  margin-right: auto;
+  font-size: 18px;
+}
+.history-toolbar .history-filters {
+  margin: 0;
+  flex-wrap: wrap;
+}
+.group-detail-page .history-month {
+  display: block;
+}
+.group-roster__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.group-roster__identity {
+  min-width: 0;
+}
+.group-roster__name {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 599px) {
+  .group-history-panel .history-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .group-history-panel .history-reference .history-filter {
+    max-width: none;
+  }
+  .group-history-panel .history-filter:first-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 900px) {
+  .group-detail-page > .group-history-panel,
+  .group-detail-page > .group-members-panel {
+    grid-column: 1 / -1;
+  }
+  .member-shell--compact .group-roster {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  }
+  .member-shell--compact .group-roster__item {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+  }
+  .group-members-panel .group-details-manage {
+    margin-top: 24px;
+    max-width: 560px;
+  }
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  .member-shell--compact .group-detail-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .group-detail-page > .content-section:last-of-type {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
 .history-reference .history-filter {
   flex: 1;
   max-width: 180px;

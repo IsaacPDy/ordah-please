@@ -109,3 +109,7 @@ The user explicitly replaced the centered desktop shell with a full-width browse
 ## Persistent desktop member sidebar — October 6, 2026
 
 The user replaced desktop top navigation with an always-visible 224px left sidebar for Home, Sessions, Favorites, and Groups from 900px. It sits below the 84px header and scrolls independently if needed; main content reserves its width. The full-width workspace remains. Phone bottom tabs and nested-order navigation remain unchanged. This supersedes earlier desktop top-navigation guidance.
+
+## Group layout, filters, and account photos — October 6, 2026
+
+Group Overview places Recent orders, its date selector, and See all in one toolbar. History and Members wrappers span the desktop workspace; smaller desktop windows stack Overview columns. Group History has restaurant, status, and month filters over loaded authorized rows, with month headings and truthful no-match feedback. Phone History arranges the restaurant selector above status/date boxes. The roster reads account photo URLs through the existing membership query and uses initials only for missing or failed images. Cards align photo, name, and role; owner-only invite actions remain unchanged. Shared boxed native dropdown styling covers member and admin screens and admin fields in portal dialogs, preserving keyboard/mobile selection.

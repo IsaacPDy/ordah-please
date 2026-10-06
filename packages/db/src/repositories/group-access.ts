@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 
 import {
   adminAccessRequests,
+  authUsers,
   groupAddresses,
   groupInviteLinks,
   groups,
@@ -57,9 +58,10 @@ export interface GroupAccessRepository {
   createInvitation(
     input: typeof invitations.$inferInsert,
   ): Promise<typeof invitations.$inferSelect>;
-  createGroup(
-    input: { name: string; createdByUserId: string },
-  ): Promise<typeof groups.$inferSelect>;
+  createGroup(input: {
+    name: string;
+    createdByUserId: string;
+  }): Promise<typeof groups.$inferSelect>;
   createInviteLink(
     input: typeof groupInviteLinks.$inferInsert,
   ): Promise<typeof groupInviteLinks.$inferSelect>;
@@ -91,6 +93,7 @@ export interface GroupAccessRepository {
   listActiveMembers(groupId: string): Promise<
     readonly {
       readonly displayName: string;
+      readonly imageUrl: string | null;
       readonly role: typeof memberships.$inferSelect.role;
       readonly userId: string;
     }[]
@@ -332,11 +335,13 @@ export function createGroupAccessRepository(
       database
         .select({
           displayName: users.displayName,
+          imageUrl: authUsers.image,
           role: memberships.role,
           userId: users.id,
         })
         .from(memberships)
         .innerJoin(users, eq(users.id, memberships.userId))
+        .leftJoin(authUsers, eq(authUsers.id, users.authUserId))
         .where(
           and(eq(memberships.groupId, groupId), isNull(memberships.removedAt)),
         )
@@ -417,9 +422,7 @@ export function createGroupAccessRepository(
         await database
           .update(groups)
           .set({ name: input.name, updatedAt: new Date() })
-          .where(
-            and(eq(groups.id, input.groupId), isNull(groups.archivedAt)),
-          )
+          .where(and(eq(groups.id, input.groupId), isNull(groups.archivedAt)))
           .returning({ id: groups.id }),
       ),
     setMembershipRole: async (groupId, userId, expectedRole, role) => {

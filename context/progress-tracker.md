@@ -20,6 +20,8 @@
 
 ## Completed
 
+- [x] V1-15 Group layouts, filters, and profile photos — implemented 2026-10-06. Inline Recent orders/date toolbar, full-width group History and Members, restaurant/status/date filtering, account profile photos with fallback, and boxed member/admin dropdown controls. Twenty affected tests, web typecheck, scoped lint, build, and signed-in responsive browser checks passed. Evidence in [`history/v1-15.md`](history/v1-15.md). Production unverified.
+
 - [x] V1-14 Persistent desktop member sidebar — implemented 2026-10-06. Desktop member navigation uses a fixed left sidebar from 900px while retaining the full-width workspace and phone bottom tabs. Signed-in responsive browser checks and CSS formatting passed; build evidence in [`history/v1-14.md`](history/v1-14.md). Production unverified.
 
 - [x] V1-13 Full-width browser shell — implemented 2026-10-06. Desktop member and admin shells fill the browser, without outer box borders; floating desktop actions align to the window edge. Phone composition retained. Signed-in member/admin layout checks, formatting, build, and whitespace checks passed. Production unverified. Evidence in [`history/v1-13.md`](history/v1-13.md).

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Pencil, UserPlus, Plus, Users } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 import { SessionCard } from "./session-card";
 import { OrderHistoryList } from "../(member)/orders/order-history-list";
@@ -218,19 +219,20 @@ export function GroupDetailsView({
               Start a new order
             </Link>
           ) : null}
-          <section className="content-section">
-            <div className="section-heading-row">
-              <h2>Recent orders</h2>
-              <button
-                className="text-action"
-                type="button"
-                onClick={() => setTab("history")}
-              >
-                See all
-              </button>
-            </div>
+          <section className="content-section group-recent-orders">
             {summaries.history.length ? (
               <OrderHistoryList
+                heading="Recent orders"
+                headingAction={
+                  <button
+                    className="text-action"
+                    type="button"
+                    onClick={() => setTab("history")}
+                  >
+                    See all
+                  </button>
+                }
+                extendedFilters={false}
                 groupId={details.groupId}
                 initialHistory={summaries.history.slice(0, 3)}
                 initialNextCursor={null}
@@ -244,9 +246,13 @@ export function GroupDetailsView({
         </>
       ) : null}
       {tab === "history" ? (
-        <section aria-label="Group order history">
+        <section
+          className="group-history-panel"
+          aria-label="Group order history"
+        >
           {summaries.history.length || summaries.nextCursor ? (
             <OrderHistoryList
+              heading="Order history"
               initialHistory={summaries.history}
               initialNextCursor={summaries.nextCursor}
               groupId={details.groupId}
@@ -258,12 +264,13 @@ export function GroupDetailsView({
           )}
         </section>
       ) : null}
-      <div hidden={tab !== "members"}>
+      <div className="group-members-panel" hidden={tab !== "members"}>
         <ul className="group-roster">
           <li className="group-roster__item group-roster__item--owner">
-            <span className="group-roster__avatar" aria-hidden="true">
-              {initialsOf(details.owner.displayName)}
-            </span>
+            <RosterAvatar
+              name={details.owner.displayName}
+              imageUrl={details.owner.imageUrl ?? null}
+            />
             <span className="group-roster__identity">
               <span className="group-roster__name">
                 {details.owner.displayName}
@@ -274,9 +281,10 @@ export function GroupDetailsView({
           </li>
           {nonOwnerMembers.map((member) => (
             <li key={member.userId} className="group-roster__item">
-              <span className="group-roster__avatar" aria-hidden="true">
-                {initialsOf(member.displayName)}
-              </span>
+              <RosterAvatar
+                name={member.displayName}
+                imageUrl={member.imageUrl ?? null}
+              />
               <span className="group-roster__identity">
                 <span className="group-roster__name">{member.displayName}</span>
                 <small>Joined this group</small>
@@ -330,6 +338,33 @@ export function GroupDetailsView({
         ) : null}
       </div>
     </section>
+  );
+}
+
+/** Shows the account photo, with initials only when no usable photo is available. */
+function RosterAvatar({
+  name,
+  imageUrl,
+}: {
+  name: string;
+  imageUrl?: string | null;
+}) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className="group-roster__avatar">
+      {imageUrl && !failed ? (
+        <Image
+          src={imageUrl}
+          alt={`${name}'s profile photo`}
+          width={44}
+          height={44}
+          unoptimized
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span aria-hidden="true">{initialsOf(name)}</span>
+      )}
+    </span>
   );
 }
 

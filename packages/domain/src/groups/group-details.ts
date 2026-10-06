@@ -2,11 +2,7 @@ import type { GroupId, UserId } from "../types/ids.js";
 
 export const GROUP_NAME_MAX_LENGTH = 60;
 
-export const GROUP_DETAIL_ROLES = [
-  "group-owner",
-  "manager",
-  "member",
-] as const;
+export const GROUP_DETAIL_ROLES = ["group-owner", "manager", "member"] as const;
 
 export type GroupDetailRole = (typeof GROUP_DETAIL_ROLES)[number];
 
@@ -25,12 +21,14 @@ export function validateGroupName(input: string): string {
 }
 
 export interface GroupMemberSummary {
+  readonly imageUrl?: string | null;
   readonly userId: UserId;
   readonly displayName: string;
   readonly role: GroupDetailRole;
 }
 
 export interface GroupOwnerSummary {
+  readonly imageUrl?: string | null;
   readonly userId: UserId;
   readonly displayName: string;
 }

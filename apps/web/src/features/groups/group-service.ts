@@ -29,6 +29,7 @@ interface GroupSummaryRow {
 }
 
 interface ActiveMemberRow {
+  readonly imageUrl?: string | null;
   readonly displayName: string;
   readonly role: "manager" | "member" | "owner";
   readonly userId: string;
@@ -72,17 +73,13 @@ export async function loadGroupDetails(
       command.groupId,
     );
     if (summary === undefined) {
-      throw new PublicApiError(
-        "NOT_FOUND",
-        "This group could not be found.",
-      );
+      throw new PublicApiError("NOT_FOUND", "This group could not be found.");
     }
     const members = await repositories.groupAccess.listActiveMembers(
       command.groupId,
     );
     const ownerMember = members.find((member) => member.role === "owner");
-    const ownerUserId =
-      summary.ownerUserId ?? ownerMember?.userId ?? undefined;
+    const ownerUserId = summary.ownerUserId ?? ownerMember?.userId ?? undefined;
     if (ownerUserId === undefined) {
       throw new PublicApiError(
         "UNAVAILABLE",
@@ -107,10 +104,12 @@ export async function loadGroupDetails(
       owner: {
         userId: parseId<UserId>(ownerUserId),
         displayName: ownerDisplayName,
+        imageUrl: ownerMember?.imageUrl ?? null,
       },
       members: members.map((member) => ({
         userId: parseId<UserId>(member.userId),
         displayName: member.displayName,
+        imageUrl: member.imageUrl ?? null,
         role: mapRole(member.role),
       })),
       ...(inviteLink === undefined ? {} : { inviteLink }),
@@ -225,9 +224,7 @@ interface RotateInviteLinkRepositories {
 
 interface RotateInviteLinkTransactionRunner {
   run<Result>(
-    operation: (
-      repositories: RotateInviteLinkRepositories,
-    ) => Promise<Result>,
+    operation: (repositories: RotateInviteLinkRepositories) => Promise<Result>,
   ): Promise<Result>;
 }
 
@@ -249,9 +246,10 @@ export async function rotateInviteLink(
   linkIssuer: () => MintedInviteLink = mintInviteLink,
 ): Promise<RotateInviteLinkResult> {
   return transactionRunner.run(async (repositories) => {
-    const priorLink = await repositories.groupAccess.findActiveInviteLinkForGroup(
-      command.groupId,
-    );
+    const priorLink =
+      await repositories.groupAccess.findActiveInviteLinkForGroup(
+        command.groupId,
+      );
     if (priorLink !== undefined) {
       await repositories.groupAccess.markInviteLinkRotated(
         priorLink.id,
@@ -401,7 +399,9 @@ interface AcceptInviteLinkRepositories {
     >;
   };
   readonly identityAccess: {
-    listActiveMemberships(userId: string): Promise<readonly { readonly groupId: string }[]>;
+    listActiveMemberships(
+      userId: string,
+    ): Promise<readonly { readonly groupId: string }[]>;
     addMembership(input: {
       readonly groupId: string;
       readonly role: "owner" | "manager" | "member";
@@ -442,14 +442,17 @@ export async function acceptInviteLink(
   const tokenHash = hashValue(command.publicValue);
 
   return transactionRunner.run(async (repositories) => {
-    const link = await repositories.groupAccess.findActiveInviteLinkByHash(tokenHash);
+    const link =
+      await repositories.groupAccess.findActiveInviteLinkByHash(tokenHash);
     if (link === undefined) {
       throw new PublicApiError("CONFLICT", UNAVAILABLE_LINK_MESSAGE);
     }
 
-    const alreadyInGroup = (await repositories.identityAccess.listActiveMemberships(
-      command.actorUserId,
-    )).some((membership) => membership.groupId === link.groupId);
+    const alreadyInGroup = (
+      await repositories.identityAccess.listActiveMemberships(
+        command.actorUserId,
+      )
+    ).some((membership) => membership.groupId === link.groupId);
     if (alreadyInGroup) {
       throw new PublicApiError(
         "CONFLICT",
