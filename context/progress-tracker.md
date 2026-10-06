@@ -12,10 +12,13 @@
 ## In Design
 
 
+
 - [ ] History order log — Implementation and automated verification complete; signed-in Owner, Manager, and Member browser acceptance pending. Evidence in [`history/history-order-log.md`](history/history-order-log.md). See the [design spec](../docs/superpowers/specs/2026-09-11-history-order-log-design.md) and [implementation plan](../docs/superpowers/plans/2026-09-11-history-order-log.md).
 
 
 ## Completed
+
+- [x] V1-11 Admin reference UI redesign — implemented 2026-10-06. Matching cards, fields, actions, sidebar, tables, catalog editor, and dialogs across admin screens. Affected tests (80), web typecheck, scoped lint, build, and an isolated responsive actual-component preview passed. Signed-in admin and production acceptance remain unverified. Evidence in [`history/v1-11.md`](history/v1-11.md).
 
 - [x] V1-10 Web/PWA reference UI redesign — implemented 2026-10-05. Session-First Home, shared visual style, Sessions/History, Groups, Favorites, order details, and three-screen setup. Unit tests, web typecheck, scoped lint, build, and connected member browser checks passed; localhost remains running. Desktop member sizing is implemented from 900px, with card grids, top navigation, and split setup/detail panels; desktop sample-preview checks passed. Signed-in desktop and production acceptance remain unverified. Evidence and acceptance limits in [`history/v1-10.md`](history/v1-10.md).
 

@@ -13,7 +13,9 @@ export function AdminNavigation() {
     <nav aria-label="Admin navigation" className="admin-navigation">
       {adminNavigation.map((item) => {
         const Icon = item.icon;
-        const isCurrent = pathname === item.href;
+        const isCurrent =
+          pathname === item.href ||
+          (item.href !== "/admin" && pathname.startsWith(`${item.href}/`));
 
         return (
           <Link

@@ -93,3 +93,7 @@ The original shared/Android token system remains:
 - Manager actions remain inside the active order rather than a separate global dashboard.
 - Desktop admin uses persistent navigation and table/detail split views.
 - Mobile admin exposes Groups, Catalog, Access Requests, and Audit Log.
+
+## Admin reference styling — October 6, 2026
+
+Admin now shares the approved web visual system through `apps/web/app/admin-reference-ui.css`: pale canvas, white rounded cards, green actions, compact headings, and rounded fields. Its sidebar remains separate from the member top navigation. The workspace centers up to 1440px, with a sticky 224px sidebar and sticky header on desktop. Existing limited mobile admin navigation remains at 720px and below. Metrics use four columns on desktop, two up to 1100px, and one on mobile; user details stack up to 1100px. Tables scroll within their cards, the group table has six columns, catalog editing uses split restaurant/branch panels, and portal dialogs scroll within the viewport. Catalog stays selected on nested edit routes. Existing data, permissions, actions, and import workflow remain unchanged.

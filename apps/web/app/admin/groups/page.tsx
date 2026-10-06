@@ -19,7 +19,7 @@ export default async function AdminGroupsPage() {
       title="Groups"
     >
       <section className="admin-panel">
-        <div className="admin-table">
+        <div className="admin-table admin-table--groups">
           <div className="admin-table__row admin-table__header">
             <span>Group</span>
             <span>Owner</span>
