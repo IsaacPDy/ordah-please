@@ -4,7 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 /** Manager control that finishes the order early after confirmation. */
-export function FinishOrderButton({ orderId }: { readonly orderId: string }) {
+export function FinishOrderButton({
+  orderId,
+  applyFavorites = true,
+}: {
+  readonly orderId: string;
+  readonly applyFavorites?: boolean;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -12,7 +18,9 @@ export function FinishOrderButton({ orderId }: { readonly orderId: string }) {
   async function finish(): Promise<void> {
     if (
       !window.confirm(
-        "Finish this order now? Anyone who hasn't picked gets their #1 favorite ordered.",
+        applyFavorites
+          ? "Finish this order now? Anyone who hasn't picked gets their #1 favorite ordered."
+          : "Finish this session now? A restaurant is optional and the group owner can edit it afterward.",
       )
     ) {
       return;

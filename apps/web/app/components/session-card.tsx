@@ -9,7 +9,7 @@ export function SessionCard({ order }: { readonly order: OrderSummary }) {
       ? "Restaurant voting"
       : order.state === "food_confirmation"
         ? "Food picking"
-        : "Ready for handoff";
+        : "Ready to finish";
   const responseCount = Math.min(
     order.participantsVoted,
     order.participantsTotal,

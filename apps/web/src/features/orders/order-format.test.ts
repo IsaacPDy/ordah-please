@@ -19,7 +19,7 @@ describe("order formatting", () => {
   it("maps every state to its member-facing label", () => {
     expect(formatStateLabel("restaurant_voting")).toBe("Voting");
     expect(formatStateLabel("food_confirmation")).toBe("Food picks");
-    expect(formatStateLabel("ready_for_handoff")).toBe("Handoff");
+    expect(formatStateLabel("ready_for_handoff")).toBe("Ready to finish");
     expect(formatStateLabel("ordered")).toBe("Ordered");
     expect(formatStateLabel("cancelled")).toBe("Cancelled");
   });

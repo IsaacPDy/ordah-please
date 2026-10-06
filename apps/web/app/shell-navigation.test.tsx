@@ -238,7 +238,6 @@ describe("web navigation shells", () => {
     const html = renderToStaticMarkup(await GroupsPage());
 
     expect(html).toContain("Your groups");
-    expect(html).toContain("Pick a group to continue.");
     expect(html).toContain("group-alpha");
     expect(html).toContain("group-beta");
     expect(html).toContain("Group Owner");

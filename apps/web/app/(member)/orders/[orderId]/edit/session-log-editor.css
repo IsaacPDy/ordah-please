@@ -1,0 +1,48 @@
+.session-log-editor {
+  display: grid;
+  gap: 24px;
+  padding-block: 24px;
+}
+.session-log-editor fieldset {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+.session-log-editor legend {
+  font-weight: 700;
+  padding-inline: 8px;
+}
+.session-log-editor label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.session-log-editor .participant-card {
+  display: grid;
+  gap: 16px;
+}
+.session-log-line {
+  display: grid;
+  gap: 16px;
+  padding-block: 16px;
+  border-top: 1px solid var(--color-border);
+}
+.session-log-editor .wizard-footer {
+  position: static;
+  flex-wrap: wrap;
+  padding: 16px 0;
+}
+@media (min-width: 900px) {
+  .session-log-editor > fieldset:first-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .session-log-line {
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+  .session-log-line label:last-of-type {
+    grid-column: 1 / -1;
+  }
+}

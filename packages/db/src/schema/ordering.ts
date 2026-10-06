@@ -129,12 +129,10 @@ export const orders = pgTable(
       .references(() => users.id),
     state: orderStateEnum("state").default("draft").notNull(),
     choiceMode: restaurantChoiceModeEnum("choice_mode").notNull(),
-    initialRestaurantId: uuid("initial_restaurant_id")
-      .notNull()
-      .references(() => restaurants.id),
-    initialBranchId: uuid("initial_branch_id")
-      .notNull()
-      .references(() => branches.id),
+    initialRestaurantId: uuid("initial_restaurant_id").references(
+      () => restaurants.id,
+    ),
+    initialBranchId: uuid("initial_branch_id").references(() => branches.id),
     selectedRestaurantId: uuid("selected_restaurant_id").references(
       () => restaurants.id,
     ),

@@ -226,6 +226,46 @@ export function NewOrderWizard({
     }
   }
 
+  async function saveLog(): Promise<void> {
+    setPending(true);
+    setMessage(null);
+    try {
+      const chosen = members.filter(
+        (member) =>
+          member.userId === managerUserId || participants.has(member.userId),
+      );
+      const response = await fetch("/api/orders/log", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          groupId,
+          state: "draft",
+          restaurantId: null,
+          createdAt: new Date().toISOString(),
+          managerUserId,
+          deliveryAddress: null,
+          participants: chosen.map((member) => ({
+            userId: member.userId,
+            displayName: member.displayName,
+            foodResponse: "pending",
+            lines: [],
+          })),
+        }),
+      });
+      const body = (await response.json()) as { error?: { message?: string } };
+      if (!response.ok) {
+        setMessage(body?.error?.message ?? "Could not save the session.");
+        return;
+      }
+      router.push("/orders?tab=past");
+      router.refresh();
+    } catch {
+      setMessage("Couldn't reach the server. Try again.");
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <form
       aria-label={`New order for ${groupName}`}
@@ -707,7 +747,20 @@ export function NewOrderWizard({
           ) : null}
         </div>
       ) : null}
+      <p className="setup-form__hint">
+        Save the participants to History now. Restaurant and food details can be
+        added later by the group owner.
+      </p>
+      {step !== 3 && message !== null ? <p role="status">{message}</p> : null}
       <footer className="wizard-footer">
+        <button
+          className={step === 1 ? "primary-action" : "secondary-action"}
+          type="button"
+          disabled={pending}
+          onClick={() => void saveLog()}
+        >
+          {pending ? "Saving…" : "Save session to History"}
+        </button>
         {step === 1 ? (
           <div>
             <strong>

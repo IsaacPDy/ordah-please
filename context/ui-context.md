@@ -67,3 +67,10 @@ The user replaced desktop top navigation with an always-visible 224px left sideb
 ## Group layout, filters, and account photos — October 6, 2026
 
 Group Overview places Recent orders, its date selector, and See all in one toolbar. History and Members wrappers span the desktop workspace; smaller desktop windows stack Overview columns. Group History has restaurant, status, and month filters over loaded authorized rows, with month headings and truthful no-match feedback. Phone History arranges the restaurant selector above status/date boxes. The roster reads account photo URLs through the existing membership query and uses initials only for missing or failed images. Cards align photo, name, and role; owner-only invite actions remain unchanged. Shared boxed native dropdown styling covers member and admin screens and admin fields in portal dialogs, preserving keyboard/mobile selection.
+
+## V1-16 Participant-first History and deletion controls
+
+- Provide Save session to History on the participants step without requiring a restaurant or address. Logged sessions use their saved date in History while preserving a null completion timestamp.
+- Current owners have an Edit or delete session link on session detail, including finished sessions. The editor uses the existing fields and cards; dates use Philippine time and food subtotals are recomputed server-side.
+- Keep session and group deletion warnings explicit: describe who loses the record, what is removed, and that deletion cannot be undone. Cancel/Keep remains available before submitting deletion.
+- Remove the redundant View participants link and use Ready to finish for legacy handoff records.

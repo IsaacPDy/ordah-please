@@ -1,6 +1,6 @@
 import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
 
-import { authUsers, memberships, users } from "../schema/index.js";
+import { authUsers, groups, memberships, users } from "../schema/index.js";
 import type { RepositoryDatabase } from "./database.js";
 import { requireWrittenRow } from "./rows.js";
 
@@ -121,11 +121,16 @@ export function createIdentityAccessRepository(
           user: users,
           groupId: memberships.groupId,
           role: memberships.role,
+          activeGroupId: groups.id,
         })
         .from(users)
         .leftJoin(
           memberships,
           and(eq(memberships.userId, users.id), isNull(memberships.removedAt)),
+        )
+        .leftJoin(
+          groups,
+          and(eq(groups.id, memberships.groupId), isNull(groups.archivedAt)),
         )
         .where(eq(users.authUserId, authUserId))
         .orderBy(asc(memberships.groupId));
@@ -134,7 +139,9 @@ export function createIdentityAccessRepository(
       return {
         user: first.user,
         memberships: rows.flatMap((row) =>
-          row.groupId === null || row.role === null
+          row.groupId === null ||
+          row.role === null ||
+          row.activeGroupId === null
             ? []
             : [{ groupId: row.groupId, role: row.role }],
         ),
@@ -150,10 +157,21 @@ export function createIdentityAccessRepository(
     },
     listActiveMemberships: (userId) =>
       database
-        .select()
+        .select({
+          groupId: memberships.groupId,
+          userId: memberships.userId,
+          role: memberships.role,
+          joinedAt: memberships.joinedAt,
+          removedAt: memberships.removedAt,
+        })
         .from(memberships)
+        .innerJoin(groups, eq(groups.id, memberships.groupId))
         .where(
-          and(eq(memberships.userId, userId), isNull(memberships.removedAt)),
+          and(
+            eq(memberships.userId, userId),
+            isNull(memberships.removedAt),
+            isNull(groups.archivedAt),
+          ),
         )
         .orderBy(asc(memberships.groupId)),
     listUsers: () =>
@@ -191,7 +209,8 @@ export function createIdentityAccessRepository(
           userId: memberships.userId,
         })
         .from(memberships)
-        .where(isNull(memberships.removedAt))
+        .innerJoin(groups, eq(groups.id, memberships.groupId))
+        .where(and(isNull(memberships.removedAt), isNull(groups.archivedAt)))
         .orderBy(asc(memberships.userId), asc(memberships.groupId));
 
       const membershipsByUser = new Map<

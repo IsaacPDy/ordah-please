@@ -223,7 +223,7 @@ export interface OrdersServiceRepositories {
         readonly state: OrderState;
         readonly managerUserId: string;
         readonly selectedRestaurantName: string | null;
-        readonly initialRestaurantId: string;
+        readonly initialRestaurantId: string | null;
         readonly restaurantDeadline: Date;
         readonly foodDeadline: Date;
         readonly createdAt: Date;
@@ -474,7 +474,7 @@ export async function completeOrder(
         "CONFLICT",
         command.result === "cancelled"
           ? "Only active orders can be cancelled."
-          : "Only orders ready for handoff can be marked ordered.",
+          : "This session cannot be marked finished.",
       );
     }
     if (!target.changed) {
@@ -711,7 +711,7 @@ async function collectRankOneDefaults(
 /**
  * Lazily closes food picks when the deadline has passed: materializes
  * rank-1 favorite defaults for still-pending participants and, once every
- * participant is confirmed / declined / resolved, moves to handoff.
+ * participant is confirmed / declined / resolved, finishes the session.
  * Idempotent — safe to run on every read.
  */
 export async function advanceFoodDeadline(
@@ -834,10 +834,10 @@ export async function advanceFoodDeadline(
     }
 
     if (resolution.unresolvedUserIds.length === 0) {
-      const target = transitionOrderState(row.state, "ready_for_handoff");
+      const target = transitionOrderState(row.state, "ordered");
       if (target.changed) {
         await repositories.orders.setState(row.orderId, {
-          completedAt: null,
+          completedAt: command.now,
           state: target.state,
           updatedAt: command.now,
         });
@@ -885,15 +885,27 @@ export async function finishOrder(
       );
     }
 
+    if (row.state === "ordered" || row.state === "cancelled") {
+      throw new PublicApiError("CONFLICT", "This session is already finished.");
+    }
     if (
       row.state !== "food_confirmation" ||
       row.selectedBranchId === null ||
       row.selectedMenuVersionId === null
     ) {
-      throw new PublicApiError(
-        "CONFLICT",
-        "Only orders in food picks can be finished early.",
-      );
+      await repositories.orders.setState(row.orderId, {
+        state: transitionOrderState(row.state, "ordered").state,
+        completedAt: command.now,
+        updatedAt: command.now,
+      });
+      await repositories.auditEvents.append({
+        actorUserId: command.identity.userId,
+        action: "order.ordered",
+        resourceType: "order",
+        resourceId: row.orderId,
+        details: { manualCompletion: true },
+      });
+      return { ok: true } as const;
     }
 
     const pendingUserIds = row.participants
@@ -941,6 +953,7 @@ export async function finishOrder(
 export type OrderViewerRole = Readonly<{
   readonly kind: "participant" | "group-leader";
   readonly canManage: boolean;
+  readonly canEdit?: boolean;
 }>;
 
 export interface ViewerFavoriteRow {
@@ -974,9 +987,9 @@ export interface OrderDetailView {
     readonly selectedRestaurantId: string | null;
     readonly selectedBranchId: string | null;
     readonly selectedBranchName: string | null;
-    readonly initialRestaurantId: string;
-    readonly initialRestaurantName: string;
-    readonly initialBranchName: string;
+    readonly initialRestaurantId: string | null;
+    readonly initialRestaurantName: string | null;
+    readonly initialBranchName: string | null;
     readonly deliveryAddress: DeliveryAddress;
     readonly restaurantDeadline: Date;
     readonly foodDeadline: Date;
@@ -1002,15 +1015,15 @@ interface OrderDetailDatabaseRow {
   readonly managerUserId: string;
   readonly state: OrderState;
   readonly choiceMode: "voting_disabled" | "shortlist" | "global_catalog";
-  readonly initialRestaurantName: string;
-  readonly initialBranchName: string;
+  readonly initialRestaurantName: string | null;
+  readonly initialBranchName: string | null;
   readonly selectedRestaurantName: string | null;
   readonly restaurantImageUrl?: string | null;
   readonly selectedRestaurantId: string | null;
   readonly selectedBranchId: string | null;
   readonly selectedBranchName: string | null;
   readonly selectedMenuVersionId: string | null;
-  readonly initialRestaurantId: string;
+  readonly initialRestaurantId: string | null;
   readonly deliveryAddressSnapshot: unknown;
   readonly restaurantDeadline: Date;
   readonly foodDeadline: Date;
@@ -1052,19 +1065,31 @@ export async function loadOrderDetail(
   const isOwner = membership?.role === "group-owner";
   const isTerminal = row.state === "ordered" || row.state === "cancelled";
   const isGroupLeader = isOwner || membership?.role === "manager";
-  const canView = isTerminal
-    ? membership !== undefined && (isParticipant || isGroupLeader)
-    : isParticipant || isOwner;
+  const canView =
+    isTerminal || row.state === "draft"
+      ? membership !== undefined && (isParticipant || isGroupLeader)
+      : isParticipant || isOwner;
   if (!canView) {
     throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
   }
 
   let deliveryAddress: DeliveryAddress;
   try {
-    deliveryAddress = parseDeliveryAddress(
-      row.deliveryAddressSnapshot,
-      "Saved order address",
-    );
+    deliveryAddress =
+      Object.keys(row.deliveryAddressSnapshot as object).length === 0
+        ? {
+            recipientName: "",
+            phoneNumber: "",
+            lineOne: "",
+            lineTwo: null,
+            city: "",
+            postalCode: null,
+            notes: null,
+          }
+        : parseDeliveryAddress(
+            row.deliveryAddressSnapshot,
+            "Saved order address",
+          );
   } catch {
     // Invariant: address snapshots are validated on write, so a parse failure
     // here means the persisted row is corrupt — a server-side data fault.
@@ -1117,13 +1142,13 @@ export async function loadOrderDetail(
     lineSubtotalCentavos: line.lineSubtotalCentavos,
   }));
   const participants =
-    isTerminal && !isGroupLeader
+    (isTerminal || row.state === "draft") && !isGroupLeader
       ? row.participants.filter(
           (participant) => participant.userId === command.identity.userId,
         )
       : row.participants;
   const lines =
-    isTerminal && !isGroupLeader
+    (isTerminal || row.state === "draft") && !isGroupLeader
       ? allLines.filter((line) => line.userId === command.identity.userId)
       : allLines;
 
@@ -1153,6 +1178,7 @@ export async function loadOrderDetail(
     },
     participants,
     viewer: {
+      canEdit: isOwner,
       kind: isParticipant ? "participant" : "group-leader",
       canManage: isTerminal
         ? isGroupLeader
@@ -1180,6 +1206,7 @@ export interface CompactOrderSummary extends Omit<
   "participants"
 > {
   readonly participants: readonly [];
+  readonly loggedAt?: Date;
 }
 
 export interface OrderSummaryPage {
@@ -1280,6 +1307,7 @@ function mapTerminalOrderSummary(
 ): CompactOrderSummary {
   return {
     completedAt: row.completedAt,
+    loggedAt: row.createdAt,
     deadline: null,
     groupId: row.groupId,
     groupName: row.groupName,
@@ -1364,12 +1392,6 @@ export async function loadOrderHistoryDetail(
   if (row === undefined) {
     throw new PublicApiError("NOT_FOUND", "Order not found.");
   }
-  if (row.state !== "ordered" && row.state !== "cancelled") {
-    throw new PublicApiError(
-      "CONFLICT",
-      "Order history is available after the order ends.",
-    );
-  }
   const membership = command.identity.memberships.find(
     (candidate) => candidate.groupId === row.groupId,
   );
@@ -1378,7 +1400,14 @@ export async function loadOrderHistoryDetail(
   );
   if (
     membership === undefined ||
-    (!isParticipant && !canViewGroupHistory(command.identity, row.groupId))
+    (!isParticipant &&
+      !(
+        membership?.role === "group-owner" ||
+        ((row.state === "draft" ||
+          row.state === "ordered" ||
+          row.state === "cancelled") &&
+          canViewGroupHistory(command.identity, row.groupId))
+      ))
   ) {
     throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
   }

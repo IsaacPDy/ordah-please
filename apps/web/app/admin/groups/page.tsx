@@ -4,7 +4,7 @@ import { groupRuntime } from "../../../src/features/groups/group-runtime";
 
 import { GroupsAdminRow } from "./groups-admin-row";
 
-/** Lets the platform admin inspect, create, rename, and archive every group without deleting history. */
+/** Lets the platform admin inspect, create, rename, and permanently delete groups and their history. */
 export default async function AdminGroupsPage() {
   const [groups, users] = await Promise.all([
     groupRuntime.listAllGroupsForAdmin(),
@@ -14,7 +14,7 @@ export default async function AdminGroupsPage() {
   return (
     <AdminPage
       actions={<CreateGroupDialog users={users} />}
-      description="Inspect membership and orders, or archive a group without destroying its history."
+      description="Inspect membership and orders, or permanently delete a group and all its history."
       eyebrow="Membership"
       title="Groups"
     >

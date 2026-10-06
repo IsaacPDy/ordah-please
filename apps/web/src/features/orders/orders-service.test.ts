@@ -966,7 +966,7 @@ describe("progressive order history", () => {
     expect(orders.listOrderLines).not.toHaveBeenCalled();
   });
 
-  it("rejects detail while the order is still active", async () => {
+  it("loads participant history while the order is still active", async () => {
     const orders = {
       ...createRepositories().orders,
       findOrderDetail: vi.fn(() => Promise.resolve(foodOrderDetail())),
@@ -977,8 +977,8 @@ describe("progressive order history", () => {
         { identity: identityFor(memberId, "member"), orderId: foodOrderId },
         { orders },
       ),
-    ).rejects.toMatchObject({ code: "CONFLICT" });
-    expect(orders.listOrderLines).not.toHaveBeenCalled();
+    ).resolves.toMatchObject({ orderId: foodOrderId });
+    expect(orders.listOrderLines).toHaveBeenCalled();
   });
 
   it("rejects terminal detail after the Member loses group access", async () => {
@@ -1153,7 +1153,11 @@ describe("loadOrderDetail visibility", () => {
     );
 
     expect(view.participants).toHaveLength(2);
-    expect(view.viewer).toEqual({ canManage: true, kind: "group-leader" });
+    expect(view.viewer).toEqual({
+      canManage: true,
+      canEdit: false,
+      kind: "group-leader",
+    });
   });
 
   it("keeps a non-participant Manager out of active orders", async () => {
@@ -1538,7 +1542,7 @@ describe("advanceFoodDeadline", () => {
     expect(repositories.orders.setState).not.toHaveBeenCalled();
   });
 
-  it("transitions to ready_for_handoff once everyone is accounted for", async () => {
+  it("finishes directly once everyone is accounted for", async () => {
     const repositories = advanceRepositories(
       foodOrderDetail({
         participants: [
@@ -1569,7 +1573,7 @@ describe("advanceFoodDeadline", () => {
     );
     expect(repositories.orders.setState).toHaveBeenCalledWith(
       foodOrderId,
-      expect.objectContaining({ state: "ready_for_handoff" }),
+      expect.objectContaining({ state: "ordered" }),
     );
   });
 
@@ -1757,7 +1761,7 @@ describe("finishOrder", () => {
     expect(repositories.orders.setState).not.toHaveBeenCalled();
   });
 
-  it("rejects orders outside the food-picks stage", async () => {
+  it("finishes a session before restaurant and food choices", async () => {
     const repositories = finishRepositories();
     vi.mocked(repositories.orders.findOrderDetail).mockResolvedValue(
       foodOrderDetail({ state: "ready_for_handoff" }),
@@ -1771,7 +1775,10 @@ describe("finishOrder", () => {
         },
         runnerFor(repositories),
       ),
-    ).rejects.toMatchObject({ code: "CONFLICT" });
-    expect(repositories.orders.setState).not.toHaveBeenCalled();
+    ).resolves.toMatchObject({ ok: true });
+    expect(repositories.orders.setState).toHaveBeenCalledWith(
+      foodOrderId,
+      expect.objectContaining({ state: "ordered", completedAt: now }),
+    );
   });
 });

@@ -11,7 +11,10 @@ interface ArchiveGroupDialogProps {
 }
 
 /** Confirmation modal for a Platform Admin to archive one group. */
-export function ArchiveGroupDialog({ group, onClose }: ArchiveGroupDialogProps) {
+export function ArchiveGroupDialog({
+  group,
+  onClose,
+}: ArchiveGroupDialogProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +31,12 @@ export function ArchiveGroupDialog({ group, onClose }: ArchiveGroupDialogProps) 
     setError(null);
     try {
       const response = await fetch(
-        `/api/admin/groups/${encodeURIComponent(group.groupId)}/archive`,
-        { method: "POST" },
+        `/api/admin/groups/${encodeURIComponent(group.groupId)}/delete`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ confirmed: true }),
+        },
       );
       if (!response.ok) {
         throw new Error(await readErrorMessage(response));
@@ -40,7 +47,7 @@ export function ArchiveGroupDialog({ group, onClose }: ArchiveGroupDialogProps) 
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Could not archive the group.",
+          : "Could not delete the group.",
       );
     } finally {
       setSubmitting(false);
@@ -57,8 +64,14 @@ export function ArchiveGroupDialog({ group, onClose }: ArchiveGroupDialogProps) 
       >
         <div className="admin-dialog-confirmation">
           <div>
-            <h2 id="archive-group-dialog-title">Archive {group.name}?</h2>
-            <p>It disappears for members but all history is kept.</p>
+            <h2 id="archive-group-dialog-title">
+              Permanently delete {group.name}?
+            </h2>
+            <p>
+              This permanently removes the group from every profile and deletes
+              all of its sessions, order history, participants, and saved food
+              details. This cannot be undone.
+            </p>
             {error !== null ? (
               <p role="alert" className="admin-error">
                 {error}
@@ -80,7 +93,7 @@ export function ArchiveGroupDialog({ group, onClose }: ArchiveGroupDialogProps) 
               onClick={() => void submit()}
               type="button"
             >
-              {submitting ? "Archiving…" : "Archive"}
+              {submitting ? "Deleting…" : "Delete group permanently"}
             </button>
           </div>
         </div>

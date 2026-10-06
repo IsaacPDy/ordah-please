@@ -31,8 +31,12 @@ interface OrderHistoryListProps {
   readonly groupId?: string;
 }
 
-type WireCompactOrderSummary = Omit<CompactOrderSummary, "completedAt"> & {
+type WireCompactOrderSummary = Omit<
+  CompactOrderSummary,
+  "completedAt" | "loggedAt"
+> & {
   readonly completedAt: string | null;
+  readonly loggedAt?: string;
 };
 
 type WireOrderSummaryPage = Omit<OrderSummaryPage, "history"> & {
@@ -51,8 +55,10 @@ async function readApiData<Value>(response: Response): Promise<Value> {
 function restoreHistoryDates(
   summary: WireCompactOrderSummary,
 ): CompactOrderSummary {
+  const { loggedAt, ...rest } = summary;
   return {
-    ...summary,
+    ...rest,
+    ...(loggedAt ? { loggedAt: new Date(loggedAt) } : {}),
     completedAt:
       summary.completedAt === null ? null : new Date(summary.completedAt),
   };
@@ -175,12 +181,12 @@ export function OrderHistoryList({
           timeZone: "Asia/Manila",
         }).format(date);
   const months = Array.from(
-    new Set(history.map((order) => monthOf(order.completedAt))),
+    new Set(history.map((order) => monthOf(historyDate(order)))),
   );
   const visibleHistory = history.filter(
     (order) =>
       (!selectedGroup || order.groupId === selectedGroup) &&
-      (!selectedMonth || monthOf(order.completedAt) === selectedMonth) &&
+      (!selectedMonth || monthOf(historyDate(order)) === selectedMonth) &&
       (!selectedRestaurant ||
         (order.restaurantName ?? "Restaurant pending") ===
           selectedRestaurant) &&
@@ -275,16 +281,16 @@ export function OrderHistoryList({
         return (
           <div key={order.orderId}>
             {index === 0 ||
-            monthOf(visibleHistory[index - 1]!.completedAt) !==
-              monthOf(order.completedAt) ? (
+            monthOf(historyDate(visibleHistory[index - 1]!)) !==
+              monthOf(historyDate(order)) ? (
               <div className="history-month-heading">
-                <h2 className="history-month">{monthOf(order.completedAt)}</h2>
+                <h2 className="history-month">{monthOf(historyDate(order))}</h2>
                 <small>
                   {
                     visibleHistory.filter(
                       (item) =>
-                        monthOf(item.completedAt) ===
-                        monthOf(order.completedAt),
+                        monthOf(historyDate(item)) ===
+                        monthOf(historyDate(order)),
                     ).length
                   }{" "}
                   loaded orders
@@ -302,24 +308,24 @@ export function OrderHistoryList({
                 <span
                   className="history-date"
                   aria-label={
-                    order.completedAt
-                      ? formatHistoryDate(order.completedAt)
+                    historyDate(order)
+                      ? formatHistoryDate(historyDate(order)!)
                       : "Date unavailable"
                   }
                 >
-                  {order.completedAt ? (
+                  {historyDate(order) ? (
                     <>
                       <small>
                         {new Intl.DateTimeFormat("en-US", {
                           month: "short",
                           timeZone: "Asia/Manila",
-                        }).format(order.completedAt)}
+                        }).format(historyDate(order)!)}
                       </small>
                       <strong>
                         {new Intl.DateTimeFormat("en-US", {
                           day: "2-digit",
                           timeZone: "Asia/Manila",
-                        }).format(order.completedAt)}
+                        }).format(historyDate(order)!)}
                       </strong>
                     </>
                   ) : (
@@ -351,9 +357,9 @@ export function OrderHistoryList({
                   <strong>{restaurant}</strong>
                   <small>
                     {order.groupName} ·{" "}
-                    {order.completedAt === null
+                    {historyDate(order) === null
                       ? "Completion date unavailable"
-                      : formatHistoryDate(order.completedAt)}{" "}
+                      : formatHistoryDate(historyDate(order)!)}{" "}
                     · {order.participantsTotal}{" "}
                     {order.participantsTotal === 1 ? "person" : "people"}
                   </small>
@@ -469,4 +475,8 @@ function HistoryLog({ detail }: { readonly detail: OrderHistoryDetail }) {
       })}
     </ul>
   );
+}
+
+function historyDate(order: CompactOrderSummary): Date | null {
+  return order.completedAt ?? order.loggedAt ?? null;
 }

@@ -9,6 +9,7 @@ import { RenameGroupDialog } from "./rename-group-dialog";
 interface GroupsAdminRowProps {
   readonly group: {
     readonly activeOrderCount: number;
+    readonly archivedAt?: Date | null;
     readonly groupId: string;
     readonly name: string;
     readonly ownerDisplayName: string | null;
@@ -29,10 +30,13 @@ export function GroupsAdminRow({ group }: GroupsAdminRowProps) {
       <span>{group.ownerDisplayName ?? "—"}</span>
       <span>{group.memberCount}</span>
       <span>{group.activeOrderCount}</span>
-      <span className="status-pill">Active</span>
+      <span className="status-pill">
+        {group.archivedAt ? "Archived" : "Active"}
+      </span>
       <span>
         <button
           className="secondary-action"
+          disabled={!!group.archivedAt}
           onClick={() => setRenameOpen(true)}
           type="button"
         >
@@ -43,10 +47,10 @@ export function GroupsAdminRow({ group }: GroupsAdminRowProps) {
           onClick={() => setArchiveOpen(true)}
           type="button"
         >
-          Archive
+          Delete
         </button>
       </span>
-      {renameOpen ? (
+      {renameOpen && !group.archivedAt ? (
         <RenameGroupDialog
           group={{ groupId: group.groupId, name: group.name }}
           onClose={() => setRenameOpen(false)}

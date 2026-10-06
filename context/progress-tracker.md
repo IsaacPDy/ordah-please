@@ -20,6 +20,8 @@
 
 ## Completed
 
+- [x] V1-16 Editable session history and permanent group deletion — implemented 2026-10-06. Participant-first History logs, restaurant-free manual completion, owner editing/deletion, permanent admin group deletion with caution, archived-profile filtering, and removal of handoff/View participants. Full unit suite (663), isolated development database integration tests (41), typecheck, scoped lint, production build, and signed-in control checks passed. Development migration applied; production unverified. Evidence in [`history/v1-16.md`](history/v1-16.md).
+
 - [x] V1-15 Group layouts, filters, and profile photos — implemented 2026-10-06. Inline Recent orders/date toolbar, full-width group History and Members, restaurant/status/date filtering, account profile photos with fallback, and boxed member/admin dropdown controls. Twenty affected tests, web typecheck, scoped lint, build, and signed-in responsive browser checks passed. Evidence in [`history/v1-15.md`](history/v1-15.md). Production unverified.
 
 - [x] V1-14 Persistent desktop member sidebar — implemented 2026-10-06. Desktop member navigation uses a fixed left sidebar from 900px while retaining the full-width workspace and phone bottom tabs. Signed-in responsive browser checks and CSS formatting passed; build evidence in [`history/v1-14.md`](history/v1-14.md). Production unverified.

@@ -46,8 +46,8 @@ export interface CreateOrderRow {
   readonly managerUserId: string;
   readonly state: "restaurant_voting" | "food_confirmation";
   readonly choiceMode: "voting_disabled" | "shortlist" | "global_catalog";
-  readonly initialRestaurantId: string;
-  readonly initialBranchId: string;
+  readonly initialRestaurantId: string | null;
+  readonly initialBranchId: string | null;
   readonly selected: Readonly<{
     restaurantId: string;
     branchId: string;
@@ -79,7 +79,7 @@ export interface OrderListItemRow {
   readonly managerUserId: string;
   readonly selectedRestaurantName: string | null;
   readonly restaurantImageUrl?: string | null;
-  readonly initialRestaurantId: string;
+  readonly initialRestaurantId: string | null;
   readonly restaurantDeadline: Date;
   readonly foodDeadline: Date;
   readonly createdAt: Date;
@@ -106,10 +106,10 @@ export interface OrderDetailRow {
   readonly managerUserId: string;
   readonly state: typeof orders.$inferSelect.state;
   readonly choiceMode: "voting_disabled" | "shortlist" | "global_catalog";
-  readonly initialRestaurantId: string;
-  readonly initialRestaurantName: string;
-  readonly initialBranchId: string;
-  readonly initialBranchName: string;
+  readonly initialRestaurantId: string | null;
+  readonly initialRestaurantName: string | null;
+  readonly initialBranchId: string | null;
+  readonly initialBranchName: string | null;
   readonly initialBranchGrabUrl: string | null;
   readonly selectedRestaurantId: string | null;
   readonly selectedRestaurantName: string | null;
@@ -146,6 +146,7 @@ export interface UpsertFoodResponseInput {
 }
 
 export interface OrderLineRow {
+  readonly id?: string;
   readonly userId: string;
   readonly sourceMenuItemId: string | null;
   readonly itemNameSnapshot: string;
@@ -241,7 +242,7 @@ export function createOrdersRepository(
           ),
       ),
       and(
-        inArray(orders.state, ["ordered", "cancelled"]),
+        inArray(orders.state, ["draft", "ordered", "cancelled"]),
         exists(
           database
             .select({ one: sql`1` })
@@ -411,7 +412,7 @@ export function createOrdersRepository(
         .where(
           and(
             visibleOrderPredicate(userId),
-            notInArray(orders.state, ["ordered", "cancelled"]),
+            notInArray(orders.state, ["draft", "ordered", "cancelled"]),
           ),
         )
         .orderBy(asc(orders.restaurantDeadline), asc(orders.id));
@@ -435,7 +436,6 @@ export function createOrdersRepository(
         .where(
           and(
             visibleOrderPredicate(userId),
-            inArray(orders.state, ["ordered", "cancelled"]),
             cursor === null
               ? undefined
               : or(
@@ -491,8 +491,8 @@ export function createOrdersRepository(
         })
         .from(orders)
         .innerJoin(groups, eq(groups.id, orders.groupId))
-        .innerJoin(restaurants, eq(restaurants.id, orders.initialRestaurantId))
-        .innerJoin(branches, eq(branches.id, orders.initialBranchId))
+        .leftJoin(restaurants, eq(restaurants.id, orders.initialRestaurantId))
+        .leftJoin(branches, eq(branches.id, orders.initialBranchId))
         .where(eq(orders.id, orderId))
         .limit(1);
       if (row === undefined) {
@@ -594,6 +594,7 @@ export function createOrdersRepository(
     listOrderLines: async (orderId) =>
       database
         .select({
+          id: orderLines.id,
           itemNameSnapshot: orderLines.itemNameSnapshot,
           lineSubtotalCentavos: orderLines.lineSubtotalCentavos,
           noteSnapshot: orderLines.noteSnapshot,

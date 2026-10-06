@@ -54,3 +54,9 @@ conti
 8. The completed order is visible in permanent history as an expandable participant log, with full group audit access for current Group Owners and Managers and self-only access for current Members who participated.
 9. Android push and iPhone PWA web push work for invited users.
 10. The system remains inside the defined security boundaries and targeted free tiers during prototype use.
+
+## V1-16 History and removal policy (2026-10-06)
+
+The connected web/PWA saves selected participants to History immediately when the session is saved, with restaurant and food details optional and editable later. Manual completion does not require a restaurant. Current group owners can correct all captured session details or permanently delete sessions. Members and Managers retain scoped viewing; Platform Admin status alone does not grant session editing.
+
+Platform Admins can permanently delete active or archived groups after a caution that all group sessions and history will also be removed. Account identities, favorites, and catalog records remain. Archived groups are omitted from active membership/profile summaries. The app no longer introduces a handoff completion stage; external ordering and payment remain manual. These rules supersede permanent immutable history and archive-only deletion descriptions above for the web/PWA.

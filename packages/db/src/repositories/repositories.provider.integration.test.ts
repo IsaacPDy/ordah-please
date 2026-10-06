@@ -519,13 +519,11 @@ describe("focused repositories", () => {
   it("reads fresh identity and only active memberships in one query, retaining groupless and archived users", async () => {
     const repositories = createRepositories(database);
     const authUserId = randomUUID();
-    await database
-      .insert(authUsers)
-      .values({
-        id: authUserId,
-        email: `identity-${authUserId}@example.test`,
-        name: "Identity member",
-      });
+    await database.insert(authUsers).values({
+      id: authUserId,
+      email: `identity-${authUserId}@example.test`,
+      name: "Identity member",
+    });
     const user = await repositories.identityAccess.ensureUserForAuthIdentity({
       authUserId,
       displayName: "Identity member",
@@ -1987,7 +1985,7 @@ describe("orders repository writes", () => {
     ).not.toContain(created.id);
   });
 
-  it("counts active orders and paginates more than ten terminal orders", async () => {
+  it("counts active orders and paginates every saved session", async () => {
     const repositories = createRepositories(database);
     const fixture = await seedOrdersFixture();
     const baseTime = new Date("2026-09-11T04:00:00.000Z");
@@ -2047,7 +2045,10 @@ describe("orders repository writes", () => {
         limit: 10,
       },
     );
-    expect(secondPage.rows).toHaveLength(1);
+    expect(secondPage.rows).toHaveLength(2);
+    expect(
+      secondPage.rows.some((row) => row.state === "restaurant_voting"),
+    ).toBe(true);
     expect(secondPage.nextCursorRow).toBeNull();
     expect(
       firstPage.rows.some((row) => row.orderId === secondPage.rows[0]?.orderId),
@@ -2476,5 +2477,254 @@ describe("orders food picking", () => {
       note: "Extra gravy",
       quantity: 1,
     });
+  });
+});
+
+describe("manual session log persistence", () => {
+  async function fixture() {
+    const repositories = createRepositories(database);
+    const [user] = await database
+      .insert(schema.users)
+      .values({ displayName: "Session log owner" })
+      .returning();
+    const [group] = await database
+      .insert(groups)
+      .values({
+        name: "Disposable session log group",
+        createdByUserId: user!.id,
+      })
+      .returning();
+    await database
+      .insert(memberships)
+      .values({ groupId: group!.id, userId: user!.id, role: "owner" });
+    const request = {
+      groupId: group!.id,
+      managerUserId: user!.id,
+      state: "draft" as const,
+      restaurantId: null,
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+      deliveryAddress: null,
+      participants: [
+        {
+          userId: user!.id,
+          displayName: "Session log owner",
+          foodResponse: "pending" as const,
+          lines: [],
+        },
+      ],
+    };
+    const saved = await repositories.sessionLogs.save({
+      request,
+      restaurant: null,
+      now: new Date(),
+    });
+    return {
+      repositories,
+      user: user!,
+      group: group!,
+      request,
+      orderId: saved.id,
+    };
+  }
+  it("saves restaurant-free sessions to visible History and supports later completion", async () => {
+    const f = await fixture();
+    expect(
+      await f.repositories.orders.findOrderDetail(f.orderId),
+    ).toMatchObject({
+      state: "draft",
+      initialRestaurantId: null,
+      initialBranchId: null,
+      participants: [{ userId: f.user.id }],
+    });
+    const history = await f.repositories.orders.listTerminalVisibleForUser(
+      f.user.id,
+      { cursor: null, limit: 10 },
+    );
+    expect(history.rows.some((row) => row.orderId === f.orderId)).toBe(true);
+    expect(
+      await f.repositories.orders.listActiveVisibleForUser(f.user.id),
+    ).toEqual([]);
+    await f.repositories.sessionLogs.save({
+      orderId: f.orderId,
+      request: { ...f.request, state: "ordered" },
+      restaurant: null,
+      now: new Date(),
+    });
+    expect(
+      await f.repositories.orders.findOrderDetail(f.orderId),
+    ).toMatchObject({
+      state: "ordered",
+      initialRestaurantId: null,
+    });
+  });
+  it("preserves modifiers on retained lines and rolls back invalid replacements", async () => {
+    const f = await fixture();
+    const now = new Date();
+    const request = {
+      ...f.request,
+      state: "ordered" as const,
+      participants: [
+        {
+          ...f.request.participants[0]!,
+          foodResponse: "confirmed" as const,
+          lines: [
+            {
+              itemName: "Rice",
+              quantity: 1,
+              unitPriceCentavos: 1500,
+              lineSubtotalCentavos: 1500,
+              note: "Warm",
+            },
+          ],
+        },
+      ],
+    };
+    await f.repositories.sessionLogs.save({
+      orderId: f.orderId,
+      request,
+      restaurant: null,
+      now,
+    });
+    const [line] = await database
+      .select()
+      .from(schema.orderLines)
+      .where(eq(schema.orderLines.orderId, f.orderId));
+    await database.insert(schema.orderLineModifiers).values({
+      orderLineId: line!.id,
+      modifierNameSnapshot: "Extra sauce",
+      quantity: 1,
+      priceDeltaCentavos: 100,
+    });
+    const changed = {
+      ...request,
+      participants: [
+        {
+          ...request.participants[0]!,
+          lines: [
+            {
+              ...request.participants[0]!.lines[0]!,
+              originalLineId: line!.id,
+              quantity: 2,
+              lineSubtotalCentavos: 3000,
+            },
+          ],
+        },
+      ],
+    };
+    await f.repositories.sessionLogs.save({
+      orderId: f.orderId,
+      request: changed,
+      restaurant: null,
+      now,
+    });
+    const [saved] = await database
+      .select()
+      .from(schema.orderLines)
+      .where(eq(schema.orderLines.orderId, f.orderId));
+    expect(saved).toMatchObject({ quantity: 2, lineSubtotalCentavos: 3000 });
+    const modifiers = await database
+      .select()
+      .from(schema.orderLineModifiers)
+      .where(eq(schema.orderLineModifiers.orderLineId, saved!.id));
+    expect(modifiers).toMatchObject([{ modifierNameSnapshot: "Extra sauce" }]);
+    await expect(
+      f.repositories.sessionLogs.save({
+        orderId: f.orderId,
+        request: changed,
+        restaurant: null,
+        now,
+      }),
+    ).rejects.toThrow("Invalid saved line");
+    expect(await f.repositories.orders.listOrderLines(f.orderId)).toMatchObject(
+      [{ quantity: 2, lineSubtotalCentavos: 3000 }],
+    );
+  });
+  it("permanently removes an archived group and every dependent session record while preserving accounts", async () => {
+    const f = await fixture();
+    await database.insert(schema.groupInviteLinks).values({
+      groupId: f.group.id,
+      tokenHash: randomUUID(),
+      tokenPrefix: "test",
+      createdByUserId: f.user.id,
+      status: "active",
+    });
+    await database.insert(schema.invitations).values({
+      groupId: f.group.id,
+      tokenHash: randomUUID(),
+      createdByUserId: f.user.id,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    await database
+      .insert(schema.adminAccessRequests)
+      .values({ groupId: f.group.id, requesterUserId: f.user.id });
+    await database.insert(schema.notifications).values({
+      orderId: f.orderId,
+      recipientUserId: f.user.id,
+      eventType: "test",
+    });
+    await database.insert(schema.jobs).values({
+      orderId: f.orderId,
+      kind: "test",
+      idempotencyKey: randomUUID(),
+      scheduledFor: new Date(),
+    });
+    const [file] = await database
+      .insert(schema.fileRecords)
+      .values({
+        purpose: "receipt",
+        status: "pending",
+        objectKey: randomUUID(),
+        contentType: "image/png",
+        sizeBytes: 1,
+        ownerUserId: f.user.id,
+      })
+      .returning();
+    await database.insert(schema.receipts).values({
+      orderId: f.orderId,
+      fileId: file!.id,
+      uploadedByUserId: f.user.id,
+    });
+    await f.repositories.groupAccess.archiveGroup(f.group.id, new Date());
+    expect(
+      (await f.repositories.identityAccess.listUsersWithSummary()).find(
+        (user) => user.id === f.user.id,
+      )?.memberships,
+    ).toEqual([]);
+    await database.transaction(async (tx) => {
+      const repositories = createRepositories(tx);
+      await repositories.sessionLogs.lockGroup(f.group.id);
+      expect(await repositories.sessionLogs.deleteGroup(f.group.id)).toBe(true);
+    });
+    expect(
+      await f.repositories.orders.findOrderDetail(f.orderId),
+    ).toBeUndefined();
+    expect(
+      await f.repositories.groupAccess.findGroupSummary(f.group.id),
+    ).toBeUndefined();
+    for (const table of [
+      schema.memberships,
+      schema.groupInviteLinks,
+      schema.invitations,
+      schema.adminAccessRequests,
+    ])
+      expect(
+        await database
+          .select()
+          .from(table)
+          .where(eq(table.groupId, f.group.id)),
+      ).toEqual([]);
+    for (const table of [
+      schema.orderParticipants,
+      schema.receipts,
+      schema.jobs,
+      schema.notifications,
+    ])
+      expect(
+        await database.select().from(table).where(eq(table.orderId, f.orderId)),
+      ).toEqual([]);
+    expect(
+      await f.repositories.identityAccess.findUserById(f.user.id),
+    ).toBeDefined();
   });
 });

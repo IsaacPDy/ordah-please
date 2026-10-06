@@ -69,21 +69,28 @@ describe("GroupsAdminRow", () => {
     });
   });
 
-  it("opens the archive confirm and submits", async () => {
+  it("warns before permanent group deletion and submits", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({}),
     });
     render(<GroupsAdminRow group={group} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Archive/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Delete$/i }));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Archive" }));
+    expect(within(dialog).getByText(/This cannot be undone/)).toBeTruthy();
+    expect(mockFetch).not.toHaveBeenCalled();
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Delete group permanently" }),
+    );
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        "/api/admin/groups/group-1/archive",
-        { method: "POST" },
+        "/api/admin/groups/group-1/delete",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ confirmed: true }),
+        }),
       );
       expect(mockRefresh).toHaveBeenCalled();
     });
@@ -93,8 +100,7 @@ describe("GroupsAdminRow", () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 409,
-      json: () =>
-        Promise.resolve({ error: { message: "Group is archived." } }),
+      json: () => Promise.resolve({ error: { message: "Group is archived." } }),
     });
     render(<GroupsAdminRow group={group} />);
 

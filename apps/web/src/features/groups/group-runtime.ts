@@ -9,7 +9,7 @@ import {
   type IdentityAccessRepository,
   withTransaction,
 } from "@ordah-please/db";
-import { asc, isNull } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 
 import { loadAppIdentity } from "../../auth/load-app-identity";
 import { verifySession } from "../../auth/verify-session";
@@ -34,6 +34,7 @@ export interface ViewerGroupSummary {
 }
 
 export interface AdminGroupSummary {
+  readonly archivedAt?: Date | null;
   readonly activeOrderCount: number;
   readonly groupId: string;
   readonly memberCount: number;
@@ -84,7 +85,11 @@ export async function listAllGroupsForAdminWith(dependencies: {
     "listActiveMembersForGroups"
   >;
   readonly listAllGroups: () => Promise<
-    readonly { readonly id: string; readonly name: string }[]
+    readonly {
+      readonly id: string;
+      readonly name: string;
+      readonly archivedAt?: Date | null;
+    }[]
   >;
   readonly orders: Pick<OrdersRepository, "listActiveCountsForGroups">;
 }): Promise<readonly AdminGroupSummary[]> {
@@ -110,6 +115,9 @@ export async function listAllGroupsForAdminWith(dependencies: {
     return {
       activeOrderCount: activeCountByGroup.get(group.id) ?? 0,
       groupId: group.id,
+      ...(group.archivedAt !== undefined
+        ? { archivedAt: group.archivedAt }
+        : {}),
       memberCount: groupMembers.length,
       name: group.name,
       ownerDisplayName:
@@ -122,9 +130,13 @@ export async function listAllGroupsForAdminWith(dependencies: {
 /** Reads every active (non-archived) group row in display order. */
 async function listAllGroupRows(database: Database) {
   return database
-    .select({ id: groupsSchema.id, name: groupsSchema.name })
+    .select({
+      id: groupsSchema.id,
+      name: groupsSchema.name,
+      archivedAt: groupsSchema.archivedAt,
+    })
     .from(groupsSchema)
-    .where(isNull(groupsSchema.archivedAt))
+
     .orderBy(asc(groupsSchema.name));
 }
 

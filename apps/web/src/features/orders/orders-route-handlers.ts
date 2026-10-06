@@ -156,7 +156,7 @@ export function createOrderHistoryDetailHandler(
 }
 
 /** Rejects browser cross-site mutations while allowing native requests without Origin. */
-function verifyTrustedMutationRequest(request: Request): void {
+export function verifyTrustedMutationRequest(request: Request): void {
   if (request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site") {
     throw new PublicApiError("FORBIDDEN", "You do not have access to this action.");
   }

@@ -219,7 +219,7 @@ describe("order detail food picking", () => {
     expect(html).not.toContain("Order this!");
   });
 
-  it("shows the handoff placeholder once picks are locked in", async () => {
+  it("shows a finish action for legacy sessions ready to finish", async () => {
     const { ordersRuntime } =
       await import("../../../../src/features/orders/orders-runtime");
     vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
@@ -228,7 +228,7 @@ describe("order detail food picking", () => {
     } as never);
     const html = await renderFoodPage();
     expect(html).toContain(
-      "The handoff summary opens here in the next update.",
+      "This session is ready to finish. You can update its details afterward.",
     );
     expect(html).toContain("Ordered · 1 choice");
   });
@@ -263,15 +263,25 @@ describe("order detail food picking", () => {
     expect(html).toContain("Finish order now");
   });
 
-  it("hides Finish order now outside the food-picks stage", async () => {
+  it("allows manual finishing before a restaurant is recorded", async () => {
     const { ordersRuntime } =
       await import("../../../../src/features/orders/orders-runtime");
     vi.mocked(ordersRuntime.loadOrderDetailView).mockResolvedValueOnce({
       ...foodView,
-      order: { ...foodView.order, state: "ready_for_handoff" },
+      order: {
+        ...foodView.order,
+        state: "draft",
+        initialRestaurantName: null,
+        initialBranchName: null,
+        initialRestaurantId: null,
+        selectedRestaurantId: null,
+        restaurantName: null,
+      },
     } as never);
     const html = await renderFoodPage();
-    expect(html).not.toContain("Finish order now");
+    expect(html).toContain("Finish order now");
+    expect(html).toContain("Restaurant pending");
+    expect(html).not.toContain("View participants");
   });
 
   it("hides Finish order now from members", async () => {

@@ -56,6 +56,31 @@ describe("NewOrderWizard", () => {
     mockPush.mockReset();
   });
 
+  it("saves participants straight to History without restaurant or delivery details", async () => {
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ data: { orderId: "logged-session" } }),
+    }));
+    vi.stubGlobal("fetch", fetch);
+    render(<NewOrderWizard {...wizardProps()} />);
+    fireEvent.click(screen.getByLabelText(/Alex Rivera/));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Save session to History" }),
+    );
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/orders/log",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"restaurantId":null'),
+        }),
+      ),
+    );
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith("/orders?tab=past"),
+    );
+  });
+
   it("keeps selections when moving back and searches members without losing them", () => {
     render(<NewOrderWizard {...wizardProps()} />);
     fireEvent.click(screen.getByRole("checkbox", { name: /Alex Rivera/i }));

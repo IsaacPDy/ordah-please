@@ -1,9 +1,9 @@
 import type { OrderState } from "./order.js";
 
 const allowedTargets: Readonly<Record<OrderState, readonly OrderState[]>> = {
-  draft: ["restaurant_voting", "food_confirmation", "cancelled"],
-  restaurant_voting: ["food_confirmation", "cancelled"],
-  food_confirmation: ["ready_for_handoff", "ordered", "cancelled"],
+  draft: ["restaurant_voting", "food_confirmation", "ordered", "cancelled"],
+  restaurant_voting: ["food_confirmation", "ordered", "cancelled"],
+  food_confirmation: ["ordered", "cancelled"],
   ready_for_handoff: ["ordered", "cancelled"],
   ordered: [],
   cancelled: [],

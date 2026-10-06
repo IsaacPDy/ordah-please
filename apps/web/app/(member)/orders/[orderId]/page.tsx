@@ -110,11 +110,15 @@ export default async function OrderDetailPage({
   const votingClosed = now.getTime() >= view.order.restaurantDeadline.getTime();
   const foodClosed = now.getTime() >= view.order.foodDeadline.getTime();
   const restaurantName =
-    view.order.restaurantName ?? view.order.initialRestaurantName;
+    view.order.restaurantName ??
+    view.order.initialRestaurantName ??
+    "Restaurant pending";
   const branchName =
-    view.order.selectedBranchName ?? view.order.initialBranchName;
+    view.order.selectedBranchName ?? view.order.initialBranchName ?? "";
   const isTerminal =
-    view.order.state === "ordered" || view.order.state === "cancelled";
+    view.order.state === "ordered" ||
+    view.order.state === "cancelled" ||
+    view.order.state === "draft";
   const isFoodStage = view.order.state !== "restaurant_voting";
   const pickerLocked = foodClosed || view.order.state !== "food_confirmation";
 
@@ -200,6 +204,17 @@ export default async function OrderDetailPage({
             ))}
           </ol>
         ) : null}
+        {view.viewer.canEdit ? (
+          <Link className="secondary-action" href={`/orders/${orderId}/edit`}>
+            Edit or delete session
+          </Link>
+        ) : null}
+        {(view.order.state === "draft" ||
+          view.order.state === "ready_for_handoff" ||
+          view.order.state === "restaurant_voting") &&
+        view.viewer.canManage ? (
+          <FinishOrderButton orderId={orderId} applyFavorites={false} />
+        ) : null}
         {isTerminal && view.order.restaurantImageUrl ? (
           <Image
             alt=""
@@ -228,12 +243,20 @@ export default async function OrderDetailPage({
           {isTerminal ? (
             <>
               <p className="eyebrow">{view.order.groupName}</p>
-              <h1>{`${restaurantName} – ${branchName}`}</h1>
+              <h1>
+                {branchName
+                  ? `${restaurantName} – ${branchName}`
+                  : restaurantName}
+              </h1>
             </>
           ) : (
             <>
               <h1>{view.order.groupName}</h1>
-              <p className="session-restaurant">{`${restaurantName} – ${branchName}`}</p>
+              <p className="session-restaurant">
+                {branchName
+                  ? `${restaurantName} – ${branchName}`
+                  : restaurantName}
+              </p>
             </>
           )}
           {isTerminal ? (
@@ -246,7 +269,7 @@ export default async function OrderDetailPage({
                       year: "numeric",
                       timeZone: "Asia/Manila",
                     }).format(view.order.completedAt)
-                  : "Completion date unavailable"}{" "}
+                  : "Saved before completion"}{" "}
                 · {view.participants.length} people
               </p>
               <div>
@@ -337,13 +360,6 @@ export default async function OrderDetailPage({
                 </span>
               </div>
             ) : null}
-            {view.viewer.canManage ||
-            view.order.state === "restaurant_voting" ? (
-              <a className="secondary-action" href="#participants-heading">
-                View participants
-                <ChevronRight size={16} aria-hidden="true" />
-              </a>
-            ) : null}
           </aside>
         ) : null}
         {!isTerminal ? (
@@ -384,7 +400,8 @@ export default async function OrderDetailPage({
         ) : null}
         {view.order.state === "ready_for_handoff" ? (
           <p className="restaurant-empty">
-            The handoff summary opens here in the next update.
+            This session is ready to finish. You can update its details
+            afterward.
           </p>
         ) : null}
 
@@ -405,7 +422,9 @@ export default async function OrderDetailPage({
             locked={pickerLocked}
             orderId={view.order.orderId}
             restaurantId={
-              view.order.selectedRestaurantId ?? view.order.initialRestaurantId
+              view.order.selectedRestaurantId ??
+              view.order.initialRestaurantId ??
+              ""
             }
             restaurantName={restaurantName}
           />
@@ -468,7 +487,11 @@ export default async function OrderDetailPage({
                   <MapPin aria-hidden="true" size={16} />{" "}
                   {`${view.order.deliveryAddress.lineOne}, ${view.order.deliveryAddress.city}`}
                 </p>
-                <p>These saved details are read-only.</p>
+                <p>
+                  {view.viewer.canEdit
+                    ? "You can edit this session, including its participants and saved food."
+                    : "These saved details are read-only."}
+                </p>
               </section>
             }
           />

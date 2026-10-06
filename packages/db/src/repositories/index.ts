@@ -25,7 +25,13 @@ import {
 } from "./notifications.js";
 import { createOrdersRepository, type OrdersRepository } from "./orders.js";
 
+import {
+  createSessionLogsRepository,
+  type SessionLogsRepository,
+} from "./session-logs.js";
+
 export interface Repositories {
+  readonly sessionLogs: SessionLogsRepository;
   readonly auditEvents: AuditEventsRepository;
   readonly catalog: CatalogRepository;
   readonly favorites: FavoritesRepository;
@@ -42,6 +48,7 @@ export function createRepositories(
   database: Database | DatabaseTransaction,
 ): Repositories {
   return {
+    sessionLogs: createSessionLogsRepository(database),
     auditEvents: createAuditEventsRepository(database),
     catalog: createCatalogRepository(database),
     favorites: createFavoritesRepository(database),
@@ -63,3 +70,5 @@ export * from "./identity-access.js";
 export * from "./jobs.js";
 export * from "./notifications.js";
 export * from "./orders.js";
+
+export * from "./session-logs.js";

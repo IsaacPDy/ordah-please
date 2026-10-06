@@ -1,11 +1,11 @@
 import type { OrderState } from "@ordah-please/domain";
 
 const STATE_LABELS: Readonly<Record<OrderState, string>> = {
-  draft: "Draft",
+  draft: "Logged",
   cancelled: "Cancelled",
   food_confirmation: "Food picks",
   ordered: "Ordered",
-  ready_for_handoff: "Handoff",
+  ready_for_handoff: "Ready to finish",
   restaurant_voting: "Voting",
 };
 
