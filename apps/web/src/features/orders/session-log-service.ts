@@ -208,11 +208,10 @@ export async function mutateSessionLog(
         "INVALID_INPUT",
         "Completion cannot be earlier than the session date.",
       );
-    requireGroupRole(
-      command.identity,
-      parseId<GroupId>(request.groupId),
-      command.orderId ? ["group-owner"] : ["group-owner", "manager"],
-    );
+    requireGroupRole(command.identity, parseId<GroupId>(request.groupId), [
+      "group-owner",
+      "manager",
+    ]);
     const group = await repositories.sessionLogs.lockGroup(request.groupId);
     if (!group || group.archivedAt)
       throw new PublicApiError("NOT_FOUND", "Group not found.");
@@ -287,6 +286,7 @@ export async function deleteSessionLog(
     if (!existing) throw new PublicApiError("NOT_FOUND", "Session not found.");
     requireGroupRole(command.identity, parseId<GroupId>(existing.groupId), [
       "group-owner",
+      "manager",
     ]);
     await repositories.sessionLogs.deleteOrder(command.orderId);
     await repositories.auditEvents.append({

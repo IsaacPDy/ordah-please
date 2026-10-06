@@ -14,7 +14,7 @@ export default async function AdminGroupsPage() {
   return (
     <AdminPage
       actions={<CreateGroupDialog users={users} />}
-      description="Inspect membership and orders, or permanently delete a group and all its history."
+      description="Open a group to add people and appoint managers, or delete a group and its history."
       eyebrow="Membership"
       title="Groups"
     >

@@ -84,3 +84,7 @@ Users & permissions includes Add member with a required name (1–120 characters
 ## V1-20 History session date
 
 Past sessions and group History use the owner's editable Session date for date badges, month headings and filters, newest-first database ordering, and pagination cursors. Completion date remains separate saved metadata. Older summary shapes without a session date retain a completion-date display fallback. This supersedes completion-date grouping for these History lists.
+
+## V1-21 Group member management (2026-10-06)
+
+Admin Groups names link to `/admin/groups/[groupId]`. The detail page shows responsive photo/initials, name, and role cards with Owner first. Add people selects an existing active person for this fixed group and excludes current members. Non-owner cards offer Appoint manager / Remove manager role and confirmed Remove from group, preserving saved history. Archived groups display a read-only roster. Native dialogs trap focus, support Escape and outside dismissal, and disable duplicate submissions. Actions refresh authoritative server data. Owners and Managers can rename groups and edit/delete sessions in assigned groups; invitation management remains admin-only. These rules supersede older owner-only session editing and owner-managed membership/invitation descriptions.

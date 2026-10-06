@@ -22,7 +22,8 @@ export default async function EditSessionPage({
     !row ||
     !result.identity.memberships.some(
       (member) =>
-        member.groupId === row.groupId && member.role === "group-owner",
+        member.groupId === row.groupId &&
+        ["group-owner", "manager"].includes(member.role),
     )
   )
     notFound();

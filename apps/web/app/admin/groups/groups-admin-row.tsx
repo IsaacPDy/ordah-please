@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Users } from "lucide-react";
 import { useState } from "react";
 
@@ -17,7 +18,7 @@ interface GroupsAdminRowProps {
   };
 }
 
-/** Renders one admin group row with Rename and Archive actions. */
+/** Renders one admin group row with a member-management link, Rename, and Delete actions. */
 export function GroupsAdminRow({ group }: GroupsAdminRowProps) {
   const [renameOpen, setRenameOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -25,7 +26,12 @@ export function GroupsAdminRow({ group }: GroupsAdminRowProps) {
   return (
     <div className="admin-table__row">
       <strong>
-        <Users aria-hidden="true" size={18} /> {group.name}
+        <Link
+          className="admin-group-link"
+          href={`/admin/groups/${encodeURIComponent(group.groupId)}`}
+        >
+          <Users aria-hidden="true" size={18} /> {group.name}
+        </Link>
       </strong>
       <span>{group.ownerDisplayName ?? "—"}</span>
       <span>{group.memberCount}</span>

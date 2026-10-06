@@ -39,7 +39,9 @@ describe("GroupsAdminRow", () => {
   it("renders the group name, owner, and member count", () => {
     render(<GroupsAdminRow group={group} />);
 
-    expect(screen.getByText("Friends")).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "Friends" }).getAttribute("href"),
+    ).toBe("/admin/groups/group-1");
     expect(screen.getByText("Alice")).toBeTruthy();
     expect(screen.getByText("4")).toBeTruthy();
     expect(screen.getByText("2")).toBeTruthy();

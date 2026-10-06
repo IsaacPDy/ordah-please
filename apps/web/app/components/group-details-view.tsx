@@ -13,6 +13,7 @@ import type { GroupDetails } from "@ordah-please/domain";
 export interface GroupDetailsViewProps {
   readonly details: GroupDetails;
   readonly canManage: boolean;
+  readonly canManageMembers?: boolean;
   readonly canStartOrder?: boolean;
   readonly summaries?: OrderSummaryPage;
 }
@@ -21,6 +22,7 @@ export interface GroupDetailsViewProps {
 export function GroupDetailsView({
   details,
   canManage,
+  canManageMembers = false,
   canStartOrder = canManage,
   summaries = { active: [], history: [], nextCursor: null },
 }: GroupDetailsViewProps) {
@@ -302,7 +304,7 @@ export function GroupDetailsView({
           ))}
         </ul>
 
-        {canManage && inviteLink !== undefined ? (
+        {canManageMembers && inviteLink !== undefined ? (
           <div className="group-details-manage">
             <h2>Group actions</h2>
             <button

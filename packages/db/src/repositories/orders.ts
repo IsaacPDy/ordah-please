@@ -236,26 +236,10 @@ export function createOrdersRepository(
             and(
               eq(memberships.groupId, orders.groupId),
               eq(memberships.userId, userId),
-              eq(memberships.role, "owner"),
+              inArray(memberships.role, ["owner", "manager"]),
               isNull(memberships.removedAt),
             ),
           ),
-      ),
-      and(
-        inArray(orders.state, ["draft", "ordered", "cancelled"]),
-        exists(
-          database
-            .select({ one: sql`1` })
-            .from(memberships)
-            .where(
-              and(
-                eq(memberships.groupId, orders.groupId),
-                eq(memberships.userId, userId),
-                eq(memberships.role, "manager"),
-                isNull(memberships.removedAt),
-              ),
-            ),
-        ),
       ),
     );
 

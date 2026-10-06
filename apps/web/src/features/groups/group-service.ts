@@ -61,9 +61,10 @@ interface GroupDetailsTransactionRunner {
 export interface LoadGroupDetailsCommand {
   readonly groupId: GroupId;
   readonly viewerRole: GroupDetailRole;
+  readonly canManageMembers?: boolean;
 }
 
-/** Reads one group's name, owner, active members, and (for owners) the active invite link. */
+/** Reads one group's name, owner, active members, and (for admins) the active invite link. */
 export async function loadGroupDetails(
   command: LoadGroupDetailsCommand,
   transactionRunner: GroupDetailsTransactionRunner,
@@ -89,7 +90,7 @@ export async function loadGroupDetails(
     const ownerDisplayName = ownerMember?.displayName ?? "";
 
     const inviteLink =
-      command.viewerRole === "group-owner"
+      command.canManageMembers === true
         ? mapInviteLink(
             await repositories.groupAccess.findActiveInviteLinkForGroup(
               command.groupId,
@@ -175,7 +176,7 @@ export interface RenameGroupResult {
   readonly name: string;
 }
 
-/** Owner-only rename: validates the name, updates the group row, and appends one audit event. */
+/** Owner/Manager rename: validates the name, updates the group row, and appends one audit event. */
 export async function renameGroup(
   command: RenameGroupCommand,
   transactionRunner: RenameGroupTransactionRunner,
@@ -239,7 +240,7 @@ export interface RotateInviteLinkResult {
   readonly tokenPrefix: string;
 }
 
-/** Owner-only invite-link rotation: retires the prior link, mints a new active link, audits both. */
+/** Admin-authorized invite-link rotation: retires the prior link, mints a new active link, audits both. */
 export async function rotateInviteLink(
   command: RotateInviteLinkCommand,
   transactionRunner: RotateInviteLinkTransactionRunner,

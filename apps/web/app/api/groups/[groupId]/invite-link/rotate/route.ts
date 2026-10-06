@@ -1,7 +1,7 @@
 import { createRotateInviteLinkHandler } from "../../../../../../src/features/groups/group-route-handlers";
 import { groupRuntime } from "../../../../../../src/features/groups/group-runtime";
 
-/** Rotates the persistent group invite link; route handler enforces group-owner authorization. */
+/** Rotates the persistent group invite link; route handler enforces platform-admin authorization. */
 export async function POST(
   request: Request,
   context: { params: Promise<{ groupId: string }> },

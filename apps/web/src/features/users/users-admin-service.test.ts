@@ -34,41 +34,62 @@ function activeGroupRow() {
   };
 }
 
-type AddMembershipFn = UsersAdminRepositories["identityAccess"]["addMembership"];
-type RemoveMembershipFn = UsersAdminRepositories["groupAccess"]["removeMembership"];
+type AddMembershipFn =
+  UsersAdminRepositories["identityAccess"]["addMembership"];
+type RemoveMembershipFn =
+  UsersAdminRepositories["groupAccess"]["removeMembership"];
 type ArchiveUserFn = UsersAdminRepositories["identityAccess"]["archiveUser"];
 type AppendAuditFn = UsersAdminRepositories["auditEvents"]["append"];
 
-function makeRepos(overrides: {
-  readonly actor?: { readonly id: string; readonly isPlatformAdmin: boolean; readonly archivedAt: Date | null } | undefined;
-  readonly target?: { readonly id: string; readonly isPlatformAdmin: boolean; readonly archivedAt: Date | null } | undefined;
-  readonly group?: {
-    readonly archivedAt: Date | null;
-    readonly id: string;
-    readonly name: string;
-    readonly ownerUserId: string | null;
-  } | undefined;
-  readonly addMembership?: AddMembershipFn;
-  readonly removeMembership?: RemoveMembershipFn;
-  readonly archiveUser?: ArchiveUserFn;
-  readonly append?: AppendAuditFn;
-} = {}): UsersAdminRepositories {
+function makeRepos(
+  overrides: {
+    readonly actor?:
+      | {
+          readonly id: string;
+          readonly isPlatformAdmin: boolean;
+          readonly archivedAt: Date | null;
+        }
+      | undefined;
+    readonly target?:
+      | {
+          readonly id: string;
+          readonly isPlatformAdmin: boolean;
+          readonly archivedAt: Date | null;
+        }
+      | undefined;
+    readonly group?:
+      | {
+          readonly archivedAt: Date | null;
+          readonly id: string;
+          readonly name: string;
+          readonly ownerUserId: string | null;
+        }
+      | undefined;
+    readonly addMembership?: AddMembershipFn;
+    readonly removeMembership?: RemoveMembershipFn;
+    readonly archiveUser?: ArchiveUserFn;
+    readonly append?: AppendAuditFn;
+  } = {},
+): UsersAdminRepositories {
   return {
     identityAccess: {
       findUserById: vi.fn((id: string) =>
         Promise.resolve(
           id === "admin-1"
-            ? ("actor" in overrides ? overrides.actor : adminUser())
+            ? "actor" in overrides
+              ? overrides.actor
+              : adminUser()
             : id === "user-2"
-              ? ("target" in overrides ? overrides.target : regularUser())
+              ? "target" in overrides
+                ? overrides.target
+                : regularUser()
               : undefined,
         ),
       ),
       addMembership:
         overrides.addMembership ??
         vi.fn(() => Promise.resolve({ userId: "user-2" })),
-      archiveUser:
-        overrides.archiveUser ?? vi.fn(() => Promise.resolve(true)),
+      archiveUser: overrides.archiveUser ?? vi.fn(() => Promise.resolve(true)),
     },
     groupAccess: {
       findGroupSummary: vi.fn(() =>
@@ -212,6 +233,15 @@ describe("removeUserFromGroupAsAdmin", () => {
     userId: parseId<UserId>("user-2"),
   };
 
+  it("refuses removal from an archived group", async () => {
+    const repos = makeRepos({
+      group: { ...activeGroupRow(), archivedAt: ARCHIVED_AT },
+    });
+    await expect(
+      removeUserFromGroupAsAdmin(command, makeRunner(repos)),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(repos.groupAccess.removeMembership).not.toHaveBeenCalled();
+  });
   it("throws FORBIDDEN when the actor is not a Platform Admin", async () => {
     const repos = makeRepos({ actor: regularUser() });
     await expectPublicError(

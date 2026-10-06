@@ -1890,7 +1890,7 @@ describe("orders repository writes", () => {
     );
   });
 
-  it("lists terminal group orders for current Managers without exposing active orders", async () => {
+  it("lists active and terminal group orders for current Managers", async () => {
     const repositories = createRepositories(database);
     const fixture = await seedOrdersFixture();
     const now = new Date("2026-09-11T04:00:00.000Z");
@@ -1938,9 +1938,7 @@ describe("orders repository writes", () => {
     const activeVisible = await repositories.orders.listVisibleForUser(
       viewer.id,
     );
-    expect(activeVisible.map((order) => order.orderId)).not.toContain(
-      created.id,
-    );
+    expect(activeVisible.map((order) => order.orderId)).toContain(created.id);
     const activeSummaries = await repositories.orders.listActiveVisibleForUser(
       fixture.manager.id,
     );
@@ -2876,5 +2874,124 @@ describe("pre-added member linking", () => {
         linkPreAddedMember(tx, f.memberId, f.accountId),
       ),
     ).rejects.toThrow("active");
+  });
+});
+
+describe("V1-21 group manager persistence", () => {
+  it("grants active group visibility on promotion and revokes it on demotion/removal", async () => {
+    await withRolledBackRepositories(async (repositories, tx) => {
+      const owner = await repositories.identityAccess.createUser({
+        displayName: "Manager QA Owner",
+      });
+      const manager = await repositories.identityAccess.createUser({
+        displayName: "Manager QA Person",
+      });
+      const group = await repositories.groupAccess.createGroup({
+        name: "Manager QA Group",
+        createdByUserId: owner.id,
+      });
+      const otherGroup = await repositories.groupAccess.createGroup({
+        name: "Manager QA Other",
+        createdByUserId: owner.id,
+      });
+      await repositories.identityAccess.addMembership({
+        groupId: group.id,
+        userId: owner.id,
+        role: "owner",
+      });
+      await repositories.identityAccess.addMembership({
+        groupId: group.id,
+        userId: manager.id,
+        role: "member",
+      });
+      const [session, otherSession] = await tx
+        .insert(orders)
+        .values(
+          [group, otherGroup].map((g) => ({
+            groupId: g.id,
+            managerUserId: owner.id,
+            state: "restaurant_voting" as const,
+            choiceMode: "voting_disabled" as const,
+            deliveryAddressSnapshot: {},
+            restaurantDeadline: new Date(),
+            foodDeadline: new Date(Date.now() + 3600000),
+          })),
+        )
+        .returning();
+      if (!session || !otherSession) throw new Error("Expected QA sessions");
+      expect(
+        await repositories.orders.listActiveVisibleForUser(manager.id),
+      ).toHaveLength(0);
+      const { setGroupMemberRoleAsAdmin } =
+        await import("../../../../apps/web/src/features/groups/group-members-admin-service");
+      await repositories.identityAccess.setPlatformAdminFlag(owner.id, true);
+      const runner = {
+        run: <T>(operation: (r: typeof repositories) => Promise<T>) =>
+          operation(repositories),
+      };
+      await setGroupMemberRoleAsAdmin(
+        {
+          actorUserId: owner.id,
+          groupId: group.id,
+          userId: manager.id,
+          expectedRole: "member",
+          role: "manager",
+        },
+        runner,
+      );
+      expect(
+        (await repositories.orders.listActiveVisibleForUser(manager.id)).map(
+          (row) => row.orderId,
+        ),
+      ).toEqual([session.id]);
+      expect(
+        await repositories.identityAccess.listActiveMemberships(manager.id),
+      ).toEqual([
+        expect.objectContaining({ groupId: group.id, role: "manager" }),
+      ]);
+      expect(
+        (await repositories.identityAccess.findUserById(manager.id))
+          ?.isPlatformAdmin,
+      ).toBe(false);
+      const audits = await repositories.auditEvents.listForResource(
+        "membership",
+        `${group.id}:${manager.id}`,
+      );
+      expect(audits).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ action: "admin.set_member_role" }),
+        ]),
+      );
+      await setGroupMemberRoleAsAdmin(
+        {
+          actorUserId: owner.id,
+          groupId: group.id,
+          userId: manager.id,
+          expectedRole: "manager",
+          role: "member",
+        },
+        runner,
+      );
+      expect(
+        await repositories.orders.listActiveVisibleForUser(manager.id),
+      ).toHaveLength(0);
+      await repositories.groupAccess.removeMembership(
+        group.id,
+        manager.id,
+        new Date(),
+      );
+      await expect(
+        setGroupMemberRoleAsAdmin(
+          {
+            actorUserId: owner.id,
+            groupId: group.id,
+            userId: manager.id,
+            expectedRole: "member",
+            role: "manager",
+          },
+          runner,
+        ),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+    });
   });
 });

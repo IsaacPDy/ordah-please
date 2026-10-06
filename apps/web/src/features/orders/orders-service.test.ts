@@ -410,6 +410,34 @@ describe("createGroupOrder", () => {
 });
 
 describe("completeOrder", () => {
+  it("lets another current group Manager cancel a session", async () => {
+    const repositories = createRepositories({
+      orders: {
+        ...createRepositories().orders,
+        findById: vi.fn(() =>
+          Promise.resolve({
+            completedAt: null,
+            groupId,
+            managerUserId: managerId,
+            state: "restaurant_voting" as const,
+          }),
+        ),
+      },
+    });
+    await completeOrder(
+      {
+        identity: identityFor(ownerId, "manager"),
+        now,
+        orderId,
+        result: "cancelled",
+      },
+      runnerFor(repositories),
+    );
+    expect(repositories.orders.setState).toHaveBeenCalledWith(
+      orderId,
+      expect.objectContaining({ state: "cancelled" }),
+    );
+  });
   it("lets the order manager cancel an active order", async () => {
     const repositories = createRepositories({
       orders: {
@@ -492,7 +520,7 @@ describe("completeOrder", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("marks an order ordered only from handoff state", async () => {
+  it("marks a session finished from handoff or restaurant voting", async () => {
     const handoffRepos = createRepositories({
       orders: {
         ...createRepositories().orders,
@@ -533,17 +561,19 @@ describe("completeOrder", () => {
         ),
       },
     });
-    await expect(
-      completeOrder(
-        {
-          identity: identityFor(managerId, "manager"),
-          now,
-          orderId,
-          result: "ordered",
-        },
-        runnerFor(votingRepos),
-      ),
-    ).rejects.toMatchObject({ code: "CONFLICT" });
+    await completeOrder(
+      {
+        identity: identityFor(managerId, "manager"),
+        now,
+        orderId,
+        result: "ordered",
+      },
+      runnerFor(votingRepos),
+    );
+    expect(votingRepos.orders.setState).toHaveBeenCalledWith(
+      orderId,
+      expect.objectContaining({ state: "ordered" }),
+    );
   });
 });
 
@@ -1178,25 +1208,28 @@ describe("loadOrderDetail visibility", () => {
     expect(view.participants).toHaveLength(2);
     expect(view.viewer).toEqual({
       canManage: true,
-      canEdit: false,
+      canEdit: true,
       kind: "group-leader",
     });
   });
 
-  it("keeps a non-participant Manager out of active orders", async () => {
+  it("gives a non-participant Manager owner-equivalent active session controls", async () => {
     const repositories = createRepositories({
       orders: {
         ...createRepositories().orders,
         findOrderDetail: vi.fn(() => Promise.resolve(detailRow())),
       },
     });
-
-    await expect(
-      loadOrderDetail(
-        { identity: identityFor(ownerId, "manager"), now, orderId },
-        repositories,
-      ),
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const view = await loadOrderDetail(
+      { identity: identityFor(ownerId, "manager"), now, orderId },
+      repositories,
+    );
+    expect(view.viewer).toMatchObject({
+      canManage: true,
+      canEdit: true,
+      kind: "group-leader",
+    });
+    expect(view.participants).toHaveLength(2);
   });
 
   it("returns only a Member's own terminal row and lines", async () => {

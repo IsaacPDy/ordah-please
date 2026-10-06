@@ -18,8 +18,7 @@ interface GroupsAdminHandlerDependencies {
   readonly verifySession: (request: Request) => MaybePromise<VerifiedSession>;
 }
 
-export interface RenameGroupAsAdminHandlerDependencies
-  extends GroupsAdminHandlerDependencies {
+export interface RenameGroupAsAdminHandlerDependencies extends GroupsAdminHandlerDependencies {
   readonly renameGroupAsAdmin: (
     command: Parameters<
       typeof import("./groups-admin-service").renameGroupAsAdmin
@@ -27,8 +26,7 @@ export interface RenameGroupAsAdminHandlerDependencies
   ) => Promise<{ readonly groupId: GroupId; readonly name: string }>;
 }
 
-export interface ArchiveGroupHandlerDependencies
-  extends GroupsAdminHandlerDependencies {
+export interface ArchiveGroupHandlerDependencies extends GroupsAdminHandlerDependencies {
   readonly archiveGroupAsAdmin: (
     command: Parameters<
       typeof import("./groups-admin-service").archiveGroupAsAdmin
@@ -64,7 +62,10 @@ async function parseRequestBody<Value>(
 /** Rejects browser cross-site mutations while allowing native requests without Origin. */
 function verifyTrustedMutationRequest(request: Request): void {
   if (request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site") {
-    throw new PublicApiError("FORBIDDEN", "You do not have access to this action.");
+    throw new PublicApiError(
+      "FORBIDDEN",
+      "You do not have access to this action.",
+    );
   }
   const origin = request.headers.get("origin");
   if (origin === null) {
@@ -77,7 +78,10 @@ function verifyTrustedMutationRequest(request: Request): void {
   } catch {
     // Invalid or opaque browser origins fail closed below.
   }
-  throw new PublicApiError("FORBIDDEN", "You do not have access to this action.");
+  throw new PublicApiError(
+    "FORBIDDEN",
+    "You do not have access to this action.",
+  );
 }
 
 /** Parses and brands the groupId URL parameter. */
@@ -113,10 +117,7 @@ export function createRenameGroupAsAdminHandler(
           }),
         validate: async (incomingRequest) => ({
           groupId: parseGroupIdParam(getGroupId(incomingRequest)),
-          ...(await parseRequestBody(
-            incomingRequest,
-            parseRenameGroupRequest,
-          )),
+          ...(await parseRequestBody(incomingRequest, parseRenameGroupRequest)),
         }),
         verifyRequest: verifyTrustedMutationRequest,
       },
@@ -133,10 +134,7 @@ export function createArchiveGroupHandler(
   getGroupId: (request: Request) => string | undefined,
 ): (request: Request) => Promise<Response> {
   return (request) =>
-    executeRoute<
-      Readonly<{ groupId: GroupId }>,
-      { readonly groupId: GroupId }
-    >(
+    executeRoute<Readonly<{ groupId: GroupId }>, { readonly groupId: GroupId }>(
       request,
       {
         authorize: ({ identity }) => identity.isPlatformAdmin,
@@ -150,6 +148,74 @@ export function createArchiveGroupHandler(
           groupId: parseGroupIdParam(getGroupId(incomingRequest)),
         }),
         verifyRequest: verifyTrustedMutationRequest,
+      },
+      {
+        loadIdentity: dependencies.loadIdentity,
+        verifySession: () => dependencies.verifySession(request),
+      },
+    );
+}
+
+interface SetGroupMemberRoleDependencies extends GroupsAdminHandlerDependencies {
+  readonly setGroupMemberRoleAsAdmin: (
+    command: Parameters<
+      typeof import("./group-members-admin-service").setGroupMemberRoleAsAdmin
+    >[0],
+  ) => Promise<{ groupId: string; userId: string; role: "member" | "manager" }>;
+}
+/** Admin-only, same-origin Member/Manager appointment. Ownership cannot be requested. */
+export function createSetGroupMemberRoleHandler(
+  dependencies: SetGroupMemberRoleDependencies,
+  getGroupId: (request: Request) => string | undefined,
+  getUserId: (request: Request) => string | undefined,
+) {
+  return (request: Request) =>
+    executeRoute<
+      {
+        groupId: GroupId;
+        userId: string;
+        role: "member" | "manager";
+        expectedRole: "member" | "manager";
+      },
+      { groupId: string; userId: string; role: "member" | "manager" }
+    >(
+      request,
+      {
+        authorize: ({ identity }) => identity.isPlatformAdmin,
+        verifyRequest: verifyTrustedMutationRequest,
+        validate: async (incomingRequest) => {
+          const body = await parseJsonRequest(incomingRequest);
+          if (
+            !body ||
+            typeof body !== "object" ||
+            Array.isArray(body) ||
+            !("role" in body) ||
+            !("expectedRole" in body) ||
+            !["member", "manager"].includes(String(body.role)) ||
+            !["member", "manager"].includes(String(body.expectedRole)) ||
+            Object.keys(body).some(
+              (key) => key !== "role" && key !== "expectedRole",
+            )
+          )
+            throw new PublicApiError(
+              "INVALID_INPUT",
+              "Choose Member or Manager.",
+            );
+          const userId = getUserId(incomingRequest);
+          if (!userId?.trim())
+            throw new PublicApiError("INVALID_INPUT", "User id is required.");
+          return {
+            groupId: parseGroupIdParam(getGroupId(incomingRequest)),
+            userId,
+            role: body.role as "member" | "manager",
+            expectedRole: body.expectedRole as "member" | "manager",
+          };
+        },
+        execute: ({ identity, input }) =>
+          dependencies.setGroupMemberRoleAsAdmin({
+            actorUserId: identity.userId,
+            ...input,
+          }),
       },
       {
         loadIdentity: dependencies.loadIdentity,

@@ -9,6 +9,10 @@ import {
   type IdentityAccessRepository,
   withTransaction,
 } from "@ordah-please/db";
+import {
+  loadGroupMembersAsAdmin,
+  setGroupMemberRoleAsAdmin,
+} from "./group-members-admin-service";
 import { asc } from "drizzle-orm";
 
 import { loadAppIdentity } from "../../auth/load-app-identity";
@@ -202,6 +206,12 @@ export function loadRuntimeIdentity(session: {
 }
 
 export const groupRuntime = {
+  loadGroupMembersAsAdmin: (
+    command: Parameters<typeof loadGroupMembersAsAdmin>[0],
+  ) => loadGroupMembersAsAdmin(command, { run: runGroupsAdminTransaction }),
+  setGroupMemberRoleAsAdmin: (
+    command: Parameters<typeof setGroupMemberRoleAsAdmin>[0],
+  ) => setGroupMemberRoleAsAdmin(command, { run: runGroupsAdminTransaction }),
   acceptInviteLink: (command: Parameters<typeof acceptInviteLink>[0]) =>
     acceptInviteLink(command, { run: runGroupTransaction }),
   archiveGroupAsAdmin: (command: Parameters<typeof archiveGroupAsAdmin>[0]) =>

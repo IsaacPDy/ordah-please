@@ -20,7 +20,7 @@ export function FinishOrderButton({
       !window.confirm(
         applyFavorites
           ? "Finish this order now? Anyone who hasn't picked gets their #1 favorite ordered."
-          : "Finish this session now? A restaurant is optional and the group owner can edit it afterward.",
+          : "Finish this session now? A restaurant is optional and a group owner or manager can edit it afterward.",
       )
     ) {
       return;

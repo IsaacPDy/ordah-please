@@ -57,10 +57,14 @@ conti
 
 ## V1-16 History and removal policy (2026-10-06)
 
-The connected web/PWA saves selected participants to History immediately when the session is saved, with restaurant and food details optional and editable later. Manual completion does not require a restaurant. Current group owners can correct all captured session details or permanently delete sessions. Members and Managers retain scoped viewing; Platform Admin status alone does not grant session editing.
+The connected web/PWA saves selected participants to History immediately when the session is saved, with restaurant and food details optional and editable later. Manual completion does not require a restaurant. Current group Owners and Managers can correct all captured session details or permanently delete sessions in their assigned groups. Members retain scoped viewing; Platform Admin status alone does not grant session editing.
 
 Platform Admins can permanently delete active or archived groups after a caution that all group sessions and history will also be removed. Account identities, favorites, and catalog records remain. Archived groups are omitted from active membership/profile summaries. The app no longer introduces a handoff completion stage; external ordering and payment remain manual. These rules supersede permanent immutable history and archive-only deletion descriptions above for the web/PWA.
 
 ## V1-18 Pre-added members (2026-10-06)
 
 Platform Admins can create members with only a display name, before Google sign-in. They can assign those members to groups and include them in sessions immediately. After the person signs in normally, an admin may explicitly link the pre-added member to that signed-in account; leaving the records separate is supported. Linking combines group memberships and session history, preserves historical display-name snapshots and existing signed-in account data, and uses the signed-in account's current name and email. Conflicting participation in the same session or favorites at the same branch/rank blocks linking without changing either record. No automatic matching by name or email occurs.
+
+## V1-21 Group managers and admin membership cards
+
+Platform Admins open a group from Admin Groups to add people, remove non-owner memberships, appoint Managers, or return Managers to Member. Manager roles grant owner-equivalent session creation, active/terminal visibility, food-detail correction, completion/cancellation, history editing/deletion, and group rename within assigned groups. Ownership remains protected; there is no ownership transfer or platform-admin elevation. Member management, role changes, and invitation issuance/rotation are admin-only, including older access APIs. Ordinary member picking remains participant-scoped. No database migration is required.

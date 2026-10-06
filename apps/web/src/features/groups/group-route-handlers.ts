@@ -31,32 +31,30 @@ interface GroupRouteHandlerDependencies {
   readonly verifySession: (request: Request) => MaybePromise<VerifiedSession>;
 }
 
-export interface LoadGroupDetailsHandlerDependencies
-  extends GroupRouteHandlerDependencies {
+export interface LoadGroupDetailsHandlerDependencies extends GroupRouteHandlerDependencies {
   readonly loadGroupDetails: (
     command: LoadGroupDetailsCommand,
   ) => Promise<GroupDetails>;
 }
 
-export interface RenameGroupHandlerDependencies
-  extends GroupRouteHandlerDependencies {
+export interface RenameGroupHandlerDependencies extends GroupRouteHandlerDependencies {
   readonly renameGroup: (
     command: RenameGroupCommand,
   ) => Promise<{ readonly groupId: GroupId; readonly name: string }>;
   readonly now: () => Date;
 }
 
-export interface RotateInviteLinkHandlerDependencies
-  extends GroupRouteHandlerDependencies {
+export interface RotateInviteLinkHandlerDependencies extends GroupRouteHandlerDependencies {
   readonly rotateInviteLink: (
     command: RotateInviteLinkCommand,
   ) => Promise<{ readonly publicValue: string; readonly tokenPrefix: string }>;
   readonly now: () => Date;
 }
 
-export interface CreateGroupHandlerDependencies
-  extends GroupRouteHandlerDependencies {
-  readonly createGroup: (command: CreateGroupCommand) => Promise<CreateGroupResult>;
+export interface CreateGroupHandlerDependencies extends GroupRouteHandlerDependencies {
+  readonly createGroup: (
+    command: CreateGroupCommand,
+  ) => Promise<CreateGroupResult>;
 }
 
 export interface AcceptInviteLinkHandlerDependencies {
@@ -97,7 +95,10 @@ async function parseRequestBody<Value>(
 /** Rejects browser cross-site mutations while allowing native requests without Origin. */
 function verifyTrustedMutationRequest(request: Request): void {
   if (request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site") {
-    throw new PublicApiError("FORBIDDEN", "You do not have access to this action.");
+    throw new PublicApiError(
+      "FORBIDDEN",
+      "You do not have access to this action.",
+    );
   }
   const origin = request.headers.get("origin");
   if (origin === null) {
@@ -110,7 +111,10 @@ function verifyTrustedMutationRequest(request: Request): void {
   } catch {
     // Invalid or opaque browser origins fail closed below.
   }
-  throw new PublicApiError("FORBIDDEN", "You do not have access to this action.");
+  throw new PublicApiError(
+    "FORBIDDEN",
+    "You do not have access to this action.",
+  );
 }
 
 /** Parses and brands the groupId URL parameter. */
@@ -143,6 +147,7 @@ export function createLoadGroupDetailsHandler(
           return dependencies.loadGroupDetails({
             groupId: input.groupId,
             viewerRole: membership.role,
+            canManageMembers: identity.isPlatformAdmin,
           });
         },
         validate: (incomingRequest) => ({
@@ -156,7 +161,7 @@ export function createLoadGroupDetailsHandler(
     );
 }
 
-/** Creates the POST handler that lets a group Owner rename the group. */
+/** Creates the POST handler that lets a group Owner or Manager rename the group. */
 export function createRenameGroupHandler(
   dependencies: RenameGroupHandlerDependencies,
   getGroupId: (request: Request) => string | undefined,
@@ -169,7 +174,9 @@ export function createRenameGroupHandler(
       request,
       {
         authorize: ({ identity, input }) =>
-          requireGroupMembership(identity, input.groupId).role === "group-owner",
+          ["group-owner", "manager"].includes(
+            requireGroupMembership(identity, input.groupId).role,
+          ),
         execute: ({ identity, input }) =>
           dependencies.renameGroup({
             actorUserId: identity.userId,
@@ -189,7 +196,7 @@ export function createRenameGroupHandler(
     );
 }
 
-/** Creates the POST handler that lets a group Owner rotate the persistent invite link. */
+/** Creates the POST handler that lets a Platform Admin rotate the persistent invite link. */
 export function createRotateInviteLinkHandler(
   dependencies: RotateInviteLinkHandlerDependencies,
   getGroupId: (request: Request) => string | undefined,
@@ -201,8 +208,7 @@ export function createRotateInviteLinkHandler(
     >(
       request,
       {
-        authorize: ({ identity, input }) =>
-          requireGroupMembership(identity, input.groupId).role === "group-owner",
+        authorize: ({ identity }) => identity.isPlatformAdmin,
         execute: ({ identity, input }) =>
           dependencies.rotateInviteLink({
             actorUserId: identity.userId,

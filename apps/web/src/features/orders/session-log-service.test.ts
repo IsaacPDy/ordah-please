@@ -91,8 +91,8 @@ describe("editable session logs", () => {
     );
     expect(f.log.save).toHaveBeenCalled();
   });
-  it("rejects manager edits to existing history and member creation", async () => {
-    for (const role of ["manager", "member"] as const) {
+  it("rejects member edits to existing history", async () => {
+    for (const role of ["member"] as const) {
       const f = fixture();
       await expect(
         mutateSessionLog(
@@ -108,6 +108,50 @@ describe("editable session logs", () => {
       expect(f.log.save).not.toHaveBeenCalled();
     }
   });
+  it("lets a group Manager edit and delete existing sessions", async () => {
+    const f = fixture();
+    const manager = {
+      ...identity,
+      memberships: [{ groupId, role: "manager" as const }],
+    };
+    await mutateSessionLog(
+      {
+        identity: manager,
+        orderId: "order",
+        request: parseSessionLogRequest(request),
+        now: new Date("2026-10-06T05:00:00Z"),
+      },
+      f.runner,
+    );
+    await deleteSessionLog({ identity: manager, orderId: "order" }, f.runner);
+    expect(f.log.save).toHaveBeenCalled();
+    expect(f.log.deleteOrder).toHaveBeenCalledWith("order");
+  });
+  it("denies a Manager of another group session edit and deletion", async () => {
+    const f = fixture();
+    const manager = {
+      ...identity,
+      memberships: [
+        { groupId: parseId<GroupId>("other-group"), role: "manager" as const },
+      ],
+    };
+    await expect(
+      mutateSessionLog(
+        {
+          identity: manager,
+          orderId: "order",
+          request: parseSessionLogRequest(request),
+          now: new Date(),
+        },
+        f.runner,
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      deleteSessionLog({ identity: manager, orderId: "order" }, f.runner),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(f.log.save).not.toHaveBeenCalled();
+    expect(f.log.deleteOrder).not.toHaveBeenCalled();
+  });
   it("rejects participants outside the group", async () => {
     const f = fixture();
     f.repositories.groupAccess.listActiveMembers.mockResolvedValue([]);
@@ -122,7 +166,7 @@ describe("editable session logs", () => {
       ),
     ).rejects.toMatchObject({ code: "INVALID_INPUT" });
   });
-  it("allows only group owners to delete sessions", async () => {
+  it("requires a group Owner or Manager membership to delete sessions", async () => {
     const f = fixture();
     await deleteSessionLog({ identity, orderId: "order" }, f.runner);
     expect(f.log.deleteOrder).toHaveBeenCalledWith("order");

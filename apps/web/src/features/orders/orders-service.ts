@@ -461,7 +461,8 @@ export async function completeOrder(
     );
     const canManage =
       order.managerUserId === command.identity.userId ||
-      membership?.role === "group-owner";
+      membership?.role === "group-owner" ||
+      membership?.role === "manager";
     if (!canManage) {
       throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
     }
@@ -503,7 +504,7 @@ type FoodOrderRow = OrderDetailDatabaseRow & {
 };
 
 /**
- * Loads one order for picking: visible to participants and the group Owner,
+ * Loads one order for picking: visible to participants and group Owners/Managers,
  * open in food_confirmation, and before the food deadline.
  */
 async function loadOpenFoodOrder(
@@ -524,8 +525,9 @@ async function loadOpenFoodOrder(
   const isParticipant = row.participants.some(
     (participant) => participant.userId === identity.userId,
   );
-  const isOwner = membership?.role === "group-owner";
-  if (!isParticipant && !isOwner) {
+  const isGroupLeader =
+    membership?.role === "group-owner" || membership?.role === "manager";
+  if (!isParticipant && !isGroupLeader) {
     throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
   }
   if (!isParticipant) {
@@ -735,8 +737,9 @@ export async function advanceFoodDeadline(
     const isParticipant = row.participants.some(
       (participant) => participant.userId === command.identity.userId,
     );
-    const isOwner = membership?.role === "group-owner";
-    if (!isParticipant && !isOwner) {
+    const isGroupLeader =
+      membership?.role === "group-owner" || membership?.role === "manager";
+    if (!isParticipant && !isGroupLeader) {
       throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
     }
 
@@ -874,14 +877,15 @@ export async function finishOrder(
     const isParticipant = row.participants.some(
       (participant) => participant.userId === command.identity.userId,
     );
-    const isOwner = membership?.role === "group-owner";
-    if (!isParticipant && !isOwner) {
+    const isGroupLeader =
+      membership?.role === "group-owner" || membership?.role === "manager";
+    if (!isParticipant && !isGroupLeader) {
       throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
     }
-    if (row.managerUserId !== command.identity.userId && !isOwner) {
+    if (row.managerUserId !== command.identity.userId && !isGroupLeader) {
       throw new PublicApiError(
         "FORBIDDEN",
-        "Only the order manager can finish this order early.",
+        "Only the order manager, a group owner, or a group manager can finish this order early.",
       );
     }
 
@@ -1062,13 +1066,13 @@ export async function loadOrderDetail(
   const isParticipant = row.participants.some(
     (participant) => participant.userId === command.identity.userId,
   );
-  const isOwner = membership?.role === "group-owner";
+  const isGroupLeader =
+    membership?.role === "group-owner" || membership?.role === "manager";
   const isTerminal = row.state === "ordered" || row.state === "cancelled";
-  const isGroupLeader = isOwner || membership?.role === "manager";
   const canView =
     isTerminal || row.state === "draft"
       ? membership !== undefined && (isParticipant || isGroupLeader)
-      : isParticipant || isOwner;
+      : isParticipant || isGroupLeader;
   if (!canView) {
     throw new PublicApiError("FORBIDDEN", FORBIDDEN_MESSAGE);
   }
@@ -1178,11 +1182,11 @@ export async function loadOrderDetail(
     },
     participants,
     viewer: {
-      canEdit: isOwner,
+      canEdit: isGroupLeader,
       kind: isParticipant ? "participant" : "group-leader",
       canManage: isTerminal
         ? isGroupLeader
-        : row.managerUserId === command.identity.userId || isOwner,
+        : row.managerUserId === command.identity.userId || isGroupLeader,
     },
     viewerFavorites,
   };

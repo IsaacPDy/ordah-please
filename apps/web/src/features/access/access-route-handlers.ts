@@ -223,7 +223,7 @@ export function createAcceptInvitationHandler(
     );
 }
 
-/** Creates one owner-only promote, demote, or remove route over the shared member-action contract. */
+/** Creates one admin-only promote, demote, or remove route over the shared member-action contract. */
 export function createManageMemberHandler(
   action: ManageGroupMemberCommand["action"],
   dependencies: ManageMemberHandlerDependencies,
@@ -238,8 +238,7 @@ export function createManageMemberHandler(
     >(
       request,
       {
-        authorize: ({ identity, input }) =>
-          findGroupMembership(identity, input.groupId)?.role === "group-owner",
+        authorize: ({ identity }) => identity.isPlatformAdmin,
         execute: ({ identity, input }) => {
           return dependencies.manageMember({
             action,
@@ -260,7 +259,7 @@ export function createManageMemberHandler(
     );
 }
 
-/** Creates the Group Owner or Platform Admin route that issues a private invitation. */
+/** Creates the Platform Admin route that issues a private invitation. */
 export function createIssueInvitationHandler(
   dependencies: IssueInvitationHandlerDependencies,
 ): (request: Request) => Promise<Response> {
@@ -275,9 +274,7 @@ export function createIssueInvitationHandler(
     >(
       request,
       {
-        authorize: ({ identity, input }) =>
-          identity.isPlatformAdmin ||
-          findGroupMembership(identity, input.groupId)?.role === "group-owner",
+        authorize: ({ identity }) => identity.isPlatformAdmin,
         execute: ({ identity, input }) =>
           dependencies.issueInvitation({
             actorUserId: identity.userId,

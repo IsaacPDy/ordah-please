@@ -7,7 +7,7 @@ import { groupRuntime } from "../../../../src/features/groups/group-runtime";
 import { ordersRuntime } from "../../../../src/features/orders/orders-runtime";
 import { GroupDetailsView } from "../../../components/group-details-view";
 
-/** Renders one group's details for any of its members; management actions appear for owners only. */
+/** Renders one group's details for any of its members; rename actions appear for Owners/Managers and invitations for admins. */
 export default async function GroupDetailsPage({
   params,
 }: {
@@ -27,6 +27,7 @@ export default async function GroupDetailsPage({
   const details = await groupRuntime.loadGroupDetails({
     groupId: membership.groupId,
     viewerRole: membership.role,
+    canManageMembers: identityResult.identity.isPlatformAdmin,
   });
 
   const summaries = await ordersRuntime.listOrderSummaryPage({
@@ -38,7 +39,10 @@ export default async function GroupDetailsPage({
   return (
     <GroupDetailsView
       details={details}
-      canManage={membership.role === "group-owner"}
+      canManage={
+        membership.role === "group-owner" || membership.role === "manager"
+      }
+      canManageMembers={identityResult.identity.isPlatformAdmin}
       canStartOrder={
         membership.role === "group-owner" || membership.role === "manager"
       }

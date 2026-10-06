@@ -181,7 +181,7 @@ describe("access route handlers", () => {
     expect(manageMember).not.toHaveBeenCalled();
   });
 
-  it("executes invitation, member-list, and admin-request handlers for a group owner", async () => {
+  it("executes invitation, member-list, and admin-request handlers for an admin who owns the group", async () => {
     const base = {
       loadIdentity: () =>
         createIdentity({
@@ -191,6 +191,7 @@ describe("access route handlers", () => {
             { groupId: testGroupId("group-2"), role: "member" },
           ],
           userId: "owner-1",
+          isPlatformAdmin: true,
         }),
       verifySession: () => ({
         authUserId: "10000000-0000-4000-8000-000000000001",
@@ -653,5 +654,83 @@ describe("createIdentityMeHandler", () => {
       pendingAdminRequestCount: 2,
     });
     expect(countPendingAdminRequests).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("admin-only legacy member management", () => {
+  it.each(["promote", "demote", "remove"] as const)(
+    "reserves %s for admins, including when the caller owns the group",
+    async (action) => {
+      const manageMember = vi.fn(() =>
+        Promise.resolve({ userId: "person", role: "manager" as const }),
+      );
+      const base = {
+        loadIdentity: () =>
+          createIdentity({
+            memberships: [
+              { groupId: testGroupId("group"), role: "group-owner" },
+            ],
+          }),
+        verifySession: () => ({
+          authUserId: "auth",
+          displayName: "Owner",
+          email: "owner@example.test",
+          imageUrl: null,
+        }),
+        now: () => new Date(),
+        manageMember,
+      };
+      const request = () =>
+        new Request("http://localhost/api/access/members/" + action, {
+          method: "POST",
+          body: JSON.stringify({ groupId: "group", userId: "person" }),
+        });
+      expect(
+        (await createManageMemberHandler(action, base)(request())).status,
+      ).toBe(403);
+      expect(manageMember).not.toHaveBeenCalled();
+      expect(
+        (
+          await createManageMemberHandler(action, {
+            ...base,
+            loadIdentity: () => createIdentity({ isPlatformAdmin: true }),
+          })(request())
+        ).status,
+      ).toBe(200);
+    },
+  );
+  it("denies invitation issuance to a non-admin group owner", async () => {
+    const issueInvitation = vi.fn(() =>
+      Promise.resolve({
+        expiresAt: "2026-11-01T00:00:00.000Z",
+        invitationId: "invite",
+        publicToken: "token",
+      }),
+    );
+    const response = await createIssueInvitationHandler({
+      loadIdentity: () =>
+        createIdentity({
+          memberships: [{ groupId: testGroupId("group"), role: "group-owner" }],
+        }),
+      verifySession: () => ({
+        authUserId: "auth",
+        displayName: "Owner",
+        email: "owner@example.test",
+        imageUrl: null,
+      }),
+      deploymentId: "http://localhost",
+      now: () => new Date(),
+      issueInvitation,
+    })(
+      new Request("http://localhost/api/access/invitations", {
+        method: "POST",
+        body: JSON.stringify({
+          groupId: "group",
+          expiresAt: "2026-11-01T00:00:00.000Z",
+        }),
+      }),
+    );
+    expect(response.status).toBe(403);
+    expect(issueInvitation).not.toHaveBeenCalled();
   });
 });

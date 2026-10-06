@@ -124,6 +124,7 @@ describe("loadGroupDetails", () => {
       {
         groupId: parseId<GroupId>("group-1"),
         viewerRole: "group-owner",
+        canManageMembers: true,
       },
       transactionRunner,
     );

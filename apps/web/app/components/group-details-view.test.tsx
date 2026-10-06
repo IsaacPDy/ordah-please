@@ -63,6 +63,14 @@ describe("group reference sections", () => {
       screen.getByRole("region", { name: "Group order history" }),
     ).toBeTruthy();
   });
+  it("keeps invite controls admin-only even for an owner", () => {
+    render(<GroupDetailsView details={details} canManage canStartOrder />);
+    fireEvent.click(screen.getByRole("button", { name: "Members" }));
+    expect(
+      screen.queryByRole("button", { name: "Copy invite link" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Rotate link" })).toBeNull();
+  });
   it("lets a manager start setup without exposing owner-only actions", () => {
     render(
       <GroupDetailsView

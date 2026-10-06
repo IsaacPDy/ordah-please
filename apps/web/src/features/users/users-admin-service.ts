@@ -24,9 +24,7 @@ export interface UsersAdminRepositories {
     ) => Promise<boolean>;
   };
   readonly groupAccess: {
-    readonly findGroupSummary: (
-      groupId: string,
-    ) => Promise<
+    readonly findGroupSummary: (groupId: string) => Promise<
       | {
           readonly archivedAt: Date | null;
           readonly id: string;
@@ -63,7 +61,11 @@ async function requirePlatformAdmin(
   actorUserId: string,
 ): Promise<void> {
   const actor = await identityAccess.findUserById(actorUserId);
-  if (actor === undefined || !actor.isPlatformAdmin) {
+  if (
+    actor === undefined ||
+    !actor.isPlatformAdmin ||
+    actor.archivedAt !== null
+  ) {
     throw new PublicApiError("FORBIDDEN", "Access denied.");
   }
 }
@@ -149,6 +151,9 @@ export async function removeUserFromGroupAsAdmin(
     );
     if (group === undefined) {
       throw new PublicApiError("NOT_FOUND", "Group not found.");
+    }
+    if (group.archivedAt !== null) {
+      throw new PublicApiError("CONFLICT", "Group is archived.");
     }
     if (group.ownerUserId === command.userId) {
       throw new PublicApiError("CONFLICT", "Reassign ownership first.");
