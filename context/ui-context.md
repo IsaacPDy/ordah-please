@@ -43,6 +43,7 @@ Option 1 is the approved V1 visual direction. Its corrected reference is `contex
 - Use the semantic colors, spacing, radii, and elevation rules in `design-structure.md`.
 - Web/PWA uses native system sans-serif with tabular numerals; Android retains Nunito Sans.
 - Use Lucide icons.
+- The web browser tab icon uses the user-supplied artwork in `apps/web/app/icon.png`, preserving its original framing.
 - Use React Native Paper as adapted Android primitives and shadcn/ui as adapted web/admin primitives.
 - Treat the approved Option 1 active-order home screen as the representative member layout.
 - Web/PWA Home shows active sessions, personal usuals, recent group orders, and retained restaurant discovery. Sessions switches between Active and Past; Favorites filters ranked combinations by restaurant while preserving exact branch labels. Groups owns Overview, History, and Members.

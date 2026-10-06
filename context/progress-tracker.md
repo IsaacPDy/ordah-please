@@ -20,6 +20,8 @@
 
 ## Completed
 
+- [x] V1-17 Browser tab icon — implemented 2026-10-06. Supplied image replaces the web browser icon, preserving its original framing. Local browser metadata and exact served-file comparison passed. Evidence in [`history/v1-17.md`](history/v1-17.md). Production unverified.
+
 - [x] V1-16 Editable session history and permanent group deletion — implemented 2026-10-06. Participant-first History logs, restaurant-free manual completion, owner editing/deletion, permanent admin group deletion with caution, archived-profile filtering, and removal of handoff/View participants. Full unit suite (663), isolated development database integration tests (41), typecheck, scoped lint, production build, and signed-in control checks passed. Development migration applied; production unverified. Evidence in [`history/v1-16.md`](history/v1-16.md).
 
 - [x] V1-15 Group layouts, filters, and profile photos — implemented 2026-10-06. Inline Recent orders/date toolbar, full-width group History and Members, restaurant/status/date filtering, account profile photos with fallback, and boxed member/admin dropdown controls. Twenty affected tests, web typecheck, scoped lint, build, and signed-in responsive browser checks passed. Evidence in [`history/v1-15.md`](history/v1-15.md). Production unverified.
