@@ -1,4 +1,14 @@
-import { Check, ChevronRight, Clock3, MapPin } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  Clock3,
+  MapPin,
+  ClipboardList,
+  Users,
+  Utensils,
+  Settings,
+} from "lucide-react";
 import Link from "next/link";
 import { OrderDetailSections } from "./order-detail-sections";
 import Image from "next/image";
@@ -121,6 +131,9 @@ export default async function OrderDetailPage({
   const viewerParticipant = view.participants.find(
     (participant) => participant.userId === viewerUserId,
   );
+  const summaryLines = view.viewer.canManage
+    ? view.lines
+    : view.lines.filter((line) => line.userId === viewerUserId);
   const orderedCount = view.participants.filter(
     (participant) =>
       participant.foodResponse === "confirmed" ||
@@ -130,8 +143,43 @@ export default async function OrderDetailPage({
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="orders">
       <div
-        className={`member-page order-detail-page${isTerminal ? " order-detail-page--terminal" : ""}`}
+        className={`member-page order-detail-page${isTerminal ? " order-detail-page--terminal" : " order-detail-page--social"}`}
       >
+        {!isTerminal ? (
+          <nav className="session-sidebar" aria-label="Session navigation">
+            <Link href="/" className="session-sidebar__back">
+              <ArrowLeft size={16} aria-hidden="true" />
+              Back to home
+            </Link>
+            <a href="#session-overview">
+              <ClipboardList size={16} aria-hidden="true" />
+              Order session
+            </a>
+            {view.viewer.canManage ||
+            view.order.state === "restaurant_voting" ? (
+              <a href="#participants-heading">
+                <Users size={16} aria-hidden="true" />
+                Participants
+              </a>
+            ) : null}
+            <Link
+              href={`/restaurants/${view.order.selectedRestaurantId ?? view.order.initialRestaurantId}`}
+            >
+              <Utensils size={16} aria-hidden="true" />
+              Menu
+            </Link>
+            <a href="#shared-order-summary">
+              <ClipboardList size={16} aria-hidden="true" />
+              Order summary
+            </a>
+            {view.viewer.canManage ? (
+              <a href="#session-settings">
+                <Settings size={16} aria-hidden="true" />
+                Settings
+              </a>
+            ) : null}
+          </nav>
+        ) : null}
         {!isTerminal ? (
           <ol className="order-stage-track" aria-label="Session progress">
             {["Restaurant", "Food", "Review"].map((label, index) => (
@@ -162,6 +210,7 @@ export default async function OrderDetailPage({
           />
         ) : null}
         <header
+          id="session-overview"
           className={`page-intro order-detail-header${!isTerminal ? " order-detail-header--active" : ""}`}
         >
           {!isTerminal && view.order.restaurantImageUrl ? (
@@ -176,8 +225,17 @@ export default async function OrderDetailPage({
           <span className="status-pill status-pill--complete">
             {formatStateLabel(view.order.state)}
           </span>
-          <p className="eyebrow">{view.order.groupName}</p>
-          <h1>{`${restaurantName} – ${branchName}`} </h1>
+          {isTerminal ? (
+            <>
+              <p className="eyebrow">{view.order.groupName}</p>
+              <h1>{`${restaurantName} – ${branchName}`}</h1>
+            </>
+          ) : (
+            <>
+              <h1>{view.order.groupName}</h1>
+              <p className="session-restaurant">{`${restaurantName} – ${branchName}`}</p>
+            </>
+          )}
           {isTerminal ? (
             <div className="terminal-order-meta">
               <p>
@@ -243,6 +301,82 @@ export default async function OrderDetailPage({
           ) : null}
         </header>
 
+        {!isTerminal ? (
+          <aside className="session-summary" id="shared-order-summary">
+            <h2>
+              {view.viewer.canManage
+                ? "Group order summary"
+                : "Your order summary"}
+            </h2>
+            <strong className="session-summary__total">
+              {formatCentavos(
+                parseCentavos(
+                  summaryLines.reduce(
+                    (sum, line) => sum + line.lineSubtotalCentavos,
+                    0,
+                  ),
+                ),
+              )}
+            </strong>
+            <small>
+              {summaryLines.reduce((sum, line) => sum + line.quantity, 0)} items
+              · Food subtotal
+            </small>
+            <p>Excludes delivery fees, discounts, and promotions.</p>
+            {view.order.state === "food_confirmation" ? (
+              <div className="session-summary__waiting">
+                <Clock3 size={20} aria-hidden="true" />
+                <span>
+                  {foodClosed
+                    ? "Food picks have ended."
+                    : `${view.participants.filter((participant) => participant.foodResponse === "pending").length} people have not responded.`}
+                  <small>
+                    Rank 1 is included automatically at the deadline when
+                    available.
+                  </small>
+                </span>
+              </div>
+            ) : null}
+            {view.viewer.canManage ||
+            view.order.state === "restaurant_voting" ? (
+              <a className="secondary-action" href="#participants-heading">
+                View participants
+                <ChevronRight size={16} aria-hidden="true" />
+              </a>
+            ) : null}
+          </aside>
+        ) : null}
+        {!isTerminal ? (
+          <div
+            className="session-response-progress"
+            aria-label="Participant response progress"
+          >
+            <progress
+              max={view.participants.length || 1}
+              value={
+                view.order.state === "restaurant_voting"
+                  ? view.participants.filter(
+                      (participant) =>
+                        participant.restaurantResponse === "responded",
+                    ).length
+                  : view.participants.filter(
+                      (participant) => participant.foodResponse !== "pending",
+                    ).length
+              }
+            />
+            <small>
+              {view.order.state === "restaurant_voting"
+                ? view.participants.filter(
+                    (participant) =>
+                      participant.restaurantResponse === "responded",
+                  ).length
+                : view.participants.filter(
+                    (participant) => participant.foodResponse !== "pending",
+                  ).length}{" "}
+              of {view.participants.length} have responded
+            </small>
+          </div>
+        ) : null}
         {view.order.state === "restaurant_voting" ? (
           <p className="restaurant-empty">
             Restaurant voting opens here in the next update.
@@ -343,7 +477,7 @@ export default async function OrderDetailPage({
         {!isTerminal && isFoodStage && view.viewer.canManage ? (
           <section
             aria-labelledby="participants-heading"
-            className="content-section"
+            className="content-section session-participants"
           >
             <p className="info-banner">
               Top favorites stay visible until a participant confirms one meal.
@@ -362,52 +496,62 @@ export default async function OrderDetailPage({
                 );
                 return (
                   <li className="participant-card" key={participant.userId}>
-                    <div className="participant-card__head">
-                      <div className="participant-card__id">
-                        <span aria-hidden="true" className="member-avatar">
-                          {participant.displayName.charAt(0)}
-                        </span>
-                        <div>
-                          <p className="participant-card__name">
-                            {participant.displayName}
-                          </p>
-                          <p className="participant-card__meta">
-                            {participant.role === "manager"
-                              ? "Order manager"
-                              : "Member"}
-                          </p>
-                        </div>
-                      </div>
-                      <p className={status.className}>
-                        {participant.foodResponse === "confirmed" ? (
-                          <Check aria-hidden="true" size={16} />
-                        ) : null}
-                        {status.label}
-                      </p>
-                    </div>
-                    {lines.length > 0 ? (
-                      <ul className="participant-card__lines">
-                        {lines.map((line) => (
-                          <li
-                            className="pick-line"
-                            key={`${participant.userId}-${line.itemName}-${line.note}`}
-                          >
-                            <div>
-                              <p className="pick-line__name">{line.itemName}</p>
-                              {line.note ? (
-                                <p className="pick-line__meta">{line.note}</p>
-                              ) : null}
-                              <p className="pick-line__meta">{`× ${line.quantity}`}</p>
-                            </div>
-                            <p className="pick-line__price">
-                              {formatCentavos(
-                                parseCentavos(line.lineSubtotalCentavos),
-                              )}
+                    <details className="session-participant-details">
+                      <summary className="participant-card__head">
+                        <div className="participant-card__id">
+                          <span aria-hidden="true" className="member-avatar">
+                            {participant.displayName.charAt(0)}
+                          </span>
+                          <div>
+                            <p className="participant-card__name">
+                              {participant.displayName}
                             </p>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
+                            <p className="participant-card__meta">
+                              {participant.role === "manager"
+                                ? "Order manager"
+                                : "Member"}
+                            </p>
+                          </div>
+                        </div>
+                        <p className={status.className}>
+                          {participant.foodResponse === "confirmed" ? (
+                            <Check aria-hidden="true" size={16} />
+                          ) : null}
+                          {status.label}
+                        </p>
+                        {lines.length > 0 ? (
+                          <span className="session-participant-view">
+                            View
+                            <ChevronRight size={14} aria-hidden="true" />
+                          </span>
+                        ) : null}
+                      </summary>
+                      {lines.length > 0 ? (
+                        <ul className="participant-card__lines">
+                          {lines.map((line) => (
+                            <li
+                              className="pick-line"
+                              key={`${participant.userId}-${line.itemName}-${line.note}`}
+                            >
+                              <div>
+                                <p className="pick-line__name">
+                                  {line.itemName}
+                                </p>
+                                {line.note ? (
+                                  <p className="pick-line__meta">{line.note}</p>
+                                ) : null}
+                                <p className="pick-line__meta">{`× ${line.quantity}`}</p>
+                              </div>
+                              <p className="pick-line__price">
+                                {formatCentavos(
+                                  parseCentavos(line.lineSubtotalCentavos),
+                                )}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </details>
                   </li>
                 );
               })}
@@ -415,15 +559,17 @@ export default async function OrderDetailPage({
           </section>
         ) : null}
 
-        {view.viewer.canManage && view.order.state === "food_confirmation" ? (
-          <FinishOrderButton orderId={view.order.orderId} />
-        ) : null}
+        <div className="session-settings" id="session-settings">
+          {view.viewer.canManage && view.order.state === "food_confirmation" ? (
+            <FinishOrderButton orderId={view.order.orderId} />
+          ) : null}
 
-        {view.viewer.canManage &&
-        view.order.state !== "ordered" &&
-        view.order.state !== "cancelled" ? (
-          <CancelOrderButton orderId={view.order.orderId} />
-        ) : null}
+          {view.viewer.canManage &&
+          view.order.state !== "ordered" &&
+          view.order.state !== "cancelled" ? (
+            <CancelOrderButton orderId={view.order.orderId} />
+          ) : null}
+        </div>
       </div>
     </MemberAccessState>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { Bookmark, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -41,7 +42,11 @@ export function FavoriteRemoveButton({
       }}
       type="button"
     >
-      {pending ? "Removing…" : "Remove"}
+      {pending ? (
+        <LoaderCircle size={18} aria-hidden="true" />
+      ) : (
+        <Bookmark size={18} fill="currentColor" aria-hidden="true" />
+      )}
     </button>
   );
 }

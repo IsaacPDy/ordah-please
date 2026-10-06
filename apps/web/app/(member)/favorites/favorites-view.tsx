@@ -14,6 +14,7 @@ export function FavoritesView({
 }: {
   readonly groups: readonly FavoriteGroup[];
 }) {
+  const [view, setView] = useState("restaurant");
   const [selectedRestaurant, setSelectedRestaurant] = useState<string | null>(
     null,
   );
@@ -45,7 +46,26 @@ export function FavoritesView({
   }
 
   return (
-    <div className="favorites-list">
+    <div className={`favorites-list favorites-list--${view}`}>
+      <div
+        className="segmented-control favorites-view-tabs"
+        aria-label="Favorites layout"
+      >
+        <button
+          type="button"
+          aria-pressed={view === "restaurant"}
+          onClick={() => setView("restaurant")}
+        >
+          By restaurant
+        </button>
+        <button
+          type="button"
+          aria-pressed={view === "all"}
+          onClick={() => setView("all")}
+        >
+          All favorites
+        </button>
+      </div>
       <div
         className="filter-chips"
         aria-label="Filter usual orders by restaurant"
@@ -70,9 +90,17 @@ export function FavoritesView({
       </div>
       {visibleGroups.map((group) => (
         <section className="favorites-group" key={group.branchId}>
-          <h2 className="sr-only">
-            {group.restaurantName} — {group.branchName}
-          </h2>
+          {view === "restaurant" ? (
+            <div className="favorites-group__heading">
+              <h2>
+                {group.restaurantName} — {group.branchName}
+              </h2>
+              <span>
+                {group.favorites.length}{" "}
+                {group.favorites.length === 1 ? "favorite" : "favorites"}
+              </span>
+            </div>
+          ) : null}
           <ul>
             {group.favorites.map((favorite) => (
               <li className="usual-order-card" key={favorite.favoriteId}>

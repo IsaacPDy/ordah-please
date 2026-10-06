@@ -101,7 +101,7 @@ describe("progressive Orders History", () => {
 
     expect(await screen.findByText("Fiona Santos")).toBeTruthy();
     expect(screen.getByText("2 items")).toBeTruthy();
-    expect(screen.getByText("₱420.00")).toBeTruthy();
+    expect(screen.getAllByText("₱420.00")).toHaveLength(2);
     expect(fetchMock).toHaveBeenCalledWith(`/api/orders/${orderId}/history`, {
       method: "GET",
     });

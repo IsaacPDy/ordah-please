@@ -21,10 +21,12 @@ export function SessionsView({
   return (
     <div className="member-page sessions-page">
       <header className="page-intro">
-        <h1>{tab === "active" ? "Group sessions" : "History"}</h1>
+        <h1>{tab === "active" ? "Group sessions" : "Order history"}</h1>
         {tab === "active" ? (
           <p>Create, join, and check past sessions.</p>
-        ) : null}
+        ) : (
+          <p>A record of good food and great company.</p>
+        )}
       </header>
       <div className="filter-chips" aria-label="Session filters">
         <button

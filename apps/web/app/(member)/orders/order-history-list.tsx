@@ -1,11 +1,11 @@
 "use client";
 
-import { ChevronRight, Store } from "lucide-react";
+import { ChevronDown, Store } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState } from "react";
 
-import { formatCentavos } from "@ordah-please/domain";
+import { formatCentavos, parseCentavos } from "@ordah-please/domain";
 
 import {
   formatHistoryDate,
@@ -61,6 +61,7 @@ export function OrderHistoryList({
   initialNextCursor,
   groupId,
 }: OrderHistoryListProps) {
+  const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedGroup, setSelectedGroup] = useState(groupId ?? "");
   const [history, setHistory] = useState(initialHistory);
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
@@ -157,9 +158,6 @@ export function OrderHistoryList({
   const groups = Array.from(
     new Map(history.map((order) => [order.groupId, order.groupName])).entries(),
   );
-  const visibleHistory = selectedGroup
-    ? history.filter((order) => order.groupId === selectedGroup)
-    : history;
   const monthOf = (date: Date | null) =>
     date === null
       ? "Date unavailable"
@@ -168,24 +166,48 @@ export function OrderHistoryList({
           year: "numeric",
           timeZone: "Asia/Manila",
         }).format(date);
+  const months = Array.from(
+    new Set(history.map((order) => monthOf(order.completedAt))),
+  );
+  const visibleHistory = history.filter(
+    (order) =>
+      (!selectedGroup || order.groupId === selectedGroup) &&
+      (!selectedMonth || monthOf(order.completedAt) === selectedMonth),
+  );
   return (
-    <div className="history-list">
-      {!groupId && groups.length > 0 ? (
+    <div className="history-list history-reference">
+      <div className="history-filters">
+        {!groupId && groups.length > 0 ? (
+          <label className="history-filter">
+            <span className="sr-only">Filter history by group</span>
+            <select
+              value={selectedGroup}
+              onChange={(event) => setSelectedGroup(event.target.value)}
+            >
+              <option value="">All groups</option>
+              {groups.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <label className="history-filter">
-          <span className="sr-only">Filter history by group</span>
+          <span className="sr-only">Filter history by month</span>
           <select
-            value={selectedGroup}
-            onChange={(event) => setSelectedGroup(event.target.value)}
+            value={selectedMonth}
+            onChange={(event) => setSelectedMonth(event.target.value)}
           >
-            <option value="">All groups</option>
-            {groups.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
+            <option value="">All time</option>
+            {months.map((month) => (
+              <option key={month} value={month}>
+                {month}
               </option>
             ))}
           </select>
         </label>
-      ) : null}
+      </div>
       {visibleHistory.map((order, index) => {
         const restaurant = order.restaurantName ?? "Restaurant pending";
         const isOpen = openIds.has(order.orderId);
@@ -195,7 +217,19 @@ export function OrderHistoryList({
             {index === 0 ||
             monthOf(visibleHistory[index - 1]!.completedAt) !==
               monthOf(order.completedAt) ? (
-              <h2 className="history-month">{monthOf(order.completedAt)}</h2>
+              <div className="history-month-heading">
+                <h2 className="history-month">{monthOf(order.completedAt)}</h2>
+                <small>
+                  {
+                    visibleHistory.filter(
+                      (item) =>
+                        monthOf(item.completedAt) ===
+                        monthOf(order.completedAt),
+                    ).length
+                  }{" "}
+                  loaded orders
+                </small>
+              </div>
             ) : null}
             <article className="history-card">
               <button
@@ -205,6 +239,33 @@ export function OrderHistoryList({
                 onClick={() => toggleOrder(order.orderId)}
                 type="button"
               >
+                <span
+                  className="history-date"
+                  aria-label={
+                    order.completedAt
+                      ? formatHistoryDate(order.completedAt)
+                      : "Date unavailable"
+                  }
+                >
+                  {order.completedAt ? (
+                    <>
+                      <small>
+                        {new Intl.DateTimeFormat("en-US", {
+                          month: "short",
+                          timeZone: "Asia/Manila",
+                        }).format(order.completedAt)}
+                      </small>
+                      <strong>
+                        {new Intl.DateTimeFormat("en-US", {
+                          day: "2-digit",
+                          timeZone: "Asia/Manila",
+                        }).format(order.completedAt)}
+                      </strong>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </span>
                 <span className="history-card__thumbnail" aria-hidden="true">
                   {order.restaurantImageUrl ? (
                     <Image
@@ -237,7 +298,31 @@ export function OrderHistoryList({
                     {order.participantsTotal === 1 ? "person" : "people"}
                   </small>
                 </span>
-                <ChevronRight size={18} aria-hidden="true" />
+                <span className="history-row-total">
+                  {detail ? (
+                    <>
+                      <strong>
+                        {formatCentavos(
+                          parseCentavos(
+                            detail.participants.reduce(
+                              (sum, participant) =>
+                                sum + participant.subtotalCentavos,
+                              0,
+                            ),
+                          ),
+                        )}
+                      </strong>
+                      <small>Visible food subtotal</small>
+                    </>
+                  ) : (
+                    <small>View food subtotal</small>
+                  )}
+                  <small>
+                    {order.participantsTotal}{" "}
+                    {order.participantsTotal === 1 ? "person" : "people"}
+                  </small>
+                </span>
+                <ChevronDown size={18} aria-hidden="true" />
               </button>
               {isOpen ? (
                 <div className="history-card__content">

@@ -59,7 +59,7 @@ describe("SessionsView", () => {
         initialTab="past"
       />,
     );
-    expect(screen.getByRole("heading", { name: "History" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Order history" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Active" }));
     expect(
       screen.queryByRole("link", { name: /Start a group order/ }),

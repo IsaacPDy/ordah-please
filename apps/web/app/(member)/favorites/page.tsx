@@ -24,8 +24,9 @@ export default async function FavoritesPage() {
     <MemberAccessState hasMemberships={hasMemberships} surface="favorites">
       <div className="member-page favorites-page">
         <header className="page-intro">
-          <h1>Your usual orders</h1>
-          <p>Quick picks when a group order starts.</p>
+          <p className="eyebrow">Your favorite meals</p>
+          <h1>The meals you always come back to.</h1>
+          <p>Save time on your next group order with your favorites.</p>
         </header>
         <FavoritesView groups={groups} />
       </div>

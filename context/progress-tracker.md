@@ -13,10 +13,13 @@
 
 
 
+
 - [ ] History order log — Implementation and automated verification complete; signed-in Owner, Manager, and Member browser acceptance pending. Evidence in [`history/history-order-log.md`](history/history-order-log.md). See the [design spec](../docs/superpowers/specs/2026-09-11-history-order-log-design.md) and [implementation plan](../docs/superpowers/plans/2026-09-11-history-order-log.md).
 
 
 ## Completed
+
+- [x] V1-12 Member reference layout fidelity — implemented 2026-10-06. Rich membership cards, monthly History rows, restaurant/All favorites layouts, and social-session sidebar, participant disclosures, progress, and subtotal panels on desktop and mobile. 98 affected tests, web typecheck, scoped lint, build, and signed-in local browser checks passed. Production and separate-role acceptance remain unverified. Evidence in [`history/v1-12.md`](history/v1-12.md).
 
 - [x] V1-11 Admin reference UI redesign — implemented 2026-10-06. Matching cards, fields, actions, sidebar, tables, catalog editor, and dialogs across admin screens. Affected tests (80), web typecheck, scoped lint, build, and an isolated responsive actual-component preview passed. Signed-in admin and production acceptance remain unverified. Evidence in [`history/v1-11.md`](history/v1-11.md).
 

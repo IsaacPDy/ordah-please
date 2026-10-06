@@ -127,3 +127,18 @@ final result: passed
 ## October 5 desktop extension
 
 Desktop sizing uses the supplied computer-browser references. From 900px, the member shell expands to a 1200px maximum with top navigation and multi-column compositions. Mobile remains below that breakpoint. An isolated component preview verified Home, Groups, Favorites filtering, Sessions/History, active detail and setup at 1280px, then the desktop breakpoint at 900px and mobile at 393px/899px. No horizontal overflow was observed. Sticky header/setup actions were repaired after inspection exposed the phone shell's overflow ancestor. The final setup screenshot is `/private/tmp/order-desktop-qa/setup-desktop.png`. This preview uses sample data, not authenticated acceptance; connected desktop data and catalog screenshots remain unverified. The desktop affected suite, web typecheck, scoped lint, and production build passed.
+
+## V1-12 correction — October 6, 2026
+
+Target: the attached desktop Image #1's Groups, History, Favorites and Social-Session content rectangles. Exclude composite captions/browser frames; compare page structure and relative spacing at a normal browser viewport. The user also requested adapting the layouts to mobile. Signed-in screenshots at 393px, 900px and 1280px use real sparse account data, so card count and imported images differ from the samples.
+
+| Surface | Visual result and working interaction |
+| --- | --- |
+| Groups | Two-column desktop white cards, member preview, pale start action and food/history row; stacked mobile cards. Eligible setup links preserve group ID and member roles. |
+| History | Date badge, food thumbnail, restaurant/group/status and subtotal area, month headings/counts; filters align beside the desktop title. Expansion retains authorized lazy logs and saved-item navigation. |
+| Favorites | Introduction beside restaurant sections, By restaurant/All favorites tabs, visible headings and ranked photos; mobile stacks the intro and uses two tiles per row. Photo crop matches its frame after an observed overflow fix. Bookmark removal retains its accessible name; no deletion submitted. |
+| Social session | Desktop sidebar and group identity/progress, participants beside subtotal; compact disclosures show exact saved choices. Mobile navigation scrolls internally and participants precede subtotal. Existing live data was at handoff, so the food-confirmation waiting box is test-covered rather than live-browser-covered. |
+
+Fidelity review covered system typography, spacing/density, green/pale/white tokens, real food-image quality/crop, and authored/externally imported copy. No clipping or document horizontal overflow was observed after the fixes. Existing stage and authorization behavior is preserved. Intentional product constraints: real account data and initials/icons replace unavailable sample photos; subtotal reads remain lazy; unsupported reminders, suggested groups and group-wide favorite ordering are omitted. Production and separate-role acceptance are unverified.
+
+Evidence: `/private/tmp/member-fidelity-qa/` local captures. Browser comparison and targeted disclosures/filters passed. Final result: passed for the requested layout correction within the documented product/data constraints.

@@ -242,6 +242,12 @@ describe("order detail food picking", () => {
     } as never);
     const html = await renderFoodPage();
     expect(html).toContain("1 of 2 ordered");
+    expect(html).toContain("Your order summary");
+    const summary = html
+      .split('id="shared-order-summary"')[1]!
+      .split("</aside>")[0]!;
+    expect(summary).toContain("₱0.00");
+    expect(summary).not.toContain("₱225.00");
     expect(html).not.toContain(
       "Top favorites stay visible until a participant confirms one meal.",
     );

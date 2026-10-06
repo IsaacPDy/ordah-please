@@ -1,5 +1,5 @@
-import { ChevronRight } from "lucide-react";
-import Link from "next/link";
+import { MemberGroupsView } from "../../components/member-groups-view";
+import { ordersRuntime } from "../../../src/features/orders/orders-runtime";
 
 import { getCurrentServerPageIdentity } from "../../../src/auth/load-server-page-identity";
 import { groupRuntime } from "../../../src/features/groups/group-runtime";
@@ -15,65 +15,24 @@ export default async function GroupsPage() {
     identityResult.status === "authenticated"
       ? identityResult.identity.memberships
       : [];
-  const groupSummaries = hasMemberships
-    ? await groupRuntime.listViewerGroupSummaries(memberships)
-    : [];
-
+  const [groupSummaries, history] = await Promise.all([
+    hasMemberships
+      ? groupRuntime.listViewerGroupSummaries(memberships)
+      : Promise.resolve([]),
+    identityResult.status === "authenticated" && hasMemberships
+      ? ordersRuntime
+          .listOrderSummaryPage({
+            identity: identityResult.identity,
+            cursor: null,
+            limit: 10,
+          })
+          .then((page) => page.history)
+          .catch(() => [])
+      : Promise.resolve([]),
+  ]);
   return (
     <MemberAccessState hasMemberships={hasMemberships} surface="groups">
-      <section className="member-page groups-page">
-        <header className="page-intro">
-          <h1>Your groups</h1>
-          <p>Pick a group to continue.</p>
-        </header>
-        <ul className="group-list">
-          {groupSummaries.map((group) => (
-            <li key={group.groupId}>
-              <Link
-                className={`group-card group-card--link${group.role === "group-owner" ? " group-card--featured" : ""}`}
-                href={`/groups/${group.groupId}`}
-              >
-                <span className="group-card__icon" aria-hidden="true">
-                  {initialsOf(group.name)}
-                </span>
-                <span className="group-card__body">
-                  <span className="group-card__name">{group.name}</span>
-                  <span className="group-card__meta">
-                    {group.memberCount}{" "}
-                    {group.memberCount === 1 ? "person" : "people"}
-                    {` · You’re a ${roleLabel(group.role)}`}
-                  </span>
-                </span>
-                <ChevronRight aria-hidden="true" size={24} />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <MemberGroupsView groups={groupSummaries} history={history} />
     </MemberAccessState>
   );
-}
-
-/** Converts the stored role key into the exact role wording shown to people. */
-function roleLabel(role: string): string {
-  if (role === "group-owner") {
-    return "Group Owner";
-  }
-  if (role === "manager") {
-    return "Manager";
-  }
-  return "Member";
-}
-
-/** Returns up to two uppercase initials from a group name for the icon badge. */
-function initialsOf(name: string): string {
-  const cleaned = name.trim();
-  if (cleaned.length === 0) {
-    return "G";
-  }
-  const parts = cleaned.split(/\s+/).filter((part) => part.length > 0);
-  if (parts.length === 1) {
-    return parts[0]!.slice(0, 2).toUpperCase();
-  }
-  return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
 }
