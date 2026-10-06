@@ -1345,3 +1345,10 @@ button:disabled {
 .member-shell--compact .member-content:has(.order-detail-page) {
   padding-bottom: 32px;
 }
+
+.member-header a.brand {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}

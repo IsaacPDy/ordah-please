@@ -3,6 +3,8 @@
 
 ## Current Phase
 
+- History card totals show the manual session total when set, otherwise the authorized food subtotal, immediately on opening History and labelled “Total”. No food-subtotal prompt remains. Seventy-one affected tests (including Member/Manager/Owner fallback visibility), scoped lint, web typecheck, and a signed-in local browser check passed. Production unverified.
+
 - Food confirmation picking and Finish-order-now early completion implemented. Both golden paths still need a browser walkthrough with real accounts. Next order-sequence stage: Restaurant voting.
 
 
@@ -10,6 +12,9 @@
 
 
 ## In Design
+
+- [ ] V1-22 Session receipt attachments — implementation complete; receipt permissions, private R2 file validation, multi-receipt storage, owner controls, and cleanup are implemented. Development migrations applied, including an independent session total editable by the owner and managers. History now displays session totals, Past survives reloads, and the member title links Home. Browser upload verification awaits development R2 CORS settings for localhost:3001; production release remains separate. Evidence in [`history/v1-22.md`](history/v1-22.md).
+
 
 
 

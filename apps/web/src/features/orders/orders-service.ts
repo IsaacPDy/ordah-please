@@ -1211,6 +1211,8 @@ export interface CompactOrderSummary extends Omit<
 > {
   readonly participants: readonly [];
   readonly loggedAt?: Date;
+  readonly sessionTotalCentavos?: number | null;
+  readonly foodSubtotalCentavos?: number;
 }
 
 export interface OrderSummaryPage {
@@ -1312,6 +1314,7 @@ function mapTerminalOrderSummary(
   return {
     completedAt: row.completedAt,
     loggedAt: row.createdAt,
+    sessionTotalCentavos: row.sessionTotalCentavos ?? null,
     deadline: null,
     groupId: row.groupId,
     groupName: row.groupName,
@@ -1373,9 +1376,32 @@ export async function listOrderSummaryPage(
     }),
   ]);
   const next = terminal.nextCursorRow;
+  const fallbackOrders = terminal.rows.filter(
+    (row) => row.sessionTotalCentavos == null,
+  );
+  const lines =
+    fallbackOrders.length === 0
+      ? []
+      : await repositories.orders.listOrderLinesForOrders(
+          fallbackOrders.map((row) => row.orderId),
+        );
   return {
     active,
-    history: terminal.rows.map(mapTerminalOrderSummary),
+    history: terminal.rows.map((row) => ({
+      ...mapTerminalOrderSummary(row),
+      ...(row.sessionTotalCentavos == null
+        ? {
+            foodSubtotalCentavos: lines
+              .filter(
+                (line) =>
+                  line.orderId === row.orderId &&
+                  (canViewGroupHistory(command.identity, row.groupId) ||
+                    line.userId === command.identity.userId),
+              )
+              .reduce((sum, line) => sum + line.lineSubtotalCentavos, 0),
+          }
+        : {}),
+    })),
     nextCursor:
       next === null
         ? null

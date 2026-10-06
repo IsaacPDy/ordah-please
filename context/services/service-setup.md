@@ -373,3 +373,17 @@ Before changing a name, domain, identifier, provider project, bucket, or key:
 ## Retired Services
 
 Clerk is retired by V1-04A. Do not add Clerk variables, runtime packages, webhooks, or active setup instructions. Historical generated migrations and progress evidence may retain Clerk terminology because they describe the system that existed before this migration.
+
+## Session receipt storage (V1-22)
+
+The connected web/PWA uses the private R2 bucket for JPEG, PNG, WebP and PDF receipt files up to 10 MiB. Uploads go directly from the browser through a five-minute signed URL. The trusted server checks stored type, size and signature, then copies the validated object to a final key that upload URLs cannot overwrite. Authorized read URLs expire after one minute; never use a public R2 bucket or public image optimizer for receipts.
+
+Configure development bucket CORS with the actual local app origins. This checkout currently runs on port 3001:
+
+```json
+[{"AllowedOrigins":["http://localhost:3000","http://localhost:3001"],"AllowedMethods":["PUT","GET","HEAD"],"AllowedHeaders":["content-type"],"MaxAgeSeconds":300}]
+```
+
+Production uses only the deployed application origin, its own bucket and its own credentials. Object Read & Write keys may not be able to manage bucket CORS; configure that rule in the Cloudflare dashboard. No public bucket access is needed.
+
+`CRON_SECRET` is a server-only random secret used by Vercel's daily `/api/internal/receipt-cleanup` callback. Set it in the production Vercel environment before enabling that deployment. Without it, the scheduled endpoint fails closed. Successful receipt requests also drain the durable cleanup queue; errors remain queued for retry. Cleanup expires abandoned upload intents, removes their temporary objects and unattached final copies, and retries files queued by receipt/session/group deletion.

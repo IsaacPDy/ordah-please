@@ -38,6 +38,9 @@ const expectedTables = [
   "order_participants",
   "order_shortlist_restaurants",
   "orders",
+  "order_receipt_settings",
+  "receipt_object_cleanup",
+  "receipt_uploads",
   "receipts",
   "refresh_review_outcomes",
   "refresh_runs",
@@ -75,14 +78,21 @@ async function expectConstraintFailure(
   client: Client,
   statement: string,
   values: readonly unknown[],
-  constraintName: string,
+  constraintName: string | RegExp,
 ): Promise<void> {
   await client.query("SAVEPOINT expected_constraint_failure");
 
   try {
-    await expect(client.query(statement, [...values])).rejects.toMatchObject({
-      constraint: constraintName,
-    });
+    if (typeof constraintName === "string") {
+      await expect(client.query(statement, [...values])).rejects.toMatchObject({
+        constraint: constraintName,
+      });
+    } else {
+      await expect(client.query(statement, [...values])).rejects.toHaveProperty(
+        "constraint",
+        expect.stringMatching(constraintName),
+      );
+    }
   } finally {
     await client.query("ROLLBACK TO SAVEPOINT expected_constraint_failure");
   }
@@ -252,7 +262,8 @@ describe("initial Neon schema", () => {
         client,
         "INSERT INTO group_invite_links (group_id, token_hash, token_prefix, created_by_user_id, status) VALUES ($1, $2, 'prefix-d', $3, 'revoked')",
         [groupOne, `bad-status-${randomUUID()}`, userOne],
-        "group_invite_links_status_values",
+        // This value violates both checks; PostgreSQL can report either first.
+        /^group_invite_links_(status_values|rotated_fields_match)$/,
       );
       await expectConstraintFailure(
         client,

@@ -66,3 +66,28 @@ describe("SessionsView", () => {
     ).toBeNull();
   });
 });
+
+it("preserves Past in the address across reopening the page", () => {
+  window.history.replaceState(null, "", "/orders?filter=kept");
+  const { unmount } = render(
+    <SessionsView summaries={summary} canStartOrder />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Past" }));
+  expect(new URL(window.location.href).searchParams.get("tab")).toBe("past");
+  expect(new URL(window.location.href).searchParams.get("filter")).toBe("kept");
+  unmount();
+  render(
+    <SessionsView
+      summaries={summary}
+      canStartOrder
+      initialTab={
+        new URL(window.location.href).searchParams.get("tab") === "past"
+          ? "past"
+          : "active"
+      }
+    />,
+  );
+  expect(screen.getByRole("heading", { name: "Order history" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Active" }));
+  expect(new URL(window.location.href).searchParams.get("tab")).toBe("active");
+});

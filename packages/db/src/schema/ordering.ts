@@ -142,6 +142,7 @@ export const orders = pgTable(
     selectedMenuVersionId: uuid("selected_menu_version_id").references(
       () => menuVersions.id,
     ),
+    sessionTotalCentavos: bigint("session_total_centavos", { mode: "number" }),
     deliveryAddressSnapshot: jsonb("delivery_address_snapshot").notNull(),
     restaurantDeadline: utcTimestamp("restaurant_deadline").notNull(),
     foodDeadline: utcTimestamp("food_deadline").notNull(),
@@ -160,6 +161,10 @@ export const orders = pgTable(
       foreignColumns: [branches.restaurantId, branches.id],
       name: "orders_selected_branch_matches_restaurant_fk",
     }),
+    check(
+      "orders_positive_session_total",
+      sql`${table.sessionTotalCentavos} is null or (${table.sessionTotalCentavos} > 0 and ${table.sessionTotalCentavos} <= 9007199254740991)`,
+    ),
     check(
       "orders_food_deadline_after_restaurant_deadline",
       sql`${table.foodDeadline} > ${table.restaurantDeadline}`,
@@ -313,18 +318,38 @@ export const orderLineModifiers = pgTable(
   ],
 );
 
-export const receipts = pgTable("receipts", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  orderId: uuid("order_id")
-    .notNull()
-    .unique("receipts_order_id_unique")
-    .references(() => orders.id),
-  fileId: uuid("file_id")
-    .notNull()
-    .unique("receipts_file_id_unique")
-    .references(() => fileRecords.id),
-  uploadedByUserId: uuid("uploaded_by_user_id")
-    .notNull()
-    .references(() => users.id),
-  createdAt: utcTimestamp("created_at").defaultNow().notNull(),
-});
+export const receipts = pgTable(
+  "receipts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id),
+    fileId: uuid("file_id")
+      .notNull()
+      .unique("receipts_file_id_unique")
+      .references(() => fileRecords.id),
+    uploadedByUserId: uuid("uploaded_by_user_id")
+      .notNull()
+      .references(() => users.id),
+    uploadId: uuid("upload_id").unique("receipts_upload_id_unique"),
+    mode: text("mode").default("group").notNull(),
+    participantUserId: uuid("participant_user_id").references(() => users.id),
+    participantName: text("participant_name"),
+    amountCentavos: bigint("amount_centavos", { mode: "number" }),
+    note: text("note").default("").notNull(),
+    updatedAt: utcTimestamp("updated_at").defaultNow().notNull(),
+    createdAt: utcTimestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    check(
+      "receipts_subject",
+      sql`(${table.mode} = 'group' and ${table.participantUserId} is null) or (${table.mode} = 'individual' and ${table.participantUserId} is not null)`,
+    ),
+    check(
+      "receipts_positive_amount",
+      sql`${table.amountCentavos} is null or ${table.amountCentavos} > 0`,
+    ),
+    check("receipts_note_length", sql`length(${table.note}) <= 2000`),
+  ],
+);

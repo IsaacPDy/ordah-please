@@ -18,6 +18,12 @@ export function SessionsView({
   readonly initialTab?: "active" | "past";
 }) {
   const [tab, setTab] = useState(initialTab);
+  function selectTab(next: "active" | "past") {
+    setTab(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", next);
+    window.history.replaceState(null, "", url);
+  }
   return (
     <div className="member-page sessions-page">
       <header className="page-intro">
@@ -32,14 +38,14 @@ export function SessionsView({
         <button
           type="button"
           aria-pressed={tab === "active"}
-          onClick={() => setTab("active")}
+          onClick={() => selectTab("active")}
         >
           Active
         </button>
         <button
           type="button"
           aria-pressed={tab === "past"}
-          onClick={() => setTab("past")}
+          onClick={() => selectTab("past")}
         >
           Past
         </button>

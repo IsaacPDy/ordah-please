@@ -4,3 +4,4 @@ export * from "./schema/index.js";
 export * from "./transaction.js";
 
 export * from "./repositories/member-link.js";
+export * from "./repositories/receipts.js";

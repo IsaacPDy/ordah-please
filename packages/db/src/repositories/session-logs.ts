@@ -1,6 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { Database } from "../client.js";
 import type { DatabaseTransaction } from "../transaction.js";
+import { queueSessionReceiptCleanup } from "./receipts.js";
 import {
   adminAccessRequests,
   groupInviteLinks,
@@ -15,7 +16,6 @@ import {
   foodSelections,
   orderLines,
   orderLineModifiers,
-  receipts,
   notifications,
   jobs,
 } from "../schema/index.js";
@@ -78,7 +78,7 @@ export function createSessionLogsRepository(
   }
   async function removeOrder(tx: DatabaseTransaction, orderId: string) {
     await clearPicks(tx, orderId);
-    await tx.delete(receipts).where(eq(receipts.orderId, orderId));
+    await queueSessionReceiptCleanup(tx, orderId);
     await tx.delete(notifications).where(eq(notifications.orderId, orderId));
     await tx.delete(jobs).where(eq(jobs.orderId, orderId));
     const removed = await tx

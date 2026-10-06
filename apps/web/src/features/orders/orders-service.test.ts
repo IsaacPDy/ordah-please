@@ -900,7 +900,10 @@ describe("progressive order history", () => {
       ...createRepositories().orders,
       listActiveVisibleForUser: vi.fn(() => Promise.resolve([activeRow()])),
       listTerminalVisibleForUser: vi.fn(() =>
-        Promise.resolve({ nextCursorRow, rows: [terminalRow()] }),
+        Promise.resolve({
+          nextCursorRow,
+          rows: [{ ...terminalRow(), sessionTotalCentavos: 98765 }],
+        }),
       ),
     };
 
@@ -917,8 +920,60 @@ describe("progressive order history", () => {
     expect(orders.listOrderLinesForOrders).not.toHaveBeenCalled();
     expect(result.active[0]?.participantsTotal).toBe(1);
     expect(result.history[0]?.participants).toEqual([]);
+    expect(result.history[0]?.sessionTotalCentavos).toBe(98765);
     expect(result.nextCursor).toEqual(expect.any(String));
   });
+
+  it.each([
+    ["member", memberId, 15000],
+    ["manager", managerId, 40000],
+    ["group-owner", ownerId, 40000],
+  ] as const)(
+    "supplies an immediate authorized food total for %s",
+    async (role, userId, expected) => {
+      const orderLine = (userId: string) => ({
+        userId,
+        itemNameSnapshot: "Meal",
+        quantity: 1,
+        unitPriceCentavos: 15000,
+        noteSnapshot: "",
+        sortOrder: 0,
+        sourceMenuItemId: menuItemId,
+      });
+      const orders = {
+        ...createRepositories().orders,
+        listActiveVisibleForUser: vi.fn(() => Promise.resolve([])),
+        listTerminalVisibleForUser: vi.fn(() =>
+          Promise.resolve({
+            nextCursorRow: null,
+            rows: [terminalRow()],
+          }),
+        ),
+        listOrderLinesForOrders: vi.fn(() =>
+          Promise.resolve([
+            {
+              ...orderLine(memberId),
+              orderId: orderedOrderId,
+              lineSubtotalCentavos: 15000,
+            },
+            {
+              ...orderLine(managerId),
+              orderId: orderedOrderId,
+              lineSubtotalCentavos: 25000,
+            },
+          ]),
+        ),
+      };
+      const result = await listOrderSummaryPage(
+        { cursor: null, identity: identityFor(userId, role), limit: 10 },
+        { orders },
+      );
+      expect(result.history[0]?.foodSubtotalCentavos).toBe(expected);
+      expect(orders.listOrderLinesForOrders).toHaveBeenCalledWith([
+        orderedOrderId,
+      ]);
+    },
+  );
 
   it("builds the next history cursor from the session date rather than completion", async () => {
     const row = {

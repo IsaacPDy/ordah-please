@@ -91,6 +91,7 @@ export interface TerminalOrderSummaryRow extends Omit<
   OrderListItemRow,
   "participants"
 > {
+  readonly sessionTotalCentavos?: number | null;
   readonly participantCount: number;
 }
 
@@ -414,7 +415,11 @@ export function createOrdersRepository(
         where ${orderParticipants.orderId} = ${orders.id}
       )`.mapWith(Number);
       const rows = await database
-        .select({ ...orderListSelection, participantCount })
+        .select({
+          ...orderListSelection,
+          participantCount,
+          sessionTotalCentavos: orders.sessionTotalCentavos,
+        })
         .from(orders)
         .innerJoin(groups, eq(groups.id, orders.groupId))
         .where(

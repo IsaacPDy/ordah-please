@@ -1,0 +1,2 @@
+ALTER TABLE "orders" ADD COLUMN "session_total_centavos" bigint;--> statement-breakpoint
+ALTER TABLE "orders" ADD CONSTRAINT "orders_positive_session_total" CHECK ("orders"."session_total_centavos" is null or ("orders"."session_total_centavos" > 0 and "orders"."session_total_centavos" <= 9007199254740991));

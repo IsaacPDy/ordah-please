@@ -47,6 +47,7 @@ const compactOrder = {
   participants: [] as const,
   participantsTotal: 3,
   participantsVoted: 0,
+  foodSubtotalCentavos: 42000,
   restaurantName: "KFC – Magsaysay",
   state: "ordered" as const,
 };
@@ -197,6 +198,9 @@ describe("progressive Orders History", () => {
     );
 
     expect(screen.queryByText("Fiona Santos")).toBeNull();
+    expect(screen.getByText("₱420.00")).toBeTruthy();
+    expect(screen.getByText("Total")).toBeTruthy();
+    expect(screen.queryByText("View food subtotal")).toBeNull();
     fireEvent.click(
       screen.getByRole("button", {
         name: "Show order log for KFC – Magsaysay",
@@ -206,6 +210,8 @@ describe("progressive Orders History", () => {
     expect(await screen.findByText("Fiona Santos")).toBeTruthy();
     expect(screen.getByText("2 items")).toBeTruthy();
     expect(screen.getAllByText("₱420.00")).toHaveLength(2);
+    expect(screen.getByText("Total")).toBeTruthy();
+    expect(screen.queryByText("Visible food subtotal")).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith(`/api/orders/${orderId}/history`, {
       method: "GET",
     });
@@ -340,4 +346,16 @@ describe("progressive Orders History", () => {
       expect(screen.queryByRole("button", { name: "Loading…" })).toBeNull(),
     );
   });
+});
+
+it("shows the saved session total before expanding a history card", () => {
+  render(
+    <OrderHistoryList
+      initialHistory={[{ ...compactOrder, sessionTotalCentavos: 98765 }]}
+      initialNextCursor={null}
+    />,
+  );
+  expect(screen.getByText("₱987.65")).toBeTruthy();
+  expect(screen.getByText("Total")).toBeTruthy();
+  expect(screen.queryByText("₱420.00")).toBeNull();
 });

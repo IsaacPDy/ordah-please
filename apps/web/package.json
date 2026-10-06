@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "build:dependencies": "npm run build --workspace @ordah-please/domain && npm run build --workspace @ordah-please/contracts && npm run build --workspace @ordah-please/db && npm run build --workspace @ordah-please/ui",
+    "build:dependencies": "npm run build --workspace @ordah-please/domain && npm run build --workspace @ordah-please/contracts && npm run build --workspace @ordah-please/db && npm run build --workspace @ordah-please/storage && npm run build --workspace @ordah-please/ui",
     "dev": "next dev",
     "lint": "eslint .",
     "prebuild": "npm run build:dependencies",
@@ -21,6 +21,7 @@
     "@ordah-please/contracts": "^0.1.0",
     "@ordah-please/db": "^0.1.0",
     "@ordah-please/domain": "^0.1.0",
+    "@ordah-please/storage": "^0.1.0",
     "@ordah-please/ui": "0.1.0",
     "better-auth": "^1.6.25",
     "lucide-react": "^1.25.0",

@@ -2817,7 +2817,7 @@ describe("pre-added member linking", () => {
           "SELECT manager_user_id FROM orders WHERE id = $1",
           [f.orderId],
         )
-      ).rows[0].manager_user_id,
+      ).rows[0]?.manager_user_id,
     ).toBe(f.accountId);
     expect(
       (

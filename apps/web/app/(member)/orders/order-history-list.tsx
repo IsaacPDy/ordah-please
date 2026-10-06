@@ -188,8 +188,7 @@ export function OrderHistoryList({
       (!selectedGroup || order.groupId === selectedGroup) &&
       (!selectedMonth || monthOf(historyDate(order)) === selectedMonth) &&
       (!selectedRestaurant ||
-        (order.restaurantName ?? "Restaurant pending") ===
-          selectedRestaurant) &&
+        (order.restaurantName ?? "No place chosen") === selectedRestaurant) &&
       (!selectedStatus || order.state === selectedStatus),
   );
   return (
@@ -211,7 +210,7 @@ export function OrderHistoryList({
                   {Array.from(
                     new Set(
                       history.map(
-                        (order) => order.restaurantName ?? "Restaurant pending",
+                        (order) => order.restaurantName ?? "No place chosen",
                       ),
                     ),
                   )
@@ -275,7 +274,7 @@ export function OrderHistoryList({
         {headingAction}
       </div>
       {visibleHistory.map((order, index) => {
-        const restaurant = order.restaurantName ?? "Restaurant pending";
+        const restaurant = order.restaurantName ?? "No place chosen";
         const isOpen = openIds.has(order.orderId);
         const detail = detailByOrderId[order.orderId];
         return (
@@ -365,23 +364,22 @@ export function OrderHistoryList({
                   </small>
                 </span>
                 <span className="history-row-total">
-                  {detail ? (
+                  {order.sessionTotalCentavos != null ||
+                  order.foodSubtotalCentavos != null ? (
                     <>
                       <strong>
                         {formatCentavos(
                           parseCentavos(
-                            detail.participants.reduce(
-                              (sum, participant) =>
-                                sum + participant.subtotalCentavos,
+                            order.sessionTotalCentavos ??
+                              order.foodSubtotalCentavos ??
                               0,
-                            ),
                           ),
                         )}
                       </strong>
-                      <small>Visible food subtotal</small>
+                      <small>Total</small>
                     </>
                   ) : (
-                    <small>View food subtotal</small>
+                    <small>Total not set</small>
                   )}
                   <small>
                     {order.participantsTotal}{" "}

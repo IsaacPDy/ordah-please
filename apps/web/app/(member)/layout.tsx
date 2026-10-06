@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Bell } from "lucide-react";
 import { Suspense, type ReactNode } from "react";
 
@@ -39,7 +40,9 @@ async function AuthenticatedMemberShell({ children }: { children: ReactNode }) {
         </a>
         <header className="member-header">
           <MemberBackButton />
-          <span className="brand">ordah please</span>
+          <Link className="brand" href="/" aria-label="ordah please home">
+            ordah please
+          </Link>
           <MemberNavigation />
           <div className="member-header__actions">
             <button
@@ -73,7 +76,9 @@ export function MemberShellAccessLoading() {
   return (
     <div className="member-shell member-shell--compact">
       <header className="member-header">
-        <span className="brand">ordah please</span>
+        <Link className="brand" href="/" aria-label="ordah please home">
+          ordah please
+        </Link>
         <MemberNavigation />
         <span role="status">Checking your access…</span>
       </header>

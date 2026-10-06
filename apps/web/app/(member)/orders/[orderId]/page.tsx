@@ -27,6 +27,7 @@ import { MemberAccessState } from "../../../components/member-access-state";
 import { CancelOrderButton } from "./cancel-order-button";
 import { FinishOrderButton } from "./finish-order-button";
 import { FoodPickerSection } from "./food-picker-section";
+import { ReceiptSection } from "./receipt-section";
 
 type OrderView = Awaited<ReturnType<typeof ordersRuntime.loadOrderDetailView>>;
 
@@ -582,6 +583,7 @@ export default async function OrderDetailPage({
           </section>
         ) : null}
 
+        <ReceiptSection orderId={orderId} />
         <div className="session-settings" id="session-settings">
           {view.viewer.canManage && view.order.state === "food_confirmation" ? (
             <FinishOrderButton orderId={view.order.orderId} />

@@ -1,0 +1,157 @@
+.receipt-section {
+  margin-top: 24px;
+  min-width: 0;
+}
+.receipt-settings,
+.receipt-form,
+.receipt-card {
+  padding: 18px;
+  border: 1px solid var(--color-border, #dfe7e2);
+  border-radius: 16px;
+  background: white;
+  min-width: 0;
+}
+.receipt-settings,
+.receipt-form {
+  margin-bottom: 16px;
+}
+.receipt-section fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.receipt-section legend {
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.receipt-section .field-label {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.receipt-section input:not([type="checkbox"]),
+.receipt-section select,
+.receipt-section textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #dfe7e2;
+  padding: 12px;
+  border-radius: 10px;
+  font: inherit;
+  background: #fff;
+}
+.receipt-switch,
+.receipt-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.receipt-switch {
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.receipt-person input,
+.receipt-switch input {
+  accent-color: #367b45;
+  width: 20px;
+  height: 20px;
+}
+.receipt-switch input {
+  appearance: none;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: #c4cec6;
+  position: relative;
+  cursor: pointer;
+}
+.receipt-switch input::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+}
+.receipt-switch input:checked {
+  background: #367b45;
+}
+.receipt-switch input:checked::after {
+  left: 21px;
+}
+.receipt-switch input:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.receipt-help {
+  color: #536157;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 8px 0 14px;
+}
+.receipt-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+}
+.receipt-card__heading,
+.receipt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+}
+.receipt-preview {
+  display: block;
+  width: 100%;
+  height: 220px;
+  object-fit: contain;
+  background: #f4f7f4;
+  border-radius: 10px;
+}
+.receipt-note {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.receipt-actions {
+  justify-content: flex-start;
+  margin-top: 14px;
+}
+.receipt-section button {
+  min-height: 44px;
+}
+.receipt-section [role="alert"] {
+  color: #a32929;
+  overflow-wrap: anywhere;
+}
+.receipt-remove {
+  background: #fff5f3;
+  padding: 14px;
+  border-radius: 10px;
+  margin-top: 14px;
+}
+.receipt-form progress {
+  width: 100%;
+}
+.receipt-section :focus-visible {
+  outline: 3px solid #367b45;
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .receipt-settings,
+  .receipt-form,
+  .receipt-card {
+    padding: 14px;
+  }
+  .receipt-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
