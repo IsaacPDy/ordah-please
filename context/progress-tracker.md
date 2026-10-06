@@ -20,7 +20,7 @@
 
 ## Completed
 
-- [x] V1-18 Mobile web icon — implemented 2026-10-06. iPhone Home Screen artwork now matches the browser tab icon. Exact asset comparison passed; the live browser icon already matched the supplied image before this change. Evidence in [`history/v1-18.md`](history/v1-18.md).
+- [x] V1-19 Mobile web icon — implemented 2026-10-06. iPhone Home Screen artwork now matches the browser tab icon. Exact asset comparison passed; the live browser icon already matched the supplied image before this change. Evidence in [`history/v1-19.md`](history/v1-19.md).
 
 - [x] V1-18 Pre-added members and optional account linking — implemented 2026-10-06. Admins can create named members before first login, use them in groups and sessions, and explicitly combine them with a signed-in account. Normal login remains independent. Focused tests (61), isolated development database linking tests (3), web typecheck, scoped lint, production build, and signed-in create/link browser checks passed. Evidence in [`history/v1-18.md`](history/v1-18.md). No migration required; production unverified.
 
