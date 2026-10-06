@@ -20,6 +20,8 @@
 
 ## Completed
 
+- [x] V1-14 Persistent desktop member sidebar — implemented 2026-10-06. Desktop member navigation uses a fixed left sidebar from 900px while retaining the full-width workspace and phone bottom tabs. Signed-in responsive browser checks and CSS formatting passed; build evidence in [`history/v1-14.md`](history/v1-14.md). Production unverified.
+
 - [x] V1-13 Full-width browser shell — implemented 2026-10-06. Desktop member and admin shells fill the browser, without outer box borders; floating desktop actions align to the window edge. Phone composition retained. Signed-in member/admin layout checks, formatting, build, and whitespace checks passed. Production unverified. Evidence in [`history/v1-13.md`](history/v1-13.md).
 
 - [x] V1-12 Member reference layout fidelity — implemented 2026-10-06. Rich membership cards, monthly History rows, restaurant/All favorites layouts, and social-session sidebar, participant disclosures, progress, and subtotal panels on desktop and mobile. 98 affected tests, web typecheck, scoped lint, build, and signed-in local browser checks passed. Production and separate-role acceptance remain unverified. Evidence in [`history/v1-12.md`](history/v1-12.md).

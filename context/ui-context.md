@@ -59,3 +59,7 @@ Groups, History, Favorites, and active-session detail now follow the supplied de
 ## Full-width browser shell — October 6, 2026
 
 The user explicitly replaced the centered desktop shell with a full-width browser workspace. Member shells use the full viewport from 900px, with no shell outline/shadow and the existing 32px content inset. Admin fills the viewport at all widths, retaining its responsive sidebar. Member phone composition below 900px stays unchanged. Desktop floating order actions remain 32px from the window edge. This supersedes the earlier 1200px member and 1440px admin shell caps; intentionally constrained inner forms remain readable.
+
+## Persistent desktop member sidebar — October 6, 2026
+
+The user replaced desktop top navigation with an always-visible 224px left sidebar for Home, Sessions, Favorites, and Groups from 900px. It sits below the 84px header and scrolls independently if needed; main content reserves its width. The full-width workspace remains. Phone bottom tabs and nested-order navigation remain unchanged. This supersedes earlier desktop top-navigation guidance.
