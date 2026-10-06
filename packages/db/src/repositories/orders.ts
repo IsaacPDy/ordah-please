@@ -423,7 +423,7 @@ export function createOrdersRepository(
       if (!Number.isInteger(limit) || limit < 1 || limit > 25) {
         throw new Error("Terminal order limit must be between 1 and 25.");
       }
-      const sortTime = sql<Date>`coalesce(${orders.completedAt}, ${orders.createdAt})`;
+      const sortTime = orders.createdAt;
       const participantCount = sql<number>`(
         select count(*)
         from ${orderParticipants}

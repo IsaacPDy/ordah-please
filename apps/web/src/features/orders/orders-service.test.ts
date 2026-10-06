@@ -890,6 +890,29 @@ describe("progressive order history", () => {
     expect(result.nextCursor).toEqual(expect.any(String));
   });
 
+  it("builds the next history cursor from the session date rather than completion", async () => {
+    const row = {
+      ...terminalRow(),
+      createdAt: new Date("2026-07-01T00:00:00Z"),
+    };
+    const orders = {
+      ...createRepositories().orders,
+      listActiveVisibleForUser: vi.fn(() => Promise.resolve([])),
+      listTerminalVisibleForUser: vi.fn(() =>
+        Promise.resolve({ nextCursorRow: row, rows: [row] }),
+      ),
+    };
+    const result = await listOrderSummaryPage(
+      { cursor: null, identity: identityFor(memberId, "member"), limit: 10 },
+      { orders },
+    );
+    expect(result.history[0]?.loggedAt).toEqual(row.createdAt);
+    expect(parseOrderHistoryCursor(result.nextCursor!)).toEqual({
+      orderId: row.orderId,
+      sortTime: row.createdAt,
+    });
+  });
+
   it("loads only the Member's own terminal participant detail", async () => {
     const orders = {
       ...createRepositories().orders,

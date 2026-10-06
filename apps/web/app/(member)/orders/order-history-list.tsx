@@ -478,5 +478,5 @@ function HistoryLog({ detail }: { readonly detail: OrderHistoryDetail }) {
 }
 
 function historyDate(order: CompactOrderSummary): Date | null {
-  return order.completedAt ?? order.loggedAt ?? null;
+  return order.loggedAt ?? order.completedAt ?? null;
 }

@@ -134,6 +134,40 @@ describe("progressive Orders History", () => {
     });
   });
 
+  it("uses the edited session date for finished and cancelled history months", () => {
+    render(
+      <OrderHistoryList
+        initialHistory={[
+          { ...compactOrder, loggedAt: new Date("2026-08-12T16:30:00Z") },
+          {
+            ...compactOrder,
+            orderId: "cancelled",
+            state: "cancelled",
+            restaurantName: "Pancake House",
+            loggedAt: new Date("2026-07-01T00:00:00Z"),
+          },
+        ]}
+        initialNextCursor={null}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "August 2026" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "July 2026" })).toBeTruthy();
+    expect(
+      screen.queryByRole("heading", { name: "September 2026" }),
+    ).toBeNull();
+    expect(screen.getAllByText(/Aug 13, 2026/).length).toBeGreaterThan(0);
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter history by month" }),
+      {
+        target: { value: "August 2026" },
+      },
+    );
+    expect(
+      screen.getByRole("button", { name: /Show order log for KFC/ }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Pancake House/ })).toBeNull();
+  });
+
   it("requests a person log only when its compact card opens", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(

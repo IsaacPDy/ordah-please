@@ -80,3 +80,7 @@ Group Overview places Recent orders, its date selector, and See all in one toolb
 ## V1-18 Admin member creation and linking
 
 Users & permissions includes Add member with a required name (1–120 characters), and labels members without authentication as Not linked to a login. Those members retain normal Add user to group controls. Link login account opens a native modal listing signed-in account names and emails, with no default account selection. Confirm link combines the records only after explicit selection; ordinary sign-in requires no assignment. Native modals isolate background interaction, trap focus, support Escape/outside dismissal and Cancel, and restore trigger focus. Mutations disable duplicate submission and display safe retryable errors.
+
+## V1-20 History session date
+
+Past sessions and group History use the owner's editable Session date for date badges, month headings and filters, newest-first database ordering, and pagination cursors. Completion date remains separate saved metadata. Older summary shapes without a session date retain a completion-date display fallback. This supersedes completion-date grouping for these History lists.

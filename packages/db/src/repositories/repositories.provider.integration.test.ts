@@ -2013,7 +2013,7 @@ describe("orders repository writes", () => {
         return {
           ...commonOrder,
           completedAt,
-          createdAt: completedAt,
+          createdAt: new Date(baseTime.getTime() + (10 - index) * 60_000),
           state: "ordered" as const,
           updatedAt: completedAt,
         };
@@ -2032,6 +2032,9 @@ describe("orders repository writes", () => {
       { cursor: null, limit: 10 },
     );
     expect(firstPage.rows).toHaveLength(10);
+    expect(firstPage.rows[0]?.createdAt).toEqual(
+      new Date(baseTime.getTime() + 10 * 60_000),
+    );
     expect(firstPage.nextCursorRow).toEqual(firstPage.rows[9]);
 
     const cursorRow = firstPage.nextCursorRow;
@@ -2041,7 +2044,7 @@ describe("orders repository writes", () => {
       {
         cursor: {
           orderId: cursorRow.orderId,
-          sortTime: cursorRow.completedAt ?? cursorRow.createdAt,
+          sortTime: cursorRow.createdAt,
         },
         limit: 10,
       },

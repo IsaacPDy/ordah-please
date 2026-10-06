@@ -1377,7 +1377,7 @@ export async function listOrderSummaryPage(
         ? null
         : encodeOrderHistoryCursor({
             orderId: next.orderId,
-            sortTime: next.completedAt ?? next.createdAt,
+            sortTime: next.createdAt,
           }),
   };
 }
