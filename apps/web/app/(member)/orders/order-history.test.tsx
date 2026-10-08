@@ -78,10 +78,10 @@ describe("progressive Orders History", () => {
         ]}
       />,
     );
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Filter history by status" }),
-      { target: { value: "cancelled" } },
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter history by status" }),
     );
+    fireEvent.click(screen.getByRole("option", { name: "Cancelled" }));
     expect(
       screen.getByRole("button", { name: "Show order log for Pancake House" }),
     ).toBeTruthy();
@@ -90,30 +90,30 @@ describe("progressive Orders History", () => {
         name: "Show order log for KFC – Magsaysay",
       }),
     ).toBeNull();
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Filter history by restaurant" }),
-      { target: { value: "KFC – Magsaysay" } },
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter history by restaurant" }),
     );
+    fireEvent.click(screen.getByRole("option", { name: "KFC – Magsaysay" }));
     expect(
       screen.getByText("No orders match these filters on the loaded pages."),
     ).toBeTruthy();
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Filter history by status" }),
-      { target: { value: "" } },
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter history by status" }),
     );
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Filter history by month" }),
-      { target: { value: "August 2026" } },
+    fireEvent.click(screen.getByRole("option", { name: "All statuses" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter history by month" }),
     );
+    fireEvent.click(screen.getByRole("option", { name: "August 2026" }));
     expect(
       screen.queryByRole("button", {
         name: "Show order log for KFC – Magsaysay",
       }),
     ).toBeNull();
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Filter history by month" }),
-      { target: { value: "" } },
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter history by month" }),
     );
+    fireEvent.click(screen.getByRole("option", { name: "All time" }));
     expect(
       screen.getByRole("button", {
         name: "Show order log for KFC – Magsaysay",
@@ -157,12 +157,10 @@ describe("progressive Orders History", () => {
       screen.queryByRole("heading", { name: "September 2026" }),
     ).toBeNull();
     expect(screen.getAllByText(/Aug 13, 2026/).length).toBeGreaterThan(0);
-    fireEvent.change(
-      screen.getByRole("combobox", { name: "Filter history by month" }),
-      {
-        target: { value: "August 2026" },
-      },
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter history by month" }),
     );
+    fireEvent.click(screen.getByRole("option", { name: "August 2026" }));
     expect(
       screen.getByRole("button", { name: /Show order log for KFC/ }),
     ).toBeTruthy();

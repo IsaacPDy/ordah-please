@@ -25,6 +25,8 @@
 
 ## Completed
 
+- [x] V1-24 History filter dropdown layout — implemented 2026-10-08. Sessions Past, group Recent orders, and Group History use compact triggers with separate vertical options panels, retaining existing filter choices and app styling. Sixteen affected tests, web typecheck, scoped lint, and signed-in desktop/393px phone browser checks passed. Production unverified. Evidence in [`history/v1-24.md`](history/v1-24.md).
+
 - [x] V1-21 Group managers and admin membership cards — implemented 2026-10-06. Clickable admin groups open member cards with Add people, manager appointment/demotion, and confirmed removal. Managers receive owner-equivalent session access within assigned groups; membership and invitation management remain admin-only. Full unit suite (718), isolated database regressions (2), web typecheck, scoped lint, production build, and signed-in admin browser flow passed. Separate-role/hosted acceptance remains unverified; no migration required. Evidence in [`history/v1-21.md`](history/v1-21.md).
 
 - [x] V1-20 History session date — implemented 2026-10-06. Past sessions and group History display, filter, sort, and paginate by the editable Session date. Focused history/UI tests, isolated database pagination regression, web typecheck, scoped lint, production build, and actual-component browser preview passed. Existing unrelated manual-completion test failure remains; hosted acceptance is unverified. Evidence in [`history/v1-20.md`](history/v1-20.md).

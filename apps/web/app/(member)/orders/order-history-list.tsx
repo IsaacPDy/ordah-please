@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
 
+import { HistoryFilterDropdown } from "../../components/history-filter-dropdown";
+
 import { formatCentavos, parseCentavos } from "@ordah-please/domain";
 
 import {
@@ -198,78 +200,67 @@ export function OrderHistoryList({
         <div className="history-filters">
           {extendedFilters ? (
             <>
-              <label className="history-filter">
-                <span className="sr-only">Filter history by restaurant</span>
-                <select
+              <div className="history-filter">
+                <HistoryFilterDropdown
+                  label="Filter history by restaurant"
                   value={selectedRestaurant}
-                  onChange={(event) =>
-                    setSelectedRestaurant(event.target.value)
-                  }
-                >
-                  <option value="">All restaurants</option>
-                  {Array.from(
-                    new Set(
-                      history.map(
-                        (order) => order.restaurantName ?? "No place chosen",
+                  onChange={setSelectedRestaurant}
+                  options={[
+                    { value: "", label: "All restaurants" },
+                    ...Array.from(
+                      new Set(
+                        history.map(
+                          (order) => order.restaurantName ?? "No place chosen",
+                        ),
                       ),
-                    ),
-                  )
-                    .sort()
-                    .map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className="history-filter">
-                <span className="sr-only">Filter history by status</span>
-                <select
+                    )
+                      .sort()
+                      .map((name) => ({ value: name, label: name })),
+                  ]}
+                />
+              </div>
+              <div className="history-filter">
+                <HistoryFilterDropdown
+                  label="Filter history by status"
                   value={selectedStatus}
-                  onChange={(event) => setSelectedStatus(event.target.value)}
-                >
-                  <option value="">All statuses</option>
-                  {Array.from(new Set(history.map((order) => order.state)))
-                    .sort()
-                    .map((state) => (
-                      <option key={state} value={state}>
-                        {formatStateLabel(state)}
-                      </option>
-                    ))}
-                </select>
-              </label>
+                  onChange={setSelectedStatus}
+                  options={[
+                    { value: "", label: "All statuses" },
+                    ...Array.from(new Set(history.map((order) => order.state)))
+                      .sort()
+                      .map((state) => ({
+                        value: state,
+                        label: formatStateLabel(state),
+                      })),
+                  ]}
+                />
+              </div>
             </>
           ) : null}
           {!groupId && groups.length > 0 ? (
-            <label className="history-filter">
-              <span className="sr-only">Filter history by group</span>
-              <select
+            <div className="history-filter">
+              <HistoryFilterDropdown
+                label="Filter history by group"
                 value={selectedGroup}
-                onChange={(event) => setSelectedGroup(event.target.value)}
-              >
-                <option value="">All groups</option>
-                {groups.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={setSelectedGroup}
+                options={[
+                  { value: "", label: "All groups" },
+                  ...groups.map(([id, name]) => ({ value: id, label: name })),
+                ]}
+              />
+            </div>
           ) : null}
-          <label className="history-filter">
-            <span className="sr-only">Filter history by month</span>
-            <select
+          <div className="history-filter">
+            <HistoryFilterDropdown
+              label="Filter history by month"
               value={selectedMonth}
-              onChange={(event) => setSelectedMonth(event.target.value)}
-            >
-              <option value="">All time</option>
-              {months.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={setSelectedMonth}
+              options={[
+                { value: "", label: "All time" },
+                ...months.map((month) => ({ value: month, label: month })),
+              ]}
+            />
+          </div>
         </div>
         {headingAction}
       </div>
